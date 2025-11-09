@@ -1,0 +1,207 @@
+{
+  "funds": [
+    {
+      "id": "1",
+      "name": "Axis Bluechip Fund",
+      "fundHouse": "Axis Mutual Fund",
+      "category": "Large Cap",
+      "nav": 45.32,
+      "returns1Y": 18.5,
+      "returns3Y": 22.3,
+      "returns5Y": 19.8,
+      "aum": 45000,
+      "expenseRatio": 0.65,
+      "rating": 5,
+      "holdings": [
+        { "name": "Reliance Industries", "percentage": 8.5 },
+        { "name": "HDFC Bank", "percentage": 7.2 },
+        { "name": "Infosys", "percentage": 6.8 }
+      ],
+      "manager": {
+        "name": "Anand Radhakrishnan",
+        "bio": "Senior fund manager with 15+ years of experience in equity markets",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "2",
+      "name": "ICICI Prudential Multicap Fund",
+      "fundHouse": "ICICI Prudential",
+      "category": "Multi Cap",
+      "nav": 38.15,
+      "returns1Y": 16.2,
+      "returns3Y": 20.1,
+      "returns5Y": 18.5,
+      "aum": 52000,
+      "expenseRatio": 0.75,
+      "rating": 5,
+      "holdings": [
+        { "name": "TCS", "percentage": 7.5 },
+        { "name": "Bajaj Finance", "percentage": 6.9 },
+        { "name": "Maruti Suzuki", "percentage": 5.8 }
+      ],
+      "manager": {
+        "name": "Priya Sharma",
+        "bio": "Experienced portfolio manager specializing in multi-cap strategies",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "3",
+      "name": "Mirae Asset Emerging Bluechip Fund",
+      "fundHouse": "Mirae Asset",
+      "category": "Mid Cap",
+      "nav": 32.48,
+      "returns1Y": 22.8,
+      "returns3Y": 25.6,
+      "returns5Y": 23.2,
+      "aum": 38000,
+      "expenseRatio": 0.85,
+      "rating": 4,
+      "holdings": [
+        { "name": "Bharti Airtel", "percentage": 6.2 },
+        { "name": "Kotak Mahindra Bank", "percentage": 5.9 },
+        { "name": "Asian Paints", "percentage": 5.5 }
+      ],
+      "manager": {
+        "name": "Rajesh Kumar",
+        "bio": "Mid-cap specialist with proven track record in emerging companies",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "4",
+      "name": "SBI Small Cap Fund",
+      "fundHouse": "SBI Mutual Fund",
+      "category": "Small Cap",
+      "nav": 28.92,
+      "returns1Y": 28.5,
+      "returns3Y": 32.1,
+      "returns5Y": 29.8,
+      "aum": 22000,
+      "expenseRatio": 1.05,
+      "rating": 4,
+      "holdings": [
+        { "name": "Lupin", "percentage": 4.8 },
+        { "name": "Cipla", "percentage": 4.5 },
+        { "name": "Biocon", "percentage": 4.2 }
+      ],
+      "manager": {
+        "name": "Vikram Singh",
+        "bio": "Small-cap expert with deep research capabilities",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "5",
+      "name": "Vanguard India ETF - Nifty 50",
+      "fundHouse": "Vanguard",
+      "category": "ETF",
+      "nav": 52.15,
+      "returns1Y": 17.3,
+      "returns3Y": 21.5,
+      "returns5Y": 19.2,
+      "aum": 85000,
+      "expenseRatio": 0.12,
+      "rating": 5,
+      "holdings": [
+        { "name": "Reliance Industries", "percentage": 9.2 },
+        { "name": "HDFC Bank", "percentage": 8.1 },
+        { "name": "Infosys", "percentage": 7.5 }
+      ],
+      "manager": {
+        "name": "Index Based",
+        "bio": "Passive index tracking fund",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "6",
+      "name": "Motilal Oswal Dividend Yield Fund",
+      "fundHouse": "Motilal Oswal",
+      "category": "Dividend",
+      "nav": 41.67,
+      "returns1Y": 14.2,
+      "returns3Y": 18.9,
+      "returns5Y": 17.5,
+      "aum": 28000,
+      "expenseRatio": 0.7,
+      "rating": 4,
+      "holdings": [
+        { "name": "Power Grid", "percentage": 7.8 },
+        { "name": "NTPC", "percentage": 6.5 },
+        { "name": "Coal India", "percentage": 5.9 }
+      ],
+      "manager": {
+        "name": "Deepak Mehta",
+        "bio": "Dividend strategy specialist with 12+ years experience",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "7",
+      "name": "Kotak Emerging Equity Fund",
+      "fundHouse": "Kotak Mutual Fund",
+      "category": "Mid Cap",
+      "nav": 35.84,
+      "returns1Y": 20.5,
+      "returns3Y": 23.8,
+      "returns5Y": 21.3,
+      "aum": 31000,
+      "expenseRatio": 0.8,
+      "rating": 4,
+      "holdings": [
+        { "name": "Grasim Industries", "percentage": 6.1 },
+        { "name": "Sundar Pichai", "percentage": 5.7 },
+        { "name": "Titan Company", "percentage": 5.3 }
+      ],
+      "manager": {
+        "name": "Neha Gupta",
+        "bio": "Emerging market specialist with global perspective",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "8",
+      "name": "Franklin India Focused Equity Fund",
+      "fundHouse": "Franklin Templeton",
+      "category": "Large Cap",
+      "nav": 48.56,
+      "returns1Y": 19.2,
+      "returns3Y": 23.5,
+      "returns5Y": 20.8,
+      "aum": 42000,
+      "expenseRatio": 0.68,
+      "rating": 5,
+      "holdings": [
+        { "name": "HDFC Bank", "percentage": 8.9 },
+        { "name": "Reliance Industries", "percentage": 8.2 },
+        { "name": "TCS", "percentage": 7.1 }
+      ],
+      "manager": {
+        "name": "Arun Nair",
+        "bio": "Value investor with focus on quality companies",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    },
+    {
+      "id": "9",
+      "name": "HDFC Balanced Advantage Fund",
+      "fundHouse": "HDFC Mutual Fund",
+      "category": "Balanced",
+      "nav": 39.23,
+      "returns1Y": 12.8,
+      "returns3Y": 16.5,
+      "returns5Y": 15.2,
+      "aum": 55000,
+      "expenseRatio": 0.72,
+      "rating": 5,
+      "holdings": [{ "name": "Equity Mix", "percentage": 60 }, { "name": "Debt Mix", "percentage": 40 }],
+      "manager": {
+        "name": "Suresh Menon",
+        "bio": "Dynamic asset allocation expert",
+        "photo": "/placeholder.svg?height=100&width=100"
+      }
+    }
+  ]
+}
