@@ -135,6 +135,16 @@ export const getMarketIndices = async (req: Request, res: Response) => {
       };
     }
 
+    // If no data was fetched, return error
+    if (Object.keys(indices).length === 0) {
+      console.log('⚠️  No live data available from any source');
+      return res.status(503).json({
+        success: false,
+        error: 'Market data temporarily unavailable',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     res.json({
       success: true,
       data: indices,
@@ -143,10 +153,12 @@ export const getMarketIndices = async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('Market indices fetch error:', error.message);
-    res.status(500).json({
+
+    return res.status(500).json({
       success: false,
       error: 'Failed to fetch market data',
       message: error.message,
+      timestamp: new Date().toISOString(),
     });
   }
 };

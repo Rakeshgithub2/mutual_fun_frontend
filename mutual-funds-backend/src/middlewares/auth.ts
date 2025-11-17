@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { prisma } from '../db';
+import { mongodb } from '../db/mongodb';
+import { User } from '../types/mongodb';
+import { ObjectId } from 'mongodb';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -29,9 +31,10 @@ export const authenticate = async (
       role: string;
     };
 
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      select: { id: true, email: true, role: true },
+    // Use MongoDB to find user
+    const usersCollection = mongodb.getCollection<User>('users');
+    const user = await usersCollection.findOne({
+      _id: new ObjectId(decoded.id),
     });
 
     if (!user) {
@@ -39,7 +42,11 @@ export const authenticate = async (
       return;
     }
 
-    req.user = user;
+    req.user = {
+      id: user._id!.toString(),
+      email: user.email,
+      role: user.role,
+    };
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid token.' });

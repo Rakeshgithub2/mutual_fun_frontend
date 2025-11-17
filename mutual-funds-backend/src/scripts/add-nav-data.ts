@@ -1,13 +1,23 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { MongoClient, ObjectId } from 'mongodb';
 
 async function addNavData() {
   console.log('Adding NAV data for funds...');
 
+  const client = new MongoClient('mongodb://localhost:27017');
+
   try {
+    await client.connect();
+    const db = client.db('mutual_funds_db');
+    const fundsCollection = db.collection('funds');
+    const performancesCollection = db.collection('fund_performances');
+
+    // Delete all existing NAV data first
+    console.log('Clearing existing NAV data...');
+    const deleteResult = await performancesCollection.deleteMany({});
+    console.log(`Deleted ${deleteResult.deletedCount} existing records\n`);
+
     // Get all funds
-    const funds = await prisma.fund.findMany();
+    const funds = await fundsCollection.find({}).toArray();
     console.log(`Found ${funds.length} funds`);
 
     // Generate NAV data for the last 365 days
@@ -37,9 +47,10 @@ async function addNavData() {
           currentNav = currentNav * (1 + change);
 
           navRecords.push({
-            fundId: fund.id,
+            fundId: new ObjectId(fund._id), // Store as ObjectId!
             date: new Date(currentDate),
             nav: parseFloat(currentNav.toFixed(2)),
+            createdAt: new Date(),
           });
         }
 
@@ -48,35 +59,22 @@ async function addNavData() {
 
       console.log(`  Generated ${navRecords.length} NAV records`);
 
-      // Insert NAV records in batches
-      const batchSize = 100;
-      for (let i = 0; i < navRecords.length; i += batchSize) {
-        const batch = navRecords.slice(i, i + batchSize);
-
-        try {
-          await prisma.fundPerformance.createMany({
-            data: batch,
-          });
-        } catch (error) {
-          console.log(
-            `  Warning: Some records in batch ${Math.floor(i / batchSize) + 1} may already exist`
-          );
-        }
-
-        console.log(
-          `  Inserted batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(navRecords.length / batchSize)}`
-        );
-      }
-
-      console.log(`  ✓ Completed ${fund.name}`);
+      // Insert NAV records using MongoDB native driver
+      const result = await performancesCollection.insertMany(navRecords);
+      console.log(
+        `  ✓ Inserted ${result.insertedCount} records for ${fund.name}`
+      );
     }
 
-    console.log('\n🎉 NAV data added successfully!');
+    const totalCount = await performancesCollection.countDocuments();
+    console.log(
+      `\n🎉 NAV data added successfully! Total records: ${totalCount}`
+    );
   } catch (error) {
     console.error('Error adding NAV data:', error);
     throw error;
   } finally {
-    await prisma.$disconnect();
+    await client.close();
   }
 }
 

@@ -1,5 +1,6 @@
 import { Redis } from 'ioredis';
-import { prisma } from '../db/index';
+import { mongodb } from '../db/mongodb';
+import { Cache } from '../types/mongodb';
 
 // MongoDB-based cache document model interface
 interface CacheDocument {
@@ -89,11 +90,14 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-        const cached = await prisma.cache.findFirst({
-          where: {
-            key,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          },
+        const cacheCollection = mongodb.getCollection<Cache>('cache');
+        const cached = await cacheCollection.findOne({
+          key,
+          $or: [
+            { expiresAt: { $exists: false } },
+            { expiresAt: null },
+            { expiresAt: { $gt: new Date() } },
+          ],
         });
         return cached?.value || null;
       } catch (error) {
@@ -138,21 +142,29 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-        await prisma.cache.upsert({
-          where: { key },
-          update: {
-            value,
-            expiresAt,
-            updatedAt: new Date(),
-          },
-          create: {
+        const cacheCollection = mongodb.getCollection<Cache>('cache');
+        const existing = await cacheCollection.findOne({ key });
+
+        if (existing) {
+          await cacheCollection.updateOne(
+            { key },
+            {
+              $set: {
+                value,
+                expiresAt,
+                updatedAt: new Date(),
+              },
+            }
+          );
+        } else {
+          await cacheCollection.insertOne({
             key,
             value,
-            expiresAt,
+            expiresAt: expiresAt || undefined,
             createdAt: new Date(),
             updatedAt: new Date(),
-          },
-        });
+          });
+        }
       } catch (error) {
         console.error('Cache set error (MongoDB):', error);
       }
@@ -182,9 +194,8 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-        await prisma.cache.deleteMany({
-          where: { key },
-        });
+        const cacheCollection = mongodb.getCollection<Cache>('cache');
+        await cacheCollection.deleteMany({ key });
       } catch (error) {
         console.error('Cache del error (MongoDB):', error);
       }
@@ -209,15 +220,12 @@ class CacheService {
     // MongoDB fallback - convert Redis pattern to MongoDB regex
     if (this.mongoFallback) {
       try {
+        const cacheCollection = mongodb.getCollection<Cache>('cache');
         // Convert Redis glob pattern to regex
         const regexPattern = pattern.replace(/\*/g, '.*').replace(/\?/g, '.');
 
-        await prisma.cache.deleteMany({
-          where: {
-            key: {
-              contains: pattern.replace(/\*/g, ''),
-            },
-          },
+        await cacheCollection.deleteMany({
+          key: { $regex: new RegExp(regexPattern) },
         });
       } catch (error) {
         console.error('Cache delPattern error (MongoDB):', error);
@@ -240,11 +248,14 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-        const cached = await prisma.cache.findFirst({
-          where: {
-            key,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          },
+        const cacheCollection = mongodb.getCollection<Cache>('cache');
+        const cached = await cacheCollection.findOne({
+          key,
+          $or: [
+            { expiresAt: { $exists: false } },
+            { expiresAt: null },
+            { expiresAt: { $gt: new Date() } },
+          ],
         });
         return !!cached;
       } catch (error) {
@@ -270,9 +281,8 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-        const cached = await prisma.cache.findFirst({
-          where: { key },
-        });
+        const cacheCollection = mongodb.getCollection<Cache>('cache');
+        const cached = await cacheCollection.findOne({ key });
 
         if (!cached || !cached.expiresAt) {
           return -1; // No expiration
@@ -296,12 +306,9 @@ class CacheService {
   async cleanup(): Promise<void> {
     if (this.mongoFallback) {
       try {
-        await prisma.cache.deleteMany({
-          where: {
-            expiresAt: {
-              lt: new Date(),
-            },
-          },
+        const cacheCollection = mongodb.getCollection<Cache>('cache');
+        await cacheCollection.deleteMany({
+          expiresAt: { $lt: new Date() },
         });
       } catch (error) {
         console.error('Cache cleanup error (MongoDB):', error);

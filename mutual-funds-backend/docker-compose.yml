@@ -1,23 +1,25 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
     environment:
-      POSTGRES_DB: mutual_funds
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password123}
+      MONGO_INITDB_DATABASE: mutual_funds_db
     ports:
-      - '5432:5432'
+      - '27017:27017'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-postgres}']
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
+      start_period: 40s
     networks:
       - mutual-funds-network
 
@@ -45,7 +47,7 @@ services:
       target: production
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/mutual_funds
+      DATABASE_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/mutual_funds_db?authSource=admin
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET}
@@ -55,7 +57,7 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -78,7 +80,7 @@ services:
       target: production
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/mutual_funds
+      DATABASE_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/mutual_funds_db?authSource=admin
       REDIS_HOST: redis
       REDIS_PORT: 6379
       RAPIDAPI_KEY: ${RAPIDAPI_KEY}
@@ -86,7 +88,7 @@ services:
       NEWSDATA_API_KEY: ${NEWSDATA_API_KEY}
     command: ['npm', 'run', 'worker']
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -104,13 +106,13 @@ services:
       target: production
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/mutual_funds
+      DATABASE_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/mutual_funds_db?authSource=admin
       REDIS_HOST: redis
       REDIS_PORT: 6379
       TZ: Asia/Kolkata
     command: ['npm', 'run', 'scheduler']
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
       redis:
         condition: service_healthy
@@ -134,18 +136,19 @@ services:
     profiles:
       - tools
 
-  # pgAdmin (Optional - for PostgreSQL management)
-  pgadmin:
-    image: dpage/pgadmin4:latest
+  # Mongo Express (Optional - for MongoDB management)
+  mongo-express:
+    image: mongo-express:latest
     environment:
-      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@example.com}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USERNAME:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-password123}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USERNAME:-admin}:${MONGO_PASSWORD:-password123}@mongodb:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: ${ME_USERNAME:-admin}
+      ME_CONFIG_BASICAUTH_PASSWORD: ${ME_PASSWORD:-admin123}
     ports:
-      - '8080:80'
+      - '8080:8081'
     depends_on:
-      - postgres
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
+      - mongodb
     networks:
       - mutual-funds-network
     profiles:
@@ -156,9 +159,9 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
+  mongodb_data:
+    driver: local
+  mongodb_config:
     driver: local
   redis_data:
-    driver: local
-  pgadmin_data:
     driver: local

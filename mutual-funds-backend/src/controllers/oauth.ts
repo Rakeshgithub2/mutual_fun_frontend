@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { OAuth2Client } from 'google-auth-library';
-import { prisma } from '../db';
+import { mongodb } from '../db/mongodb';
+import { User, RefreshToken } from '../types/mongodb';
+import { ObjectId } from 'mongodb';
 import { formatResponse } from '../utils/response';
 import { generateAccessToken, generateRefreshToken } from '../utils/auth';
 
@@ -69,56 +71,68 @@ export class OAuthController {
       }
 
       // Check if user exists
-      let user = await prisma.user.findUnique({
-        where: { email },
-      });
+      const usersCollection = mongodb.getCollection<User>('users');
+      let user = await usersCollection.findOne({ email });
 
       if (!user) {
         // Create new user
-        user = await prisma.user.create({
-          data: {
-            email,
-            name,
-            password: '', // No password for OAuth users
-            isVerified: true, // Google users are pre-verified
-            role: 'USER',
-          },
-        });
+        const newUser: User = {
+          email,
+          name,
+          password: '', // No password for OAuth users
+          isVerified: true, // Google users are pre-verified
+          role: 'USER',
+          provider: 'google',
+          googleId: payload.sub,
+          profilePicture: picture,
+          kycStatus: 'PENDING',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        const result = await usersCollection.insertOne(newUser);
+        user = { ...newUser, _id: result.insertedId };
 
         console.log(`New Google user created: ${email}`);
       } else {
         // Update user info if needed
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            name,
-            isVerified: true,
-          },
-        });
+        await usersCollection.updateOne(
+          { _id: user._id },
+          {
+            $set: {
+              name,
+              isVerified: true,
+              profilePicture: picture,
+              googleId: payload.sub,
+              updatedAt: new Date(),
+            },
+          }
+        );
       }
 
       // Generate tokens
+      const userId = user._id!.toString();
       const accessToken = generateAccessToken({
-        id: user.id,
+        id: userId,
         email: user.email,
         role: user.role,
       });
 
-      const refreshToken = generateRefreshToken({ id: user.id });
+      const refreshToken = generateRefreshToken({ id: userId });
 
       // Store refresh token
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        },
+      const refreshTokensCollection =
+        mongodb.getCollection<RefreshToken>('refresh_tokens');
+      await refreshTokensCollection.insertOne({
+        token: refreshToken,
+        userId: user._id!,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        createdAt: new Date(),
       });
 
       const response = formatResponse(
         {
           user: {
-            id: user.id,
+            id: userId,
             email: user.email,
             name: user.name,
             role: user.role,
@@ -190,37 +204,44 @@ export class OAuthController {
         return;
       }
 
-      let user = await prisma.user.findUnique({
-        where: { email },
-      });
+      const usersCollection = mongodb.getCollection<User>('users');
+      let user = await usersCollection.findOne({ email });
 
       if (!user) {
-        user = await prisma.user.create({
-          data: {
-            email,
-            name,
-            password: '',
-            isVerified: true,
-            role: 'USER',
-          },
-        });
+        const newUser: User = {
+          email,
+          name,
+          password: '',
+          isVerified: true,
+          role: 'USER',
+          provider: 'google',
+          googleId: payload.sub,
+          profilePicture: payload.picture,
+          kycStatus: 'PENDING',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        const result = await usersCollection.insertOne(newUser);
+        user = { ...newUser, _id: result.insertedId };
       }
 
       // Generate tokens
+      const userId = user._id!.toString();
       const accessToken = generateAccessToken({
-        id: user.id,
+        id: userId,
         email: user.email,
         role: user.role,
       });
 
-      const refreshToken = generateRefreshToken({ id: user.id });
+      const refreshToken = generateRefreshToken({ id: userId });
 
-      await prisma.refreshToken.create({
-        data: {
-          token: refreshToken,
-          userId: user.id,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-        },
+      const refreshTokensCollection =
+        mongodb.getCollection<RefreshToken>('refresh_tokens');
+      await refreshTokensCollection.insertOne({
+        token: refreshToken,
+        userId: user._id!,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
       });
 
       // Redirect to frontend with tokens (for web flow)

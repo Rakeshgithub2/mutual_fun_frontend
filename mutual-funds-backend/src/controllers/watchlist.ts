@@ -1,13 +1,15 @@
 import { Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '../db';
+import { mongodb } from '../db/mongodb';
 import { AuthRequest } from '../middlewares/auth';
 import { formatResponse } from '../utils/response';
 import { cacheService, CacheService } from '../services/cacheService';
+import { WatchlistItem, Fund, FundPerformance } from '../types/mongodb';
+import { ObjectId } from 'mongodb';
 // import { emitWatchlistUpdate } from '../services/socket';
 
 const addWatchlistSchema = z.object({
-  fundId: z.string().cuid(),
+  fundId: z.string(),
 });
 
 export const addToWatchlist = async (
@@ -17,10 +19,12 @@ export const addToWatchlist = async (
   try {
     const { fundId } = addWatchlistSchema.parse(req.body);
 
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+    const watchlistCollection =
+      mongodb.getCollection<WatchlistItem>('watchlist_items');
+
     // Check if fund exists
-    const fund = await prisma.fund.findUnique({
-      where: { id: fundId },
-    });
+    const fund = await fundsCollection.findOne({ _id: new ObjectId(fundId) });
 
     if (!fund) {
       res.status(404).json({ error: 'Fund not found' });
@@ -28,13 +32,9 @@ export const addToWatchlist = async (
     }
 
     // Check if already in watchlist
-    const existingItem = await prisma.watchlistItem.findUnique({
-      where: {
-        userId_fundId: {
-          userId: req.user!.id,
-          fundId,
-        },
-      },
+    const existingItem = await watchlistCollection.findOne({
+      userId: new ObjectId(req.user!.id),
+      fundId: fundId,
     });
 
     if (existingItem) {
@@ -43,23 +43,25 @@ export const addToWatchlist = async (
     }
 
     // Add to watchlist
-    const watchlistItem = await prisma.watchlistItem.create({
-      data: {
-        userId: req.user!.id,
-        fundId,
+    const newWatchlistItem: WatchlistItem = {
+      userId: new ObjectId(req.user!.id),
+      fundId: fundId,
+      createdAt: new Date(),
+    };
+
+    const result = await watchlistCollection.insertOne(newWatchlistItem);
+
+    const watchlistItem = {
+      ...newWatchlistItem,
+      id: result.insertedId.toString(),
+      fund: {
+        id: fund._id?.toString(),
+        amfiCode: fund.amfiCode,
+        name: fund.name,
+        type: fund.type,
+        category: fund.category,
       },
-      include: {
-        fund: {
-          select: {
-            id: true,
-            amfiCode: true,
-            name: true,
-            type: true,
-            category: true,
-          },
-        },
-      },
-    });
+    };
 
     // Invalidate user's watchlist cache
     const cacheKey = CacheService.keys.userWatchlist(req.user!.id);
@@ -106,19 +108,22 @@ export const removeFromWatchlist = async (
   try {
     const { id } = req.params;
 
+    const watchlistCollection =
+      mongodb.getCollection<WatchlistItem>('watchlist_items');
+
     // Check if watchlist item exists and belongs to user
-    const watchlistItem = await prisma.watchlistItem.findUnique({
-      where: { id },
+    const watchlistItem = await watchlistCollection.findOne({
+      _id: new ObjectId(id),
     });
 
-    if (!watchlistItem || watchlistItem.userId !== req.user!.id) {
+    if (!watchlistItem || watchlistItem.userId.toString() !== req.user!.id) {
       res.status(404).json({ error: 'Watchlist item not found' });
       return;
     }
 
     // Remove from watchlist
-    await prisma.watchlistItem.delete({
-      where: { id },
+    await watchlistCollection.deleteOne({
+      _id: new ObjectId(id),
     });
 
     // Invalidate user's watchlist cache
@@ -156,30 +161,52 @@ export const getWatchlist = async (
       return;
     }
 
-    const watchlistItems = await prisma.watchlistItem.findMany({
-      where: { userId: req.user!.id },
-      include: {
-        fund: {
-          select: {
-            id: true,
-            amfiCode: true,
-            name: true,
-            type: true,
-            category: true,
-            expenseRatio: true,
-            performances: {
-              orderBy: { date: 'desc' },
-              take: 1,
-              select: { nav: true, date: true },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const watchlistCollection =
+      mongodb.getCollection<WatchlistItem>('watchlist_items');
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+    const performancesCollection =
+      mongodb.getCollection<FundPerformance>('fund_performances');
+
+    const watchlistItems = await watchlistCollection
+      .find({ userId: new ObjectId(req.user!.id) })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    // Enrich with fund data
+    const enrichedItems = await Promise.all(
+      watchlistItems.map(async (item) => {
+        const fund = await fundsCollection.findOne({
+          _id: new ObjectId(item.fundId),
+        });
+        const latestPerf = await performancesCollection
+          .find({ fundId: item.fundId })
+          .sort({ date: -1 })
+          .limit(1)
+          .toArray();
+
+        return {
+          ...item,
+          id: item._id?.toString(),
+          fund: fund
+            ? {
+                id: fund._id?.toString(),
+                amfiCode: fund.amfiCode,
+                name: fund.name,
+                type: fund.type,
+                category: fund.category,
+                expenseRatio: fund.expenseRatio,
+                performances: latestPerf.map((p) => ({
+                  nav: p.nav,
+                  date: p.date,
+                })),
+              }
+            : null,
+        };
+      })
+    );
 
     const response = formatResponse(
-      watchlistItems,
+      enrichedItems,
       'Watchlist retrieved successfully'
     );
 

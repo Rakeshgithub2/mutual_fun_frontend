@@ -54,5 +54,7 @@ class MongoDB {
 
 export const mongodb = MongoDB.getInstance();
 
-// Connect on module load
-mongodb.connect().catch(console.error);
+// Connect on module load - don't crash if it fails
+mongodb.connect().catch((err) => {
+  console.error('⚠️ MongoDB connection failed, but continuing:', err.message);
+});

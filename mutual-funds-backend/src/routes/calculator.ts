@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { formatResponse } from '../utils/response';
+import * as calcService from '../services/calculatorService';
 
 const router = Router();
 
@@ -17,30 +18,22 @@ router.post('/sip', async (req: Request, res: Response) => {
       });
     }
 
-    const P = parseFloat(monthlyInvestment);
-    const r = parseFloat(expectedReturn) / 100 / 12; // Monthly rate
-    const n = parseInt(timePeriod) * 12; // Total months
-
-    // Future Value = P × [((1 + r)^n - 1) / r] × (1 + r)
-    const futureValue = P * (((Math.pow(1 + r, n) - 1) / r) * (1 + r));
-    const totalInvestment = P * n;
-    const estimatedReturns = futureValue - totalInvestment;
+    const result = calcService.calculateSIP({
+      monthlyInvestment: parseFloat(monthlyInvestment),
+      expectedReturnRate: parseFloat(expectedReturn),
+      timePeriod: parseInt(timePeriod),
+    });
 
     return res.json(
       formatResponse(
         {
-          monthlyInvestment: P,
-          timePeriod: parseInt(timePeriod),
-          expectedReturn: parseFloat(expectedReturn),
-          totalInvestment: Math.round(totalInvestment),
-          estimatedReturns: Math.round(estimatedReturns),
-          futureValue: Math.round(futureValue),
+          ...result,
           calculation: {
             formula: 'P × [((1 + r)^n - 1) / r] × (1 + r)',
-            breakdown: {
-              principal: P,
-              monthlyRate: r.toFixed(6),
-              totalMonths: n,
+            input: {
+              monthlyInvestment: parseFloat(monthlyInvestment),
+              expectedReturn: parseFloat(expectedReturn),
+              timePeriod: parseInt(timePeriod),
             },
           },
         },

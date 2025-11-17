@@ -11,6 +11,7 @@ import {
 import { formatResponse } from '../utils/response';
 import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
+import { emailService } from '../services/emailService';
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
@@ -114,47 +115,73 @@ export const handleGoogleCallback = async (
     console.log('🔄 Upserting user:', payload.email);
     const usersCollection = mongodb.getCollection<User>('users');
 
-    // Build the update object - only set fields we want to update
-    const updateFields: any = {
-      googleId: payload.sub, // Google user ID
-      email: payload.email,
-      name: payload.name || payload.email.split('@')[0],
-      profilePicture: payload.picture || undefined,
-      provider: 'google',
-      isVerified: true, // Google emails are verified
-      updatedAt: new Date(),
-    };
+    // First, check if user exists with this email OR googleId
+    let existingUser = await usersCollection.findOne({
+      $or: [{ email: payload.email }, { googleId: payload.sub }],
+    });
 
-    // For new users, also set these fields
-    const setOnInsert: Partial<User> = {
-      password: await hashPassword(crypto.randomBytes(20).toString('hex')), // Random password for OAuth users
-      role: 'USER',
-      kycStatus: 'PENDING',
-      createdAt: new Date(),
-    };
+    let user: User;
 
-    // Upsert with googleId as the filter - preserves watchlist
-    const filter = payload.sub
-      ? { googleId: payload.sub }
-      : { email: payload.email };
-    const user = await usersCollection.findOneAndUpdate(
-      filter,
-      {
-        $set: updateFields,
-        $setOnInsert: setOnInsert,
-      },
-      {
-        upsert: true,
-        returnDocument: 'after',
+    if (existingUser) {
+      // User exists - update their Google info
+      console.log('✅ Found existing user, updating Google info...');
+
+      const updateResult = await usersCollection.findOneAndUpdate(
+        { _id: existingUser._id },
+        {
+          $set: {
+            googleId: payload.sub,
+            name: payload.name || existingUser.name,
+            profilePicture: payload.picture || existingUser.profilePicture,
+            provider: 'google',
+            isVerified: true,
+            updatedAt: new Date(),
+          },
+        },
+        {
+          returnDocument: 'after',
+        }
+      );
+
+      if (!updateResult) {
+        console.error('❌ Failed to update existing user');
+        return res.status(500).json({ error: 'Failed to update user' });
       }
-    );
 
-    if (!user) {
-      console.error('❌ Failed to upsert user');
-      return res.status(500).json({ error: 'Failed to create/update user' });
+      user = updateResult;
+      console.log('✅ Updated existing user:', user.email);
+    } else {
+      // New user - create with Google info
+      console.log('🆕 Creating new user with Google account...');
+
+      const newUser: User = {
+        googleId: payload.sub,
+        email: payload.email,
+        name: payload.name || payload.email.split('@')[0],
+        profilePicture: payload.picture || undefined,
+        provider: 'google',
+        password: await hashPassword(crypto.randomBytes(20).toString('hex')),
+        role: 'USER',
+        isVerified: true,
+        kycStatus: 'PENDING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      const insertResult = await usersCollection.insertOne(newUser);
+
+      const createdUser = await usersCollection.findOne({
+        _id: insertResult.insertedId,
+      });
+
+      if (!createdUser) {
+        console.error('❌ Failed to create new user');
+        return res.status(500).json({ error: 'Failed to create user' });
+      }
+
+      user = createdUser;
+      console.log('✅ Created new user:', user.email);
     }
-
-    console.log('✅ User upserted successfully:', user.email);
 
     // Generate tokens
     console.log('🔄 Generating JWT tokens...');
@@ -178,6 +205,20 @@ export const handleGoogleCallback = async (
       createdAt: new Date(),
     });
     console.log('✅ Refresh token stored');
+
+    // Send welcome email (non-blocking)
+    const isNewUser = !existingUser;
+    emailService
+      .sendWelcomeEmail(user.email, {
+        name: user.name,
+        email: user.email,
+        loginType: 'google',
+      })
+      .catch((err) => console.error('❌ Failed to send welcome email:', err));
+    console.log(
+      `📧 Welcome email ${isNewUser ? 'sent' : 'queued'} for:`,
+      user.email
+    );
 
     // Encode user data in URL for frontend
     const userData = encodeURIComponent(

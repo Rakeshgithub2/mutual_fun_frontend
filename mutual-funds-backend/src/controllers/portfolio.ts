@@ -1,8 +1,15 @@
 import { Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '../db';
+import { mongodb } from '../db/mongodb';
 import { AuthRequest } from '../middlewares/auth';
 import { formatResponse } from '../utils/response';
+import {
+  Portfolio,
+  PortfolioItem,
+  Fund,
+  FundPerformance,
+} from '../types/mongodb';
+import { ObjectId } from 'mongodb';
 
 const createPortfolioSchema = z.object({
   name: z.string().min(1).max(100),
@@ -18,24 +25,17 @@ export const getPortfolios = async (
   res: Response
 ): Promise<void> => {
   try {
-    const portfolios = await prisma.portfolio.findMany({
-      where: { userId: req.user!.id },
-      include: {
-        items: {
-          include: {
-            fund: {
-              include: {
-                performances: {
-                  orderBy: { date: 'desc' },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const portfoliosCollection = mongodb.getCollection<Portfolio>('portfolios');
+    const portfolioItemsCollection =
+      mongodb.getCollection<PortfolioItem>('portfolio_items');
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+    const performancesCollection =
+      mongodb.getCollection<FundPerformance>('fund_performances');
+
+    const portfolios = await portfoliosCollection
+      .find({ userId: new ObjectId(req.user!.id) })
+      .sort({ createdAt: -1 })
+      .toArray();
 
     // Calculate current values for each portfolio
     const portfoliosWithValues = await Promise.all(
@@ -43,26 +43,52 @@ export const getPortfolios = async (
         let totalInvested = 0;
         let totalCurrent = 0;
 
-        const itemsWithValues = portfolio.items.map((item) => {
-          const latestNav = item.fund.performances[0]?.nav || 0;
-          const currentValue = item.units * latestNav;
-          totalInvested += item.investedAmount;
-          totalCurrent += currentValue;
+        // Get portfolio items
+        const items = await portfolioItemsCollection
+          .find({ portfolioId: portfolio._id })
+          .toArray();
 
-          return {
-            ...item,
-            currentValue,
-            returns: currentValue - item.investedAmount,
-            returnsPercent:
-              item.investedAmount > 0
-                ? ((currentValue - item.investedAmount) / item.investedAmount) *
-                  100
-                : 0,
-          };
-        });
+        const itemsWithValues = await Promise.all(
+          items.map(async (item) => {
+            // Get fund details
+            const fund = await fundsCollection.findOne({
+              _id: new ObjectId(item.fundId),
+            });
+
+            // Get latest NAV
+            const latestPerformance = await performancesCollection
+              .find({ fundId: item.fundId })
+              .sort({ date: -1 })
+              .limit(1)
+              .toArray();
+
+            const latestNav = latestPerformance[0]?.nav || 0;
+            const currentValue = item.units * latestNav;
+            totalInvested += item.investedAmount;
+            totalCurrent += currentValue;
+
+            return {
+              ...item,
+              id: item._id?.toString(),
+              fund: {
+                ...fund,
+                id: fund?._id?.toString(),
+              },
+              currentValue,
+              returns: currentValue - item.investedAmount,
+              returnsPercent:
+                item.investedAmount > 0
+                  ? ((currentValue - item.investedAmount) /
+                      item.investedAmount) *
+                    100
+                  : 0,
+            };
+          })
+        );
 
         return {
           ...portfolio,
+          id: portfolio._id?.toString(),
           items: itemsWithValues,
           totalInvested,
           totalValue: totalCurrent,
@@ -92,25 +118,16 @@ export const getPortfolioById = async (
   try {
     const { id } = req.params;
 
-    const portfolio = await prisma.portfolio.findFirst({
-      where: {
-        id,
-        userId: req.user!.id,
-      },
-      include: {
-        items: {
-          include: {
-            fund: {
-              include: {
-                performances: {
-                  orderBy: { date: 'desc' },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
+    const portfoliosCollection = mongodb.getCollection<Portfolio>('portfolios');
+    const portfolioItemsCollection =
+      mongodb.getCollection<PortfolioItem>('portfolio_items');
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+    const performancesCollection =
+      mongodb.getCollection<FundPerformance>('fund_performances');
+
+    const portfolio = await portfoliosCollection.findOne({
+      _id: new ObjectId(id),
+      userId: new ObjectId(req.user!.id),
     });
 
     if (!portfolio) {
@@ -118,29 +135,54 @@ export const getPortfolioById = async (
       return;
     }
 
-    // Calculate current values
+    // Get portfolio items
+    const items = await portfolioItemsCollection
+      .find({ portfolioId: portfolio._id })
+      .toArray();
+
     let totalInvested = 0;
     let totalCurrent = 0;
 
-    const itemsWithValues = portfolio.items.map((item) => {
-      const latestNav = item.fund.performances[0]?.nav || 0;
-      const currentValue = item.units * latestNav;
-      totalInvested += item.investedAmount;
-      totalCurrent += currentValue;
+    const itemsWithValues = await Promise.all(
+      items.map(async (item) => {
+        // Get fund details
+        const fund = await fundsCollection.findOne({
+          _id: new ObjectId(item.fundId),
+        });
 
-      return {
-        ...item,
-        currentValue,
-        returns: currentValue - item.investedAmount,
-        returnsPercent:
-          item.investedAmount > 0
-            ? ((currentValue - item.investedAmount) / item.investedAmount) * 100
-            : 0,
-      };
-    });
+        // Get latest NAV
+        const latestPerformance = await performancesCollection
+          .find({ fundId: item.fundId })
+          .sort({ date: -1 })
+          .limit(1)
+          .toArray();
+
+        const latestNav = latestPerformance[0]?.nav || 0;
+        const currentValue = item.units * latestNav;
+        totalInvested += item.investedAmount;
+        totalCurrent += currentValue;
+
+        return {
+          ...item,
+          id: item._id?.toString(),
+          fund: {
+            ...fund,
+            id: fund?._id?.toString(),
+          },
+          currentValue,
+          returns: currentValue - item.investedAmount,
+          returnsPercent:
+            item.investedAmount > 0
+              ? ((currentValue - item.investedAmount) / item.investedAmount) *
+                100
+              : 0,
+        };
+      })
+    );
 
     const portfolioWithValues = {
       ...portfolio,
+      id: portfolio._id?.toString(),
       items: itemsWithValues,
       totalInvested,
       totalValue: totalCurrent,
@@ -168,12 +210,17 @@ export const createPortfolio = async (
   try {
     const validatedData = createPortfolioSchema.parse(req.body);
 
-    const portfolio = await prisma.portfolio.create({
-      data: {
-        userId: req.user!.id,
-        name: validatedData.name,
-      },
-    });
+    const portfoliosCollection = mongodb.getCollection<Portfolio>('portfolios');
+    const newPortfolio: Portfolio = {
+      userId: new ObjectId(req.user!.id),
+      name: validatedData.name,
+      totalValue: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    const result = await portfoliosCollection.insertOne(newPortfolio);
+    const portfolio = { ...newPortfolio, id: result.insertedId.toString() };
 
     res
       .status(201)
@@ -201,12 +248,12 @@ export const updatePortfolio = async (
     const { id } = req.params;
     const validatedData = updatePortfolioSchema.parse(req.body);
 
+    const portfoliosCollection = mongodb.getCollection<Portfolio>('portfolios');
+
     // Check if portfolio exists and belongs to user
-    const existingPortfolio = await prisma.portfolio.findFirst({
-      where: {
-        id,
-        userId: req.user!.id,
-      },
+    const existingPortfolio = await portfoliosCollection.findOne({
+      _id: new ObjectId(id),
+      userId: new ObjectId(req.user!.id),
     });
 
     if (!existingPortfolio) {
@@ -214,15 +261,20 @@ export const updatePortfolio = async (
       return;
     }
 
-    const updateData: any = {};
+    const updateData: any = { updatedAt: new Date() };
     if (validatedData.name) updateData.name = validatedData.name;
 
-    const portfolio = await prisma.portfolio.update({
-      where: { id },
-      data: updateData,
-    });
+    await portfoliosCollection.updateOne(
+      { _id: new ObjectId(id) },
+      { $set: updateData }
+    );
 
-    res.json(formatResponse(portfolio, 'Portfolio updated successfully'));
+    const portfolio = await portfoliosCollection.findOne({
+      _id: new ObjectId(id),
+    });
+    const portfolioWithId = { ...portfolio, id: portfolio?._id?.toString() };
+
+    res.json(formatResponse(portfolioWithId, 'Portfolio updated successfully'));
   } catch (error) {
     if (error instanceof z.ZodError) {
       res.status(400).json({
@@ -245,12 +297,14 @@ export const deletePortfolio = async (
   try {
     const { id } = req.params;
 
+    const portfoliosCollection = mongodb.getCollection<Portfolio>('portfolios');
+    const portfolioItemsCollection =
+      mongodb.getCollection<PortfolioItem>('portfolio_items');
+
     // Check if portfolio exists and belongs to user
-    const existingPortfolio = await prisma.portfolio.findFirst({
-      where: {
-        id,
-        userId: req.user!.id,
-      },
+    const existingPortfolio = await portfoliosCollection.findOne({
+      _id: new ObjectId(id),
+      userId: new ObjectId(req.user!.id),
     });
 
     if (!existingPortfolio) {
@@ -258,9 +312,13 @@ export const deletePortfolio = async (
       return;
     }
 
-    await prisma.portfolio.delete({
-      where: { id },
+    // Delete portfolio items first
+    await portfolioItemsCollection.deleteMany({
+      portfolioId: new ObjectId(id),
     });
+
+    // Delete portfolio
+    await portfoliosCollection.deleteOne({ _id: new ObjectId(id) });
 
     res.json(formatResponse(null, 'Portfolio deleted successfully'));
   } catch (error) {
@@ -275,49 +333,56 @@ export const getPortfolioSummary = async (
   res: Response
 ): Promise<void> => {
   try {
+    const portfoliosCollection = mongodb.getCollection<Portfolio>('portfolios');
+    const portfolioItemsCollection =
+      mongodb.getCollection<PortfolioItem>('portfolio_items');
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+    const performancesCollection =
+      mongodb.getCollection<FundPerformance>('fund_performances');
+
     // Get all portfolios with items
-    const portfolios = await prisma.portfolio.findMany({
-      where: { userId: req.user!.id },
-      include: {
-        items: {
-          include: {
-            fund: {
-              include: {
-                performances: {
-                  orderBy: { date: 'desc' },
-                  take: 1,
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    const portfolios = await portfoliosCollection
+      .find({ userId: new ObjectId(req.user!.id) })
+      .toArray();
 
     let totalInvested = 0;
     let totalCurrent = 0;
     const categoryAllocation: { [key: string]: number } = {};
     const holdings: any[] = [];
 
-    portfolios.forEach((portfolio) => {
-      portfolio.items.forEach((item) => {
-        const latestNav = item.fund.performances[0]?.nav || 0;
+    for (const portfolio of portfolios) {
+      const items = await portfolioItemsCollection
+        .find({ portfolioId: portfolio._id })
+        .toArray();
+
+      for (const item of items) {
+        const fund = await fundsCollection.findOne({
+          _id: new ObjectId(item.fundId),
+        });
+
+        const latestPerformance = await performancesCollection
+          .find({ fundId: item.fundId })
+          .sort({ date: -1 })
+          .limit(1)
+          .toArray();
+
+        const latestNav = latestPerformance[0]?.nav || 0;
         const currentValue = item.units * latestNav;
 
         totalInvested += item.investedAmount;
         totalCurrent += currentValue;
 
         // Category allocation
-        const category = item.fund.category || 'OTHER';
+        const category = fund?.category || 'OTHER';
         categoryAllocation[category] =
           (categoryAllocation[category] || 0) + currentValue;
 
         // Add to holdings
         holdings.push({
-          id: item.id,
+          id: item._id?.toString(),
           fundId: item.fundId,
-          fundName: item.fund.name,
-          category: item.fund.category,
+          fundName: fund?.name,
+          category: fund?.category,
           units: item.units,
           nav: latestNav,
           invested: item.investedAmount,
@@ -329,8 +394,8 @@ export const getPortfolioSummary = async (
                 100
               : 0,
         });
-      });
-    });
+      }
+    }
 
     // Calculate allocation percentages
     const allocation = Object.entries(categoryAllocation).map(
