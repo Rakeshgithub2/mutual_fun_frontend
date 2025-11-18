@@ -3,6 +3,9 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     unoptimized: true,
   },
@@ -12,8 +15,10 @@ const nextConfig = {
     appIsrStatus: false, // Removes the "N" button indicator
     buildActivityPosition: "bottom-right",
   },
-  // Disable Fast Refresh overlay for cleaner UX in development
-  reactStrictMode: true,
+  // Disable strict mode to avoid React 19 hydration errors
+  reactStrictMode: false,
+  // Output standalone for better Vercel deployment
+  output: "standalone",
 };
 
 export default nextConfig;

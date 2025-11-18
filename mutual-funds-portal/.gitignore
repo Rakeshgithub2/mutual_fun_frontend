@@ -16,8 +16,9 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
-.env*
+# env files (allow .env.production template)
+.env
+.env*.local
 
 # vercel
 .vercel
