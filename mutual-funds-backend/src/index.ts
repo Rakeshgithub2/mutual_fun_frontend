@@ -6,6 +6,7 @@ import { createServer } from 'http';
 import routes from './routes';
 import { errorHandler } from './middlewares/error';
 import { generalRateLimit } from './middleware/rateLimiter';
+import { mongodb } from './db/mongodb';
 // Import Socket.IO and Change Streams (will handle gracefully if not available)
 // import { initializeSocket } from './services/socket';
 // import { startWatchlistChangeStream } from './services/changeStreams';
@@ -15,6 +16,17 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3002;
+
+// Initialize database connection
+async function initializeDatabase() {
+  try {
+    await mongodb.connect();
+    console.log('✅ Database initialized successfully');
+  } catch (error) {
+    console.error('❌ Failed to initialize database:', error);
+    process.exit(1);
+  }
+}
 
 // Security middleware
 app.use(helmet());
@@ -71,13 +83,21 @@ app.use(errorHandler);
 // Global error handlers
 process.on('uncaughtException', (error) => {
   console.error('💥 Uncaught Exception:', error);
-  process.exit(1);
+  console.error('Stack:', error.stack);
+  console.error('⚠️ Server will continue running to help debug');
+  // Don't exit to see what's happening
+  // process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
-  process.exit(1);
+  console.error('⚠️ Server will continue running to help debug');
+  // Don't exit to see what's happening
+  // process.exit(1);
 });
+
+// Log successful initialization
+console.log('🎯 All error handlers registered');
 
 // Start server
 if (process.env.NODE_ENV !== 'test') {
@@ -92,21 +112,45 @@ if (process.env.NODE_ENV !== 'test') {
   //   console.log('ℹ️ Change Streams not started:', err.message);
   // });
 
-  const server = httpServer.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
-    console.log(`✅ Server is running on http://localhost:${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📡 WebSocket ready for real-time updates (after npm install)`);
-  });
+  // Initialize database first, then start server
+  initializeDatabase()
+    .then(() => {
+      const server = httpServer.listen(Number(PORT), '0.0.0.0', () => {
+        console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
+        console.log(`✅ Server is running on http://localhost:${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        console.log(
+          `📡 WebSocket ready for real-time updates (after npm install)`
+        );
+        console.log('🎯 Server is alive and listening for requests');
 
-  server.on('error', (error: any) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${PORT} is already in use`);
-    } else {
-      console.error('❌ Server error:', error);
-    }
-    process.exit(1);
-  });
+        // Keep the process alive - multiple strategies
+        process.stdin.resume();
+
+        // Add keepalive interval to prevent process exit
+        setInterval(
+          () => {
+            // Empty interval to keep event loop active
+          },
+          1000 * 60 * 60
+        ); // Every hour
+
+        console.log('✅ Server keepalive configured - will stay running');
+      });
+
+      server.on('error', (error: any) => {
+        if (error.code === 'EADDRINUSE') {
+          console.error(`❌ Port ${PORT} is already in use`);
+        } else {
+          console.error('❌ Server error:', error);
+        }
+        process.exit(1);
+      });
+    })
+    .catch((error) => {
+      console.error('❌ Failed to start server:', error);
+      process.exit(1);
+    });
 }
 
 export default app;

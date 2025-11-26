@@ -10,31 +10,23 @@ npm install
 
 # Setup environment variables
 cp .env.example .env
-# Edit .env with your MongoDB URL and JWT secrets
+# Edit .env with your database URL and JWT secrets
 
-# Start MongoDB (using Docker)
-docker-compose -f docker-compose.dev.yml up mongodb -d
+# Run database migrations
+npm run db:migrate
 
 # Generate Prisma client
 npm run db:generate
-
-# Push schema to MongoDB
-npm run db:push
-
-# Seed database (optional)
-npm run db:seed
 
 # Start development server
 npm run dev
 ```
 
-For detailed setup instructions, see **[MONGODB_QUICK_START.md](MONGODB_QUICK_START.md)**
-
 ## Tech Stack
 
 - **Node.js** (LTS) + **TypeScript**
 - **Express** - Web framework
-- **Prisma ORM** - Database ORM with MongoDB
+- **Prisma ORM** - Database ORM with PostgreSQL
 - **bcrypt** - Password hashing
 - **jsonwebtoken** - JWT authentication
 - **Zod** - Request validation
@@ -57,30 +49,25 @@ prisma/              # Database schema and migrations
 ## API Endpoints
 
 ### Authentication
-
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - User login
 - `POST /api/auth/refresh` - Refresh access token
 
 ### Funds
-
 - `GET /api/funds` - List funds with filtering and pagination
 - `GET /api/funds/:id` - Get fund details with holdings and NAVs
 - `GET /api/funds/:id/navs` - Get fund NAV history
 
 ### User Profile
-
 - `GET /api/users/me` - Get user profile
 - `PUT /api/users/me` - Update user profile
 
 ### Watchlist
-
 - `POST /api/watchlist` - Add fund to watchlist
 - `DELETE /api/watchlist/:id` - Remove from watchlist
 - `GET /api/watchlist` - Get user watchlist
 
 ### Alerts
-
 - `POST /api/alerts` - Create price alert
 - `GET /api/alerts` - Get user alerts
 

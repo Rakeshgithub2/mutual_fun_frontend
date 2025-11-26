@@ -28,7 +28,7 @@ export const getFunds = async (
   res: Response
 ): Promise<Response> => {
   try {
-    console.log('📥 GET /funds request received (WITH NAV DATA)');
+    console.log('📥 GET /funds request received');
     const { type, category, q, page, limit, sort } = getFundsSchema.parse(
       req.query
     );
@@ -79,7 +79,7 @@ export const getFunds = async (
     // Get total count
     const total = await prisma.fund.count({ where });
 
-    // Get funds with latest NAV
+    // Get funds
     const funds = await prisma.fund.findMany({
       where,
       orderBy: orderBy || { createdAt: 'desc' },
@@ -97,27 +97,11 @@ export const getFunds = async (
         description: true,
         createdAt: true,
         updatedAt: true,
-        performances: {
-          orderBy: { date: 'desc' },
-          take: 1,
-          select: {
-            nav: true,
-            date: true,
-          },
-        },
       },
     });
 
-    // Transform to include NAV directly
-    const fundsWithNav = funds.map((fund) => ({
-      ...fund,
-      nav: fund.performances[0]?.nav || 0,
-      navDate: fund.performances[0]?.date || null,
-      performances: undefined, // Remove nested performances from response
-    }));
-
     const response = formatPaginatedResponse(
-      fundsWithNav,
+      funds,
       total,
       page,
       limit,
@@ -162,7 +146,7 @@ export const getFundById = async (
       include: {
         holdings: {
           orderBy: { percent: 'desc' },
-          take: 10, // Top 10 holdings
+          take: 15, // Top 15 holdings (real companies)
         },
         managedBy: {
           select: {
@@ -170,15 +154,7 @@ export const getFundById = async (
             name: true,
             experience: true,
             qualification: true,
-            bio: true,
-            photo: true,
           },
-        },
-        managementTeam: {
-          orderBy: { order: 'asc' },
-        },
-        portfolioActions: {
-          orderBy: { order: 'asc' },
         },
         performances: {
           where: {

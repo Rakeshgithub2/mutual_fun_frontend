@@ -12,7 +12,6 @@ import {
   verifyRefreshToken,
 } from '../utils/auth';
 import { formatResponse } from '../utils/response';
-import { emailService } from '../services/emailService';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -95,14 +94,13 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       createdAt: new Date(),
     });
 
-    // Send welcome email (non-blocking)
-    emailService
-      .sendWelcomeEmail(user.email, {
-        name: user.name,
-        email: user.email,
-        loginType: 'registration',
-      })
-      .catch((err) => console.error('Failed to send welcome email:', err));
+    // TODO: Send verification email job to queue
+    // This would typically integrate with a job queue like Bull or BullMQ
+    console.log('Verification email job payload:', {
+      userId: userId,
+      email: user.email,
+      name: user.name,
+    });
 
     res.status(201).json(
       formatResponse(
@@ -177,15 +175,6 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       createdAt: new Date(),
     });
-
-    // Send welcome back email (non-blocking)
-    emailService
-      .sendWelcomeEmail(user.email, {
-        name: user.name,
-        email: user.email,
-        loginType: 'login',
-      })
-      .catch((err) => console.error('Failed to send welcome back email:', err));
 
     res.json(
       formatResponse(

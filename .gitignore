@@ -1,85 +1,32 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# Dependencies
-node_modules/
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
+.pnpm-debug.log*
 
-# Environment files (CRITICAL - Contains API keys and secrets)
-.env
-.env.local
-.env.development
-.env.development.local
-.env.test
-.env.test.local
-.env.production
-.env.production.local
-docker.env
-*.env
-.env.*
+# env files
+.env*
+!.env.example
 
-# Next.js
-/.next/
-/out/
-.next/
-next-env.d.ts
-
-# Build outputs
-/build
-/dist
-*.tsbuildinfo
-
-# Testing
-/coverage
-/.nyc_output
-*.lcov
-
-# Logs
-logs
-*.log
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
-
-# Database files
-*.sqlite
-*.sqlite3
-*.db
-
-# IDEs and editors
-.vscode/
-!.vscode/extensions.json
-.idea/
-*.swp
-*.swo
-*~
-.DS_Store
-
-# OS files
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-desktop.ini
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-
-# Vercel
+# vercel
 .vercel
 
-# Prisma
-prisma/.env
+# typescript
+*.tsbuildinfo
+next-env.d.ts
 
-# MongoDB dumps
-*.dump
-dump/
+# OS files
+.DS_Store
+Thumbs.db

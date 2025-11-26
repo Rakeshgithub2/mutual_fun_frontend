@@ -50,11 +50,10 @@ class MongoDB {
     await this.client.close();
     console.log('MongoDB disconnected');
   }
+
+  public isConnected(): boolean {
+    return this.db !== null;
+  }
 }
 
 export const mongodb = MongoDB.getInstance();
-
-// Connect on module load - don't crash if it fails
-mongodb.connect().catch((err) => {
-  console.error('⚠️ MongoDB connection failed, but continuing:', err.message);
-});

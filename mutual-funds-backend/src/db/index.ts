@@ -1,14 +1,13 @@
+import { PrismaClient } from '@prisma/client';
 import { mongodb } from './mongodb';
-import { prisma } from './prisma';
 
-// Export MongoDB instance and Prisma client
-export { mongodb, prisma };
+// Initialize Prisma Client
+export const prisma = new PrismaClient({
+  log: ['error', 'warn'],
+});
 
-// Test connection
-mongodb
-  .connect()
-  .then(() => console.log('✅ Database connected successfully'))
-  .catch((err) => {
-    console.error('❌ Database connection failed:', err);
-    // Don't exit - let the server continue
-  });
+// Re-export MongoDB instance for backward compatibility
+export { mongodb };
+
+// For code that uses 'prisma', provide mongodb instance
+export const db = mongodb;

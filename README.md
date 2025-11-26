@@ -1,224 +1,107 @@
-# MutualFunds.in - India's Mutual Funds & ETFs Portal
+# Mutual Funds Backend API
 
-A beautiful, responsive, and user-friendly frontend portal for exploring, comparing, and managing mutual funds and ETFs in India.
+A production-ready backend starter for a mutual fund platform built with Node.js, TypeScript, Express, and Prisma.
 
-## Features
+## Quick Start
 
-✨ **Core Features**
-- 📊 Browse Stock Mutual Funds, Commodity Funds & ETFs
-- ⭐ Personal Watchlist with localStorage persistence
-- 🔍 Global search and filtering capabilities
-- 📈 5-year performance charts and analytics
-- 🌙 Light/Dark mode with theme persistence
-- 🌐 Multi-language support (English, Hindi, Kannada)
-- 📱 Fully responsive design (mobile, tablet, desktop)
-- ♿ Accessibility-first approach with ARIA attributes
-
-## Tech Stack
-
-- **Framework**: Next.js 16 with App Router
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4
-- **Animations**: Framer Motion (ready for integration)
-- **Charts**: Recharts (ready for integration)
-- **i18n**: Custom i18n system (EN/HI/KN)
-- **State Management**: React Hooks + localStorage
-
-## Getting Started
-
-### Installation
-
-\`\`\`bash
-# Clone the repository
-git clone <repo-url>
-cd mutual-funds-portal
-
+```bash
 # Install dependencies
 npm install
 
-# Run development server
+# Setup environment variables
+cp .env.example .env
+# Edit .env with your MongoDB URL and JWT secrets
+
+# Start MongoDB (using Docker)
+docker-compose -f docker-compose.dev.yml up mongodb -d
+
+# Generate Prisma client
+npm run db:generate
+
+# Push schema to MongoDB
+npm run db:push
+
+# Seed database (optional)
+npm run db:seed
+
+# Start development server
 npm run dev
+```
 
-# Open browser
-# Navigate to http://localhost:3000
-\`\`\`
+For detailed setup instructions, see **[MONGODB_QUICK_START.md](MONGODB_QUICK_START.md)**
 
-### Project Structure
+## Tech Stack
 
-\`\`\`
-├── app/
-│   ├── layout.tsx           # Root layout with fonts
-│   ├── globals.css          # Design system & Tailwind config
-│   ├── page.tsx             # Homepage with 3-tab interface
-│   └── funds/
-│       └── [id]/
-│           └── page.tsx     # Fund detail page
-├── components/
-│   ├── header.tsx           # Header with auth & theme toggle
-│   ├── fund-card.tsx        # Individual fund card component
-│   └── fund-list.tsx        # Fund list with filters & sorting
-├── lib/
-│   ├── i18n.ts              # i18n translations (EN/HI/KN)
-│   └── hooks/
-│       ├── use-language.ts  # Language preference hook
-│       ├── use-theme.ts     # Dark/light mode hook
-│       └── use-watchlist.ts # Watchlist management hook
-├── data/
-│   └── mock-funds.json      # Mock fund data (9+ funds)
-└── README.md
-\`\`\`
+- **Node.js** (LTS) + **TypeScript**
+- **Express** - Web framework
+- **Prisma ORM** - Database ORM with MongoDB
+- **bcrypt** - Password hashing
+- **jsonwebtoken** - JWT authentication
+- **Zod** - Request validation
+- **Jest** - Testing framework
 
-## Mock Data
+## Project Structure
 
-The app includes 9+ mock funds with:
-- 5-year historical returns
-- Fund holdings and sector allocation
-- Fund manager information
-- NAV, AUM, expense ratio, and ratings
+```
+src/
+├── controllers/     # Request handlers
+├── services/        # Business logic
+├── routes/          # API routes
+├── db/              # Database connection
+├── middlewares/     # Express middlewares
+└── utils/           # Helper utilities
+tests/               # Test files
+prisma/              # Database schema and migrations
+```
 
-Located in `/data/mock-funds.json`
+## API Endpoints
 
-## Environment Variables (For Future API Integration)
+### Authentication
 
-Create a `.env.local` file with these placeholders:
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - User login
+- `POST /api/auth/refresh` - Refresh access token
 
-\`\`\`env
-# Market Data API (e.g., Yahoo Finance, AMFI)
-NEXT_PUBLIC_MARKET_API_KEY=your_api_key_here
-NEXT_PUBLIC_MARKET_API_URL=https://api.example.com
+### Funds
 
-# News API (e.g., newsdata.io)
-NEXT_PUBLIC_NEWS_API_KEY=your_api_key_here
+- `GET /api/funds` - List funds with filtering and pagination
+- `GET /api/funds/:id` - Get fund details with holdings and NAVs
+- `GET /api/funds/:id/navs` - Get fund NAV history
 
-# Email Service (e.g., Resend)
-NEXT_PUBLIC_EMAIL_SERVICE_KEY=your_api_key_here
+### User Profile
 
-# Google OAuth (for Sign In with Google)
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_client_id_here
-\`\`\`
+- `GET /api/users/me` - Get user profile
+- `PUT /api/users/me` - Update user profile
 
-## How to Integrate Real APIs
+### Watchlist
 
-### 1. Market Data (Fund Prices & Returns)
+- `POST /api/watchlist` - Add fund to watchlist
+- `DELETE /api/watchlist/:id` - Remove from watchlist
+- `GET /api/watchlist` - Get user watchlist
 
-Replace mock data in `lib/hooks/use-watchlist.ts`:
+### Alerts
 
-\`\`\`typescript
-// Before: Using mock data from /data/mock-funds.json
-// After: Fetch from real API
-const response = await fetch(`${process.env.NEXT_PUBLIC_MARKET_API_URL}/funds`, {
-  headers: { 'Authorization': `Bearer ${process.env.NEXT_PUBLIC_MARKET_API_KEY}` }
-})
-const funds = await response.json()
-\`\`\`
+- `POST /api/alerts` - Create price alert
+- `GET /api/alerts` - Get user alerts
 
-### 2. News & Updates
+## Scripts
 
-Create `lib/services/news-service.ts`:
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm test` - Run tests
+- `npm run db:migrate` - Run database migrations
+- `npm run db:generate` - Generate Prisma client
 
-\`\`\`typescript
-export async function fetchFundNews(fundId: string) {
-  const response = await fetch(
-    `https://newsdata.io/api/1/news?q=${fundId}&apikey=${process.env.NEXT_PUBLIC_NEWS_API_KEY}`
-  )
-  return response.json()
-}
-\`\`\`
+## Environment Variables
 
-### 3. Authentication (Google Sign-In)
+See `.env.example` for required environment variables.
 
-Update `components/header.tsx`:
+## Docker
 
-\`\`\`typescript
-// Integrate with Google OAuth library
-import { GoogleLogin } from '@react-oauth/google'
+Build and run with Docker:
 
-// Replace placeholder with real implementation
-\`\`\`
-
-### 4. Alerts & Notifications
-
-Create `lib/services/alert-service.ts`:
-
-\`\`\`typescript
-export async function createPriceAlert(fundId: string, targetPrice: number) {
-  const response = await fetch('/api/alerts', {
-    method: 'POST',
-    body: JSON.stringify({ fundId, targetPrice })
-  })
-  return response.json()
-}
-\`\`\`
-
-## Design System
-
-### Color Palette
-
-**Light Mode:**
-- Primary: Deep Indigo (#1e3a8a)
-- Accent: Saffron Orange (#f97316)
-- Success: Teal Green (#10b981)
-- Danger: Red (#ef4444)
-- Neutral: Greys & Whites
-
-**Dark Mode:**
-- Automatically inverted with proper contrast
-
-### Typography
-
-- **Headings**: Geist (sans-serif)
-- **Body**: Geist (sans-serif)
-- **Monospace**: Geist Mono
-
-### Spacing & Sizing
-
-- Uses Tailwind's standard spacing scale
-- Responsive breakpoints: sm (640px), md (768px), lg (1024px)
-- Border radius: 0.5rem (8px)
-
-## Features Roadmap
-
-- [ ] Fund comparison tool (side-by-side metrics)
-- [ ] Advanced search with filters
-- [ ] Glossary with inline explainers
-- [ ] Price alerts and notifications
-- [ ] Portfolio tracking
-- [ ] PDF export for fund details
-- [ ] User authentication & profiles
-- [ ] Personalized recommendations
-- [ ] Mobile app (React Native)
-
-## Accessibility
-
-- ✅ Keyboard navigation support
-- ✅ ARIA labels and roles
-- ✅ Screen reader friendly
-- ✅ Color contrast compliant (WCAG AA)
-- ✅ Semantic HTML structure
-
-## Performance
-
-- 📦 Optimized bundle size
-- 🚀 Lazy loading for images
-- 💾 localStorage caching
-- 🎯 Responsive images
-- ⚡ CSS-in-JS optimization
-
-## Browser Support
-
-- Chrome/Edge (latest)
-- Firefox (latest)
-- Safari (latest)
-- Mobile browsers (iOS Safari, Chrome Mobile)
-
-## License
-
-MIT License - feel free to use this project for personal or commercial purposes.
-
-## Support
-
-For issues, questions, or suggestions, please open an issue on GitHub.
-
----
-
-**Built with ❤️ for Indian investors**
+```bash
+docker build -t mutual-funds-api .
+docker run -p 3000:3000 mutual-funds-api
+```

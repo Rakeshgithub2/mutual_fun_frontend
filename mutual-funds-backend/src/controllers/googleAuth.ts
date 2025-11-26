@@ -11,7 +11,6 @@ import {
 import { formatResponse } from '../utils/response';
 import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
-import { emailService } from '../services/emailService';
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
@@ -34,16 +33,24 @@ console.log('  REDIRECT_URI:', REDIRECT_URI);
 console.log('  FRONTEND_URL:', FRONTEND_URL);
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
-  console.error(
-    '❌ CRITICAL: Missing Google OAuth credentials in environment variables!'
+  console.warn(
+    '⚠️  WARNING: Google OAuth credentials not configured - Google login will be disabled'
   );
 }
 
-const oauth2Client = new OAuth2Client(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+const oauth2Client =
+  CLIENT_ID && CLIENT_SECRET
+    ? new OAuth2Client(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
+    : null;
 
 export const redirectToGoogle = (req: Request, res: Response): void => {
   console.log('🔵 redirectToGoogle called');
   console.log('📋 Using CLIENT_ID:', CLIENT_ID ? 'Present' : 'MISSING!');
+
+  if (!oauth2Client) {
+    res.status(503).json({ error: 'Google OAuth is not configured' });
+    return;
+  }
 
   const state = req.query.state as string | undefined;
   const authUrlOptions: any = {
@@ -70,6 +77,9 @@ export const handleGoogleCallback = async (
   req: Request,
   res: Response
 ): Promise<Response | void> => {
+  if (!oauth2Client) {
+    return res.status(503).json({ error: 'Google OAuth is not configured' });
+  }
   try {
     console.log('🔵 Google OAuth Callback Started');
     console.log('📋 Query params:', req.query);
@@ -115,73 +125,47 @@ export const handleGoogleCallback = async (
     console.log('🔄 Upserting user:', payload.email);
     const usersCollection = mongodb.getCollection<User>('users');
 
-    // First, check if user exists with this email OR googleId
-    let existingUser = await usersCollection.findOne({
-      $or: [{ email: payload.email }, { googleId: payload.sub }],
-    });
+    // Build the update object - only set fields we want to update
+    const updateFields: any = {
+      googleId: payload.sub, // Google user ID
+      email: payload.email,
+      name: payload.name || payload.email.split('@')[0],
+      profilePicture: payload.picture || undefined,
+      provider: 'google',
+      isVerified: true, // Google emails are verified
+      updatedAt: new Date(),
+    };
 
-    let user: User;
+    // For new users, also set these fields
+    const setOnInsert: Partial<User> = {
+      password: await hashPassword(crypto.randomBytes(20).toString('hex')), // Random password for OAuth users
+      role: 'USER',
+      kycStatus: 'PENDING',
+      createdAt: new Date(),
+    };
 
-    if (existingUser) {
-      // User exists - update their Google info
-      console.log('✅ Found existing user, updating Google info...');
-
-      const updateResult = await usersCollection.findOneAndUpdate(
-        { _id: existingUser._id },
-        {
-          $set: {
-            googleId: payload.sub,
-            name: payload.name || existingUser.name,
-            profilePicture: payload.picture || existingUser.profilePicture,
-            provider: 'google',
-            isVerified: true,
-            updatedAt: new Date(),
-          },
-        },
-        {
-          returnDocument: 'after',
-        }
-      );
-
-      if (!updateResult) {
-        console.error('❌ Failed to update existing user');
-        return res.status(500).json({ error: 'Failed to update user' });
+    // Upsert with googleId as the filter - preserves watchlist
+    const filter = payload.sub
+      ? { googleId: payload.sub }
+      : { email: payload.email };
+    const user = await usersCollection.findOneAndUpdate(
+      filter,
+      {
+        $set: updateFields,
+        $setOnInsert: setOnInsert,
+      },
+      {
+        upsert: true,
+        returnDocument: 'after',
       }
+    );
 
-      user = updateResult;
-      console.log('✅ Updated existing user:', user.email);
-    } else {
-      // New user - create with Google info
-      console.log('🆕 Creating new user with Google account...');
-
-      const newUser: User = {
-        googleId: payload.sub,
-        email: payload.email,
-        name: payload.name || payload.email.split('@')[0],
-        profilePicture: payload.picture || undefined,
-        provider: 'google',
-        password: await hashPassword(crypto.randomBytes(20).toString('hex')),
-        role: 'USER',
-        isVerified: true,
-        kycStatus: 'PENDING',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const insertResult = await usersCollection.insertOne(newUser);
-
-      const createdUser = await usersCollection.findOne({
-        _id: insertResult.insertedId,
-      });
-
-      if (!createdUser) {
-        console.error('❌ Failed to create new user');
-        return res.status(500).json({ error: 'Failed to create user' });
-      }
-
-      user = createdUser;
-      console.log('✅ Created new user:', user.email);
+    if (!user) {
+      console.error('❌ Failed to upsert user');
+      return res.status(500).json({ error: 'Failed to create/update user' });
     }
+
+    console.log('✅ User upserted successfully:', user.email);
 
     // Generate tokens
     console.log('🔄 Generating JWT tokens...');
@@ -205,20 +189,6 @@ export const handleGoogleCallback = async (
       createdAt: new Date(),
     });
     console.log('✅ Refresh token stored');
-
-    // Send welcome email (non-blocking)
-    const isNewUser = !existingUser;
-    emailService
-      .sendWelcomeEmail(user.email, {
-        name: user.name,
-        email: user.email,
-        loginType: 'google',
-      })
-      .catch((err) => console.error('❌ Failed to send welcome email:', err));
-    console.log(
-      `📧 Welcome email ${isNewUser ? 'sent' : 'queued'} for:`,
-      user.email
-    );
 
     // Encode user data in URL for frontend
     const userData = encodeURIComponent(

@@ -1,40 +1,30 @@
-import { Router } from 'express';
-import { Request, Response } from 'express';
-import { prisma } from '../db';
-import { formatResponse, formatPaginatedResponse } from '../utils/response';
+import { Router, Request, Response } from 'express';
 
 const router = Router();
+const newsService = require('../../services/newsService');
 
-// Get latest news
-router.get('/latest', async (req: Request, res: Response) => {
+/**
+ * @route   GET /api/news
+ * @desc    Get top 8 financial news with language support
+ * @access  Public
+ */
+router.get('/', async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
-    const category = req.query.category as string;
+    const { language = 'english' } = req.query;
 
-    const where: any = {};
-    if (category) {
-      where.category = category;
-    }
+    const news = await newsService.getNews(language);
 
-    const news = await prisma.news.findMany({
-      where,
-      orderBy: { publishedAt: 'desc' },
-      take: limit,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        source: true,
-        category: true,
-        tags: true,
-        publishedAt: true,
+    res.json({
+      success: true,
+      data: {
+        articles: news.articles,
+        lastUpdated: news.lastUpdated,
+        totalCount: news.articles.length,
       },
     });
-
-    return res.json(formatResponse(news, 'News retrieved successfully'));
   } catch (error) {
     console.error('Error fetching news:', error);
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       message: 'Failed to fetch news',
       error: error instanceof Error ? error.message : 'Unknown error',
@@ -42,53 +32,66 @@ router.get('/latest', async (req: Request, res: Response) => {
   }
 });
 
-// Get news by fund ID
-router.get('/fund/:fundId', async (req: Request, res: Response) => {
+/**
+ * @route   GET /api/news/:id
+ * @desc    Get full article details by ID
+ * @access  Public
+ */
+router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const { fundId } = req.params;
-    const limit = parseInt(req.query.limit as string) || 5;
+    const { id } = req.params;
 
-    // Get fund details first to search relevant news
-    const fund = await prisma.fund.findUnique({
-      where: { id: fundId },
-      select: { name: true, category: true },
-    });
+    const article = await newsService.getArticleById(id);
 
-    if (!fund) {
+    if (!article) {
       return res.status(404).json({
         success: false,
-        message: 'Fund not found',
+        message: 'Article not found',
       });
     }
 
-    // Search news related to fund category or name
-    const news = await prisma.news.findMany({
-      where: {
-        OR: [
-          { tags: { has: fund.category } },
-          { title: { contains: fund.name, mode: 'insensitive' } },
-          { content: { contains: fund.category, mode: 'insensitive' } },
-        ],
-      },
-      orderBy: { publishedAt: 'desc' },
-      take: limit,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        source: true,
-        category: true,
-        tags: true,
-        publishedAt: true,
+    // Get related news
+    const relatedNews = await newsService.getRelatedNews(
+      article.category,
+      id,
+      5
+    );
+
+    res.json({
+      success: true,
+      data: {
+        article,
+        relatedNews,
       },
     });
-
-    return res.json(formatResponse(news, 'Fund news retrieved successfully'));
   } catch (error) {
-    console.error('Error fetching fund news:', error);
-    return res.status(500).json({
+    console.error('Error fetching article:', error);
+    res.status(500).json({
       success: false,
-      message: 'Failed to fetch fund news',
+      message: 'Failed to fetch article',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
+/**
+ * @route   POST /api/news/refresh
+ * @desc    Manually trigger news refresh (testing mode - 8 articles)
+ * @access  Public
+ */
+router.post('/refresh', async (req: Request, res: Response) => {
+  try {
+    await newsService.fetchAndStoreNews(false); // isScheduled = false, fetches 8 articles for testing
+
+    res.json({
+      success: true,
+      message: 'News refreshed successfully (testing mode - 8 articles)',
+    });
+  } catch (error) {
+    console.error('Error refreshing news:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to refresh news',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
