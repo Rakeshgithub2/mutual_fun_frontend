@@ -22,7 +22,8 @@ export function useFunds(filters?: {
         console.log('🔍 [useFunds] Fetching with filters:', filters);
         console.log(
           '🌐 [useFunds] API Base URL:',
-          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api'
+          process.env.NEXT_PUBLIC_API_URL ||
+            'https://mutualfun-backend.vercel.app/api'
         );
         const response = await apiClient.getFunds(filters);
         console.log(

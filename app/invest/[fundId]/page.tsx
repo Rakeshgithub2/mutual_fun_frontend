@@ -53,7 +53,8 @@ export default function InvestPage({
   const [error, setError] = useState<string | null>(null);
 
   const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+    process.env.NEXT_PUBLIC_API_URL ||
+    'https://mutualfun-backend.vercel.app/api';
 
   const t = (key: string) => getTranslation(language, key);
 

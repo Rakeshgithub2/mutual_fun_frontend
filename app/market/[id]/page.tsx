@@ -346,7 +346,7 @@ export default function MarketIndexPage() {
     const fetchIndexData = async () => {
       try {
         const response = await fetch(
-          'http://localhost:3002/api/market-indices'
+          'https://mutualfun-backend.vercel.app/api/market-indices'
         );
         const apiData = await response.json();
 

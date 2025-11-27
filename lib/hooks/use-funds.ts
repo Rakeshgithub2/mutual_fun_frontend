@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
 
 interface Fund {
   id: string;
@@ -60,7 +61,8 @@ export function useFunds(options?: {
 
       // Use the correct API_URL - it already includes /api from .env.local
       const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+        process.env.NEXT_PUBLIC_API_URL ||
+        'https://mutualfun-backend.vercel.app/api';
       const apiUrl = `${baseUrl}/funds?${params.toString()}`;
       console.log('🚀 Fetching funds from API:', apiUrl);
 
@@ -189,7 +191,8 @@ export function useFund(id: string) {
     try {
       // Use the correct API_URL - it already includes /api from .env.local
       const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+        process.env.NEXT_PUBLIC_API_URL ||
+        'https://mutualfun-backend.vercel.app/api';
       const httpResponse = await fetch(`${baseUrl}/funds/${id}`);
 
       if (!httpResponse.ok) {

@@ -60,7 +60,8 @@ import {
   AreaChart,
 } from 'recharts';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
 
 // Mock portfolio data for demo
 const MOCK_PORTFOLIO_DATA = {

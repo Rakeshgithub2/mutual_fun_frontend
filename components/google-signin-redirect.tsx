@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 export function GoogleSignInRedirect() {
   const handleClick = () => {
     // Redirect to backend Google OAuth flow
-    window.location.href = 'http://localhost:3002/api/auth/google';
+    window.location.href =
+      'https://mutualfun-backend.vercel.app/api/auth/google';
   };
 
   return (

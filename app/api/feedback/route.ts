@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
     // Send feedback to backend API
     // NEXT_PUBLIC_API_URL already includes /api, so just add /feedback
     const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://mutualfun-backend.vercel.app/api';
 
     console.log('📤 Sending feedback to backend:', `${backendUrl}/feedback`);
 

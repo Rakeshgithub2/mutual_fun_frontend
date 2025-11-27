@@ -16,7 +16,7 @@ import { getToken } from '@/lib/api';
 
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ||
-  'http://localhost:3002';
+  'https://mutualfun-backend.vercel.app';
 
 interface SocketContextValue {
   // socket: Socket | null;

@@ -55,7 +55,8 @@ export default function Home() {
     if (activeTab === 'news' && news.length === 0) {
       setNewsLoading(true);
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+        process.env.NEXT_PUBLIC_API_URL ||
+        'https://mutualfun-backend.vercel.app/api';
 
       fetch(`${API_URL}/news/latest?limit=12`)
         .then((res) => res.json())

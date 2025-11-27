@@ -53,7 +53,8 @@ export default function NewsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+    process.env.NEXT_PUBLIC_API_URL ||
+    'https://mutualfun-backend.vercel.app/api';
 
   // Fetch news from API
   const fetchNews = async () => {

@@ -46,7 +46,8 @@ interface MarketIndex {
   constituents?: number;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
 
 export function MarketIndices() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);

@@ -177,7 +177,8 @@ export default function OverlapPage() {
     try {
       // Fetch detailed data for all selected funds
       const API_URL =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+        process.env.NEXT_PUBLIC_API_URL ||
+        'https://mutualfun-backend.vercel.app/api';
       console.log('Using API URL:', API_URL);
 
       const fundDetailsPromises = selectedFundIds.map(async (id) => {
@@ -499,7 +500,9 @@ export default function OverlapPage() {
       console.error('Full error details:', {
         error,
         selectedFundIds,
-        API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002',
+        API_URL:
+          process.env.NEXT_PUBLIC_API_URL ||
+          'https://mutualfun-backend.vercel.app/api',
       });
       alert(
         `Failed to analyze fund overlap: ${errorMessage}\n\nPlease check the console for details.`

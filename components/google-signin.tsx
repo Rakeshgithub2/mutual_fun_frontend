@@ -70,7 +70,7 @@ export function GoogleSignInButton({
     // Redirect to backend OAuth flow
     const backendUrl =
       process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ||
-      'http://localhost:3002';
+      'https://mutualfun-backend.vercel.app';
     window.location.href = `${backendUrl}/api/auth/google`;
   };
 
