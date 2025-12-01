@@ -31,14 +31,22 @@ interface ManagerDetails {
   currentFundHouse?: string;
   fundsManaged?: number;
   totalAumManaged?: number; // in crores
+  joinedDate?: string; // Date when joined current fund house
+  previousFundHouses?: string[]; // Previous employers
+  investmentPhilosophy?: string; // Manager's investment approach
+  specialization?: string[]; // Areas of expertise (e.g., ["Large Cap", "Technology Sector"])
+  performanceRank?: string; // e.g., "Top 10% in category"
   averageReturns?: {
     oneYear?: number;
     threeYear?: number;
     fiveYear?: number;
+    tenYear?: number;
   };
   awards?: string[];
+  certifications?: string[]; // Professional certifications (CFA, etc.)
   linkedin?: string;
   twitter?: string;
+  email?: string;
 }
 
 interface FundManagerCardProps {
@@ -175,6 +183,51 @@ export function FundManagerCard({
             )}
         </div>
 
+        {/* Career Timeline */}
+        {(managerDetails.joinedDate || managerDetails.previousFundHouses) && (
+          <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-amber-200 dark:border-amber-800">
+            <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+              Career Timeline
+            </h4>
+            <div className="space-y-3">
+              {managerDetails.joinedDate && (
+                <div className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2"></div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                      {managerDetails.currentFundHouse || 'Current Fund House'}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Joined:{' '}
+                      {new Date(managerDetails.joinedDate).toLocaleDateString(
+                        'en-IN',
+                        { month: 'long', year: 'numeric' }
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {managerDetails.previousFundHouses &&
+                managerDetails.previousFundHouses.length > 0 && (
+                  <div className="pl-1 border-l-2 border-gray-300 dark:border-gray-700 ml-1">
+                    {managerDetails.previousFundHouses.map((company, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-start gap-3 mb-2 pl-4"
+                      >
+                        <div className="w-2 h-2 bg-gray-400 rounded-full mt-2"></div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          {company}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+            </div>
+          </div>
+        )}
+
         {/* Biography Section */}
         {managerDetails.bio && (
           <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-amber-200 dark:border-amber-800">
@@ -188,6 +241,58 @@ export function FundManagerCard({
           </div>
         )}
 
+        {/* Investment Philosophy */}
+        {managerDetails.investmentPhilosophy && (
+          <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+            <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <Target className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              Investment Philosophy
+            </h4>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed italic">
+              "{managerDetails.investmentPhilosophy}"
+            </p>
+          </div>
+        )}
+
+        {/* Specialization & Performance Rank */}
+        {(managerDetails.specialization || managerDetails.performanceRank) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Specialization */}
+            {managerDetails.specialization &&
+              managerDetails.specialization.length > 0 && (
+                <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                    <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    Areas of Expertise
+                  </h4>
+                  <div className="flex flex-wrap gap-2">
+                    {managerDetails.specialization.map((spec, idx) => (
+                      <span
+                        key={idx}
+                        className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-full border border-purple-300 dark:border-purple-700"
+                      >
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            {/* Performance Rank */}
+            {managerDetails.performanceRank && (
+              <div className="p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border-2 border-green-200 dark:border-green-800">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                  Performance Ranking
+                </h4>
+                <p className="text-lg font-bold bg-gradient-to-r from-green-600 to-emerald-600 dark:from-green-400 dark:to-emerald-400 text-transparent bg-clip-text">
+                  {managerDetails.performanceRank}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Average Returns Section */}
         {managerDetails.averageReturns && (
           <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-amber-200 dark:border-amber-800">
@@ -195,7 +300,7 @@ export function FundManagerCard({
               <TrendingUp className="w-5 h-5 text-amber-600 dark:text-amber-400" />
               Average Returns Track Record
             </h4>
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* 1 Year Returns */}
               {managerDetails.averageReturns.oneYear !== undefined && (
                 <div className="text-center p-4 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 rounded-lg border border-green-200 dark:border-green-800">
@@ -252,9 +357,52 @@ export function FundManagerCard({
                   </p>
                 </div>
               )}
+
+              {/* 10 Year Returns */}
+              {managerDetails.averageReturns.tenYear !== undefined && (
+                <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/30 dark:to-amber-900/30 rounded-lg border border-orange-200 dark:border-orange-800">
+                  <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase">
+                    10 Year
+                  </p>
+                  <p
+                    className={`text-3xl font-extrabold ${
+                      managerDetails.averageReturns.tenYear >= 0
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-600 dark:text-red-400'
+                    }`}
+                  >
+                    {managerDetails.averageReturns.tenYear >= 0 ? '+' : ''}
+                    {managerDetails.averageReturns.tenYear.toFixed(2)}%
+                  </p>
+                </div>
+              )}
             </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3 text-center italic">
+              Average returns across all funds managed by this fund manager
+            </p>
           </div>
         )}
+
+        {/* Certifications */}
+        {managerDetails.certifications &&
+          managerDetails.certifications.length > 0 && (
+            <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-amber-200 dark:border-amber-800">
+              <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                Professional Certifications
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {managerDetails.certifications.map((cert, idx) => (
+                  <span
+                    key={idx}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 text-amber-800 dark:text-amber-200 text-sm font-bold rounded-lg border-2 border-amber-300 dark:border-amber-700"
+                  >
+                    {cert}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
         {/* Awards Section */}
         {managerDetails.awards && managerDetails.awards.length > 0 && (
