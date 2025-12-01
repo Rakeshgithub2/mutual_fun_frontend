@@ -323,8 +323,14 @@ export default function SearchPage() {
 
             {error && (
               <div className="rounded-lg border border-red-200 bg-red-50 p-4 mb-4">
-                <p className="text-sm text-red-800">
-                  Error loading funds. Please try again.
+                <p className="text-sm font-semibold text-red-800 mb-2">
+                  Error loading funds
+                </p>
+                <p className="text-sm text-red-700">
+                  {error.message || 'Please try again.'}
+                </p>
+                <p className="text-xs text-red-600 mt-2">
+                  Backend URL: {process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api'}
                 </p>
               </div>
             )}

@@ -104,9 +104,13 @@ export class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
+    console.log('🌐 API Request:', url);
+
     try {
       const response = await fetch(url, {
         ...options,
+        mode: 'cors',
+        credentials: 'omit',
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,
