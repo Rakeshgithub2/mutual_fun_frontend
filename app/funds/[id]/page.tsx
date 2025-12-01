@@ -53,6 +53,9 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
+import { HoldingsTable } from '@/components/holdings-table';
+import { SectorAllocationChart } from '@/components/sector-allocation-chart';
+import { FundManagerCard } from '@/components/fund-manager-card';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
@@ -344,11 +347,51 @@ export default function FundDetailEnhanced({
           </div>
         </motion.div>
 
-        {/* NAV Performance Chart with 10-Year Data */}
+        {/* New Enhanced Sections */}
+        {/* Top 15 Holdings Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="mb-8"
+        >
+          <HoldingsTable
+            holdings={fund.topHoldings || []}
+            holdingsCount={fund.holdingsCount}
+          />
+        </motion.div>
+
+        {/* Sector Allocation Donut Chart */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-8"
+        >
+          <SectorAllocationChart
+            sectors={fund.sectorAllocation || []}
+            sectorAllocationCount={fund.sectorAllocationCount}
+          />
+        </motion.div>
+
+        {/* Fund Manager Details Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          className="mb-8"
+        >
+          <FundManagerCard
+            managerDetails={fund.managerDetails}
+            fallbackName={fund.fundManager}
+          />
+        </motion.div>
+
+        {/* NAV Performance Chart with 10-Year Data */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
         >
           <Card className="mb-8 shadow-[0_8px_32px_0_rgba(99,102,241,0.15)] dark:shadow-[0_8px_32px_0_rgba(99,102,241,0.3)] border border-white/20 dark:border-gray-800/50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl overflow-hidden">
             <CardHeader className="pb-6 bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-pink-50/80 dark:from-blue-950/50 dark:via-purple-950/50 dark:to-pink-950/50 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
