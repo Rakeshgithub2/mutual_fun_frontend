@@ -1,17 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/header';
 import { FundList } from '@/components/fund-list';
 import { useLanguage } from '@/lib/hooks/use-language';
 import { getTranslation } from '@/lib/i18n';
 import { useFunds } from '@/hooks/use-funds';
 
-export default function SearchPage() {
+function SearchPageContent() {
   const { language, mounted: langMounted } = useLanguage();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
+
+  // Read category from URL on mount
+  useEffect(() => {
+    const urlCategory = searchParams.get('category');
+    if (urlCategory) {
+      setCategory(urlCategory);
+    }
+  }, [searchParams]);
 
   const { funds, pagination, loading, error } = useFunds({
     query: searchQuery,
@@ -330,7 +340,9 @@ export default function SearchPage() {
                   {error.message || 'Please try again.'}
                 </p>
                 <p className="text-xs text-red-600 mt-2">
-                  Backend URL: {process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api'}
+                  Backend URL:{' '}
+                  {process.env.NEXT_PUBLIC_API_URL ||
+                    'https://mutualfun-backend.vercel.app/api'}
                 </p>
               </div>
             )}
@@ -394,5 +406,22 @@ export default function SearchPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+            <p className="text-muted">Loading...</p>
+          </div>
+        </div>
+      }
+    >
+      <SearchPageContent />
+    </Suspense>
   );
 }
