@@ -28,7 +28,7 @@ function SearchPageContent() {
   const updateCategory = (newCategory: string) => {
     setCategory(newCategory);
     setPage(1);
-    
+
     // Update URL
     const params = new URLSearchParams(searchParams.toString());
     if (newCategory) {
@@ -127,14 +127,9 @@ function SearchPageContent() {
                   onChange={(e) => updateCategory(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
-                  <option value="">All Categories (100 funds)</option>
-                  <option value="LARGE_CAP">Large Cap (30 funds)</option>
-                  <option value="MID_CAP">Mid Cap (25 funds)</option>
-                  <option value="SMALL_CAP">Small Cap (15 funds)</option>
-                  <option value="MULTI_CAP">Multi Cap (12 funds)</option>
-                  <option value="FLEXI_CAP">Flexi Cap (8 funds)</option>
-                  <option value="ELSS">ELSS (8 funds)</option>
-                  <option value="equity">Equity (2 funds)</option>
+                  <option value="">All Categories</option>
+                  <option value="equity">Equity Funds</option>
+                  <option value="commodity">Commodity Funds</option>
                 </select>
               </div>
 
@@ -235,77 +230,27 @@ function SearchPageContent() {
                       : 'bg-background border border-border hover:bg-card'
                   }`}
                 >
-                  All (100)
-                </button>
-                <button
-                  onClick={() => updateCategory('LARGE_CAP')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    category === 'LARGE_CAP'
-                      ? 'bg-green-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
-                  }`}
-                >
-                  Large Cap (30)
-                </button>
-                <button
-                  onClick={() => updateCategory('MID_CAP')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    category === 'MID_CAP'
-                      ? 'bg-purple-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
-                  }`}
-                >
-                  Mid Cap (25)
-                </button>
-                <button
-                  onClick={() => updateCategory('SMALL_CAP')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    category === 'SMALL_CAP'
-                      ? 'bg-orange-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
-                  }`}
-                >
-                  Small Cap (15)
-                </button>
-                <button
-                  onClick={() => updateCategory('MULTI_CAP')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    category === 'MULTI_CAP'
-                      ? 'bg-indigo-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
-                  }`}
-                >
-                  Multi Cap (12)
-                </button>
-                <button
-                  onClick={() => updateCategory('FLEXI_CAP')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    category === 'FLEXI_CAP'
-                      ? 'bg-pink-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
-                  }`}
-                >
-                  Flexi Cap (8)
-                </button>
-                <button
-                  onClick={() => updateCategory('ELSS')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    category === 'ELSS'
-                      ? 'bg-teal-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
-                  }`}
-                >
-                  ELSS (8)
+                  All Funds
                 </button>
                 <button
                   onClick={() => updateCategory('equity')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'equity'
-                      ? 'bg-cyan-600 text-white shadow-lg'
+                      ? 'bg-green-600 text-white shadow-lg'
                       : 'bg-background border border-border hover:bg-card'
                   }`}
                 >
-                  Equity (2)
+                  Equity Funds
+                </button>
+                <button
+                  onClick={() => updateCategory('commodity')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    category === 'commodity'
+                      ? 'bg-orange-600 text-white shadow-lg'
+                      : 'bg-background border border-border hover:bg-card'
+                  }`}
+                >
+                  Commodity Funds
                 </button>
               </div>
             </div>
