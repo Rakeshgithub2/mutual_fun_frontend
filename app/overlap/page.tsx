@@ -377,8 +377,10 @@ export default function OverlapPage() {
         const managerName =
           typeof fund.fundManager === 'string'
             ? fund.fundManager
-            : typeof fund.fundManager === 'object' && fund.fundManager?.name
-            ? fund.fundManager.name
+            : typeof fund.fundManager === 'object' &&
+              fund.fundManager &&
+              'name' in fund.fundManager
+            ? (fund.fundManager as any).name
             : null;
 
         if (managerName) {
@@ -1782,8 +1784,9 @@ export default function OverlapPage() {
                                 {typeof fund.fundManager === 'string'
                                   ? fund.fundManager
                                   : typeof fund.fundManager === 'object' &&
-                                    fund.fundManager?.name
-                                  ? fund.fundManager.name
+                                    fund.fundManager &&
+                                    'name' in fund.fundManager
+                                  ? (fund.fundManager as any).name
                                   : 'N/A'}
                               </p>
                             </div>

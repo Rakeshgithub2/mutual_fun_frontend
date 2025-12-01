@@ -624,8 +624,8 @@ export default function FundDetailEnhanced({
                           cx="50%"
                           cy="50%"
                           labelLine={false}
-                          label={({ sector, percentage }) =>
-                            `${sector}: ${percentage.toFixed(1)}%`
+                          label={({ sector, percentage }: any) =>
+                            `${sector}: ${(percentage as number).toFixed(1)}%`
                           }
                           outerRadius={100}
                           fill="#8884d8"
