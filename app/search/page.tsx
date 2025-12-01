@@ -1,7 +1,7 @@
 'use client';
 
 import { Suspense, useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { FundList } from '@/components/fund-list';
 import { useLanguage } from '@/lib/hooks/use-language';
@@ -11,6 +11,7 @@ import { useFunds } from '@/hooks/use-funds';
 function SearchPageContent() {
   const { language, mounted: langMounted } = useLanguage();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
@@ -22,6 +23,21 @@ function SearchPageContent() {
       setCategory(urlCategory);
     }
   }, [searchParams]);
+
+  // Update URL when category changes
+  const updateCategory = (newCategory: string) => {
+    setCategory(newCategory);
+    setPage(1);
+    
+    // Update URL
+    const params = new URLSearchParams(searchParams.toString());
+    if (newCategory) {
+      params.set('category', newCategory);
+    } else {
+      params.delete('category');
+    }
+    router.push(`/search?${params.toString()}`);
+  };
 
   const { funds, pagination, loading, error } = useFunds({
     query: searchQuery,
@@ -108,10 +124,7 @@ function SearchPageContent() {
                 </label>
                 <select
                   value={category}
-                  onChange={(e) => {
-                    setCategory(e.target.value);
-                    setPage(1);
-                  }}
+                  onChange={(e) => updateCategory(e.target.value)}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="">All Categories (100 funds)</option>
@@ -215,10 +228,7 @@ function SearchPageContent() {
               </h3>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => {
-                    setCategory('');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === ''
                       ? 'bg-blue-600 text-white shadow-lg'
@@ -228,10 +238,7 @@ function SearchPageContent() {
                   All (100)
                 </button>
                 <button
-                  onClick={() => {
-                    setCategory('LARGE_CAP');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('LARGE_CAP')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'LARGE_CAP'
                       ? 'bg-green-600 text-white shadow-lg'
@@ -241,10 +248,7 @@ function SearchPageContent() {
                   Large Cap (30)
                 </button>
                 <button
-                  onClick={() => {
-                    setCategory('MID_CAP');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('MID_CAP')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'MID_CAP'
                       ? 'bg-purple-600 text-white shadow-lg'
@@ -254,10 +258,7 @@ function SearchPageContent() {
                   Mid Cap (25)
                 </button>
                 <button
-                  onClick={() => {
-                    setCategory('SMALL_CAP');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('SMALL_CAP')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'SMALL_CAP'
                       ? 'bg-orange-600 text-white shadow-lg'
@@ -267,10 +268,7 @@ function SearchPageContent() {
                   Small Cap (15)
                 </button>
                 <button
-                  onClick={() => {
-                    setCategory('MULTI_CAP');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('MULTI_CAP')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'MULTI_CAP'
                       ? 'bg-indigo-600 text-white shadow-lg'
@@ -280,10 +278,7 @@ function SearchPageContent() {
                   Multi Cap (12)
                 </button>
                 <button
-                  onClick={() => {
-                    setCategory('FLEXI_CAP');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('FLEXI_CAP')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'FLEXI_CAP'
                       ? 'bg-pink-600 text-white shadow-lg'
@@ -293,10 +288,7 @@ function SearchPageContent() {
                   Flexi Cap (8)
                 </button>
                 <button
-                  onClick={() => {
-                    setCategory('ELSS');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('ELSS')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'ELSS'
                       ? 'bg-teal-600 text-white shadow-lg'
@@ -306,10 +298,7 @@ function SearchPageContent() {
                   ELSS (8)
                 </button>
                 <button
-                  onClick={() => {
-                    setCategory('equity');
-                    setPage(1);
-                  }}
+                  onClick={() => updateCategory('equity')}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                     category === 'equity'
                       ? 'bg-cyan-600 text-white shadow-lg'
