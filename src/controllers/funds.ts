@@ -313,3 +313,209 @@ export const getFundNavs = async (
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+export const searchFunds = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const query = req.query.query as string;
+    const limit = Math.min(Number.parseInt(req.query.limit as string) || 15, 50);
+
+    console.log(`📥 GET /funds/search request received with query: ${query}`);
+
+    if (!query || query.trim().length < 2) {
+      return res.json({
+        success: true,
+        message: 'Please enter at least 2 characters to search',
+        data: [],
+      });
+    }
+
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+
+    // Build search query - case insensitive search across name, fundHouse, and amfiCode
+    const searchQuery = {
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { fundHouse: { $regex: query, $options: 'i' } },
+        { amfiCode: { $regex: query, $options: 'i' } },
+      ],
+      isActive: { $ne: false },
+    };
+
+    const funds = await fundsCollection
+      .find(searchQuery)
+      .limit(limit)
+      .project({
+        _id: 1,
+        fundId: 1,
+        name: 1,
+        fundHouse: 1,
+        category: 1,
+        subCategory: 1,
+        fundManager: 1,
+        fundManagerId: 1,
+        aum: 1,
+        returns: 1,
+        currentNav: 1,
+        expenseRatio: 1,
+      })
+      .toArray();
+
+    const transformedFunds = funds.map((fund) => ({
+      id: fund._id.toString(),
+      fundId: fund.fundId || fund._id.toString(),
+      ...fund,
+      _id: undefined,
+    }));
+
+    console.log(`✅ Found ${transformedFunds.length} funds matching "${query}"`);
+
+    return res.json({
+      success: true,
+      message: `Found ${transformedFunds.length} funds`,
+      data: transformedFunds,
+    });
+  } catch (error) {
+    console.error('❌ Search funds error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
+
+export const getFundManager = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  try {
+    const { id } = req.params;
+
+    console.log(`📥 GET /funds/${id}/manager request received`);
+
+    // Get MongoDB collections
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+    const managersCollection = mongodb.getCollection('fund_managers');
+
+    // Find the fund
+    const fund = await fundsCollection.findOne({
+      _id: new ObjectId(id),
+    });
+
+    if (!fund) {
+      console.log(`❌ Fund with ID ${id} not found`);
+      return res.status(404).json({ 
+        success: false,
+        error: 'Fund not found' 
+      });
+    }
+
+    // Get fund manager details
+    const managers = await managersCollection
+      .find({ fundId: new ObjectId(id) })
+      .toArray();
+
+    if (!managers || managers.length === 0) {
+      console.log(`⚠️ No manager found for fund ${fund.name}`);
+      return res.status(404).json({
+        success: false,
+        error: 'Manager not found',
+        message: `The fund manager for "${fund.name}" is not in our database yet.`,
+        data: {
+          fund: {
+            fundId: fund._id.toString(),
+            name: fund.name,
+            category: fund.category,
+            fundHouse: fund.fundHouse,
+          },
+          manager: null,
+        },
+      });
+    }
+
+    // Get the primary manager (first one)
+    const primaryManager = managers[0];
+
+    // Get all funds managed by this manager
+    const managerFunds = await fundsCollection
+      .find({ 
+        _id: { $in: managers.map(m => m.fundId) }
+      })
+      .project({
+        _id: 1,
+        name: 1,
+        category: 1,
+        aum: 1,
+        returns: 1,
+      })
+      .toArray();
+
+    // Calculate total AUM and average returns
+    const totalAum = managerFunds.reduce((sum, f) => sum + (f.aum || 0), 0);
+    const avgReturns = {
+      oneYear: managerFunds.reduce((sum, f) => sum + (f.returns?.oneYear || 0), 0) / managerFunds.length,
+      threeYear: managerFunds.reduce((sum, f) => sum + (f.returns?.threeYear || 0), 0) / managerFunds.length,
+      fiveYear: managerFunds.reduce((sum, f) => sum + (f.returns?.fiveYear || 0), 0) / managerFunds.length,
+    };
+
+    // Format the manager data
+    const managerDetails = {
+      id: primaryManager._id.toString(),
+      managerId: primaryManager._id.toString(),
+      name: primaryManager.name,
+      bio: primaryManager.bio || `Experienced fund manager at ${fund.fundHouse}`,
+      experience: primaryManager.experience || 0,
+      qualification: primaryManager.qualification || [],
+      currentFundHouse: fund.fundHouse,
+      designation: primaryManager.designation || 'Fund Manager',
+      joinedDate: primaryManager.joinedDate || fund.inceptionDate,
+      fundsManaged: managerFunds.length,
+      fundsList: managerFunds.map((f: any) => ({
+        fundId: f._id.toString(),
+        fundName: f.name,
+        aum: f.aum || 0,
+        returns: {
+          oneYear: f.returns?.oneYear || 0,
+          threeYear: f.returns?.threeYear || 0,
+          fiveYear: f.returns?.fiveYear || 0,
+        },
+      })),
+      totalAumManaged: totalAum,
+      averageReturns: avgReturns,
+      awards: primaryManager.awards || [],
+      email: primaryManager.email,
+      linkedin: primaryManager.linkedin,
+      twitter: primaryManager.twitter,
+      isActive: primaryManager.isActive !== false,
+      lastUpdated: primaryManager.updatedAt || new Date().toISOString(),
+    };
+
+    const responseData = {
+      fund: {
+        fundId: fund._id.toString(),
+        name: fund.name,
+        category: fund.category,
+        fundHouse: fund.fundHouse,
+      },
+      manager: managerDetails,
+    };
+
+    console.log(`✅ Manager ${managerDetails.name} found for fund ${fund.name}`);
+
+    return res.json({
+      success: true,
+      message: 'Fund manager retrieved successfully',
+      data: responseData,
+    });
+  } catch (error) {
+    console.error('❌ Get fund manager error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+};
