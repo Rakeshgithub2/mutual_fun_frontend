@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 
 const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-  '336417139932-cofvfoqgqch4uub4kt9krimj1mhosilc.apps.googleusercontent.com';
+  '336417139932-cofv6fogqqch4uub4k19krimj1mhoslc.apps.googleusercontent.com';
 
 export default function RootLayout({
   children,
