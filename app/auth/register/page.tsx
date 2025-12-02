@@ -51,10 +51,12 @@ export default function RegisterPage() {
 
     try {
       await register(name, email, password);
-      router.push('/dashboard');
+      // Redirect to home page on successful registration
+      router.push('/');
+      // Force reload to update authentication state
+      window.location.reload();
     } catch (err: any) {
-      setError(err.message || 'Registration failed');
-    } finally {
+      setError(err.message || 'Registration failed. Please try again.');
       setLoading(false);
     }
   };
@@ -68,13 +70,16 @@ export default function RegisterPage() {
     try {
       if (credentialResponse.credential) {
         await googleSignIn(credentialResponse.credential);
-        router.push('/dashboard');
+        // Redirect to home page on successful Google sign-up
+        router.push('/');
+        // Force reload to update authentication state
+        window.location.reload();
       } else {
-        setError('Google sign-in failed');
+        setError('Google sign-in failed. Please try again.');
         setLoading(false);
       }
     } catch (err: any) {
-      setError(err.message || 'Google sign-in failed');
+      setError(err.message || 'Google sign-in failed. Please try again.');
       setLoading(false);
     }
   };

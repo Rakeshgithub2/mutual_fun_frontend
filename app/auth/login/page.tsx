@@ -37,10 +37,12 @@ export default function LoginPage() {
 
     try {
       await loginWithEmail(email, password);
-      router.push('/dashboard');
+      // Redirect to home page on successful login
+      router.push('/');
+      // Force reload to update authentication state
+      window.location.reload();
     } catch (err: any) {
-      setError(err.message || 'Invalid email or password');
-    } finally {
+      setError(err.message || 'Invalid email or password. Please try again.');
       setLoading(false);
     }
   };
@@ -54,13 +56,16 @@ export default function LoginPage() {
     try {
       if (credentialResponse.credential) {
         await googleSignIn(credentialResponse.credential);
-        router.push('/dashboard');
+        // Redirect to home page on successful Google sign-in
+        router.push('/');
+        // Force reload to update authentication state
+        window.location.reload();
       } else {
-        setError('Google sign-in failed');
+        setError('Google sign-in failed. Please try again.');
         setLoading(false);
       }
     } catch (err: any) {
-      setError(err.message || 'Google sign-in failed');
+      setError(err.message || 'Google sign-in failed. Please try again.');
       setLoading(false);
     }
   };
