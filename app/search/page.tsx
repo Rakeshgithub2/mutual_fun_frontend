@@ -14,19 +14,25 @@ function SearchPageContent() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [category, setCategory] = useState('');
+  const [subCategory, setSubCategory] = useState('');
   const [page, setPage] = useState(1);
 
-  // Read category from URL on mount
+  // Read category and subCategory from URL on mount
   useEffect(() => {
     const urlCategory = searchParams.get('category');
+    const urlSubCategory = searchParams.get('subCategory');
     if (urlCategory) {
       setCategory(urlCategory);
+    }
+    if (urlSubCategory) {
+      setSubCategory(urlSubCategory);
     }
   }, [searchParams]);
 
   // Update URL when category changes
   const updateCategory = (newCategory: string) => {
     setCategory(newCategory);
+    setSubCategory(''); // Reset subcategory when main category changes
     setPage(1);
 
     // Update URL
@@ -36,12 +42,29 @@ function SearchPageContent() {
     } else {
       params.delete('category');
     }
+    params.delete('subCategory'); // Clear subcategory from URL
+    router.push(`/search?${params.toString()}`);
+  };
+
+  // Update URL when subcategory changes
+  const updateSubCategory = (newSubCategory: string) => {
+    setSubCategory(newSubCategory);
+    setPage(1);
+
+    // Update URL
+    const params = new URLSearchParams(searchParams.toString());
+    if (newSubCategory) {
+      params.set('subCategory', newSubCategory);
+    } else {
+      params.delete('subCategory');
+    }
     router.push(`/search?${params.toString()}`);
   };
 
   const { funds, pagination, loading, error } = useFunds({
     query: searchQuery,
     category: category || undefined,
+    subCategory: subCategory || undefined,
     page,
     limit: 100, // Get all 100 funds
   });
@@ -199,6 +222,7 @@ function SearchPageContent() {
                 onClick={() => {
                   setSearchQuery('');
                   setCategory('');
+                  setSubCategory('');
                   setPage(1);
                   setClientFilters({
                     minExpenseRatio: 0,
@@ -216,44 +240,147 @@ function SearchPageContent() {
 
           {/* Results */}
           <div className="lg:col-span-3">
-            {/* Category Quick Filters */}
-            <div className="mb-6 p-4 bg-card rounded-lg border border-border">
+            {/* Main Category Buttons */}
+            <div className="mb-4 p-4 bg-card rounded-lg border border-border">
               <h3 className="text-sm font-semibold text-foreground mb-3">
-                Quick Category Filter
+                Select Category
               </h3>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => updateCategory('')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                     category === ''
-                      ? 'bg-blue-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg scale-105'
+                      : 'bg-background border-2 border-border hover:bg-card hover:border-blue-300'
                   }`}
                 >
                   All Funds
                 </button>
                 <button
                   onClick={() => updateCategory('equity')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                     category === 'equity'
-                      ? 'bg-green-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
+                      ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg scale-105'
+                      : 'bg-background border-2 border-border hover:bg-card hover:border-green-300'
                   }`}
                 >
                   Equity Funds
                 </button>
                 <button
                   onClick={() => updateCategory('commodity')}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-6 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                     category === 'commodity'
-                      ? 'bg-orange-600 text-white shadow-lg'
-                      : 'bg-background border border-border hover:bg-card'
+                      ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg scale-105'
+                      : 'bg-background border-2 border-border hover:bg-card hover:border-orange-300'
                   }`}
                 >
                   Commodity Funds
                 </button>
               </div>
             </div>
+
+            {/* Subcategory Buttons - Show based on selected category */}
+            {category === 'equity' && (
+              <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border-2 border-green-200 dark:border-green-800">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span className="text-green-600">📊</span>
+                  Equity Subcategories
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => updateSubCategory('')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === ''
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
+                    }`}
+                  >
+                    All Equity
+                  </button>
+                  <button
+                    onClick={() => updateSubCategory('Large Cap')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === 'Large Cap'
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
+                    }`}
+                  >
+                    Large Cap
+                  </button>
+                  <button
+                    onClick={() => updateSubCategory('Mid Cap')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === 'Mid Cap'
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
+                    }`}
+                  >
+                    Mid Cap
+                  </button>
+                  <button
+                    onClick={() => updateSubCategory('Small Cap')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === 'Small Cap'
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
+                    }`}
+                  >
+                    Small Cap
+                  </button>
+                  <button
+                    onClick={() => updateSubCategory('Multi Cap')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === 'Multi Cap'
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
+                    }`}
+                  >
+                    Multi Cap
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {category === 'commodity' && (
+              <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-lg border-2 border-orange-200 dark:border-orange-800">
+                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span className="text-orange-600">💎</span>
+                  Commodity Subcategories
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => updateSubCategory('')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === ''
+                        ? 'bg-orange-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30'
+                    }`}
+                  >
+                    All Commodity
+                  </button>
+                  <button
+                    onClick={() => updateSubCategory('Gold')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === 'Gold'
+                        ? 'bg-orange-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30'
+                    }`}
+                  >
+                    Gold
+                  </button>
+                  <button
+                    onClick={() => updateSubCategory('Silver')}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      subCategory === 'Silver'
+                        ? 'bg-orange-600 text-white shadow-md'
+                        : 'bg-white dark:bg-gray-800 border border-orange-300 dark:border-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/30'
+                    }`}
+                  >
+                    Silver
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-foreground">
