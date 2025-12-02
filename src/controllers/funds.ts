@@ -102,7 +102,7 @@ export const getFunds = async (
       sortObj[field] = direction === 'asc' ? 1 : -1;
     }
 
-    // Get funds
+    // Get funds with all necessary fields for comparison and display
     const funds = await fundsCollection
       .find(query)
       .sort(sortObj)
@@ -111,14 +111,30 @@ export const getFunds = async (
       .project({
         _id: 1,
         amfiCode: 1,
+        fundId: 1,
         name: 1,
         type: 1,
         category: 1,
         subCategory: 1,
+        fundType: 1,
+        fundHouse: 1,
         benchmark: 1,
         expenseRatio: 1,
         inceptionDate: 1,
+        launchDate: 1,
         description: 1,
+        aum: 1,
+        currentNav: 1,
+        previousNav: 1,
+        navDate: 1,
+        returns: 1,
+        riskMetrics: 1,
+        ratings: 1,
+        popularity: 1,
+        minInvestment: 1,
+        sipMinAmount: 1,
+        exitLoad: 1,
+        tags: 1,
         createdAt: 1,
         updatedAt: 1,
       })

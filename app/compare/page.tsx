@@ -332,14 +332,14 @@ export default function ComparePage() {
 
   const metrics = [
     {
-      key: 'nav',
+      key: 'currentNav',
       label: 'Current NAV',
       format: (v: number) => `₹${v?.toFixed(2) || 'N/A'}`,
       description: 'Net Asset Value per unit - Current price of one fund unit',
       category: 'Basic Info',
     },
     {
-      key: 'returns.1y',
+      key: 'returns.oneYear',
       label: '1 Year Returns',
       format: (v: number) =>
         v ? `${v > 0 ? '+' : ''}${v.toFixed(2)}%` : 'N/A',
@@ -349,7 +349,7 @@ export default function ComparePage() {
       category: 'Performance',
     },
     {
-      key: 'returns.3y',
+      key: 'returns.threeYear',
       label: '3 Year Returns',
       format: (v: number) =>
         v ? `${v > 0 ? '+' : ''}${v.toFixed(2)}%` : 'N/A',
@@ -359,7 +359,7 @@ export default function ComparePage() {
       category: 'Performance',
     },
     {
-      key: 'returns.5y',
+      key: 'returns.fiveYear',
       label: '5 Year Returns',
       format: (v: number) =>
         v ? `${v > 0 ? '+' : ''}${v.toFixed(2)}%` : 'N/A',
