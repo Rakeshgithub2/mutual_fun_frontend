@@ -1,6 +1,7 @@
 import type React from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { FeedbackButton } from '@/components/FeedbackButton';
@@ -16,6 +17,10 @@ export const metadata: Metadata = {
   generator: 'v0.app',
 };
 
+const GOOGLE_CLIENT_ID =
+  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
+  '336417139932-cofvfoqgqch4uub4kt9krimj1mhosilc.apps.googleusercontent.com';
+
 export default function RootLayout({
   children,
 }: {
@@ -24,12 +29,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.className} text-foreground`}>
-        <TranslationProvider>
-          <AuthProvider>
-            {children}
-            <FeedbackButton />
-          </AuthProvider>
-        </TranslationProvider>
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+          <TranslationProvider>
+            <AuthProvider>
+              {children}
+              <FeedbackButton />
+            </AuthProvider>
+          </TranslationProvider>
+        </GoogleOAuthProvider>
       </body>
     </html>
   );

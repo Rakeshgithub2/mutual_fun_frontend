@@ -320,7 +320,10 @@ export const searchFunds = async (
 ): Promise<Response> => {
   try {
     const query = req.query.query as string;
-    const limit = Math.min(Number.parseInt(req.query.limit as string) || 15, 50);
+    const limit = Math.min(
+      Number.parseInt(req.query.limit as string) || 15,
+      50
+    );
 
     console.log(`📥 GET /funds/search request received with query: ${query}`);
 
@@ -370,7 +373,9 @@ export const searchFunds = async (
       _id: undefined,
     }));
 
-    console.log(`✅ Found ${transformedFunds.length} funds matching "${query}"`);
+    console.log(
+      `✅ Found ${transformedFunds.length} funds matching "${query}"`
+    );
 
     return res.json({
       success: true,
@@ -407,9 +412,9 @@ export const getFundManager = async (
 
     if (!fund) {
       console.log(`❌ Fund with ID ${id} not found`);
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        error: 'Fund not found' 
+        error: 'Fund not found',
       });
     }
 
@@ -441,8 +446,8 @@ export const getFundManager = async (
 
     // Get all funds managed by this manager
     const managerFunds = await fundsCollection
-      .find({ 
-        _id: { $in: managers.map(m => m.fundId) }
+      .find({
+        _id: { $in: managers.map((m) => m.fundId) },
       })
       .project({
         _id: 1,
@@ -456,9 +461,15 @@ export const getFundManager = async (
     // Calculate total AUM and average returns
     const totalAum = managerFunds.reduce((sum, f) => sum + (f.aum || 0), 0);
     const avgReturns = {
-      oneYear: managerFunds.reduce((sum, f) => sum + (f.returns?.oneYear || 0), 0) / managerFunds.length,
-      threeYear: managerFunds.reduce((sum, f) => sum + (f.returns?.threeYear || 0), 0) / managerFunds.length,
-      fiveYear: managerFunds.reduce((sum, f) => sum + (f.returns?.fiveYear || 0), 0) / managerFunds.length,
+      oneYear:
+        managerFunds.reduce((sum, f) => sum + (f.returns?.oneYear || 0), 0) /
+        managerFunds.length,
+      threeYear:
+        managerFunds.reduce((sum, f) => sum + (f.returns?.threeYear || 0), 0) /
+        managerFunds.length,
+      fiveYear:
+        managerFunds.reduce((sum, f) => sum + (f.returns?.fiveYear || 0), 0) /
+        managerFunds.length,
     };
 
     // Format the manager data
@@ -466,7 +477,8 @@ export const getFundManager = async (
       id: primaryManager._id.toString(),
       managerId: primaryManager._id.toString(),
       name: primaryManager.name,
-      bio: primaryManager.bio || `Experienced fund manager at ${fund.fundHouse}`,
+      bio:
+        primaryManager.bio || `Experienced fund manager at ${fund.fundHouse}`,
       experience: primaryManager.experience || 0,
       qualification: primaryManager.qualification || [],
       currentFundHouse: fund.fundHouse,
@@ -503,7 +515,9 @@ export const getFundManager = async (
       manager: managerDetails,
     };
 
-    console.log(`✅ Manager ${managerDetails.name} found for fund ${fund.name}`);
+    console.log(
+      `✅ Manager ${managerDetails.name} found for fund ${fund.name}`
+    );
 
     return res.json({
       success: true,
