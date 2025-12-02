@@ -1,17 +1,35 @@
 import { Request, Response } from 'express';
 import { z } from 'zod';
-import { prisma } from '../db';
+import { mongodb } from '../db/mongodb';
 import {
   formatResponse,
   formatPaginatedResponse,
   pagination,
   buildSortOrder,
 } from '../utils/response';
+import { ObjectId } from 'mongodb';
 // import { cacheService, CacheService } from '../services/cacheService';
+
+interface Fund {
+  _id?: ObjectId;
+  amfiCode: string;
+  name: string;
+  type?: string;
+  category: string;
+  subCategory?: string;
+  benchmark?: string;
+  expenseRatio?: number;
+  inceptionDate?: Date;
+  description?: string;
+  isActive?: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
 
 const getFundsSchema = z.object({
   type: z.string().optional(),
   category: z.string().optional(),
+  subCategory: z.string().optional(),
   q: z.string().optional(), // search query
   page: z.coerce.number().min(1).default(1),
   limit: z.coerce.number().min(1).max(100).default(10),
@@ -29,87 +47,99 @@ export const getFunds = async (
 ): Promise<Response> => {
   try {
     console.log('📥 GET /funds request received');
-    const { type, category, q, page, limit, sort } = getFundsSchema.parse(
-      req.query
-    );
+    const { type, category, subCategory, q, page, limit, sort } =
+      getFundsSchema.parse(req.query);
     console.log('✅ Request params validated:', {
       type,
       category,
+      subCategory,
       q,
       page,
       limit,
       sort,
     });
 
-    // Create cache key for this query
-    // const cacheKey = CacheService.keys.fundsList(
-    //   JSON.stringify({ type, category, q, page, limit, sort })
-    // );
-
-    // Try to get from cache first
-    // const cachedData = await cacheService.getJSON(cacheKey);
-    // if (cachedData) {
-    //   return res.json(cachedData);
-    // }
-
     const { skip, take } = pagination(page, limit);
-    const orderBy = buildSortOrder(sort);
 
-    // Build where clause
-    const where: any = {
-      isActive: true,
+    // Build MongoDB query
+    const query: any = {
+      isActive: { $ne: false }, // Include funds where isActive is true or undefined
     };
 
     if (type) {
-      where.type = type;
+      query.type = type;
     }
 
     if (category) {
-      where.category = category;
+      query.category = { $regex: new RegExp(`^${category}$`, 'i') }; // Case-insensitive exact match
+    }
+
+    if (subCategory) {
+      query.subCategory = { $regex: new RegExp(`^${subCategory}$`, 'i') }; // Case-insensitive exact match
     }
 
     if (q) {
-      where.OR = [
-        { name: { contains: q, mode: 'insensitive' } },
-        { description: { contains: q, mode: 'insensitive' } },
-        { amfiCode: { contains: q, mode: 'insensitive' } },
+      query.$or = [
+        { name: { $regex: q, $options: 'i' } },
+        { description: { $regex: q, $options: 'i' } },
+        { amfiCode: { $regex: q, $options: 'i' } },
       ];
     }
 
+    console.log('🔍 MongoDB query:', JSON.stringify(query, null, 2));
+
+    // Get collection
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+
     // Get total count
-    const total = await prisma.fund.count({ where });
+    const total = await fundsCollection.countDocuments(query);
+    console.log('📊 Total funds matching query:', total);
+
+    // Build sort
+    const sortObj: any = { createdAt: -1 }; // Default sort
+    if (sort) {
+      const [field, direction] = sort.split(':');
+      sortObj[field] = direction === 'asc' ? 1 : -1;
+    }
 
     // Get funds
-    const funds = await prisma.fund.findMany({
-      where,
-      orderBy: orderBy || { createdAt: 'desc' },
-      skip,
-      take,
-      select: {
-        id: true,
-        amfiCode: true,
-        name: true,
-        type: true,
-        category: true,
-        benchmark: true,
-        expenseRatio: true,
-        inceptionDate: true,
-        description: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    const funds = await fundsCollection
+      .find(query)
+      .sort(sortObj)
+      .skip(skip)
+      .limit(take)
+      .project({
+        _id: 1,
+        amfiCode: 1,
+        name: 1,
+        type: 1,
+        category: 1,
+        subCategory: 1,
+        benchmark: 1,
+        expenseRatio: 1,
+        inceptionDate: 1,
+        description: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      })
+      .toArray();
+
+    console.log('✅ Funds retrieved:', funds.length);
+
+    // Transform _id to id for consistency
+    const transformedFunds = funds.map((fund) => ({
+      id: fund._id?.toString(),
+      ...fund,
+      _id: undefined,
+    }));
 
     const response = formatPaginatedResponse(
-      funds,
+      transformedFunds,
       total,
       page,
       limit,
       'Funds retrieved successfully'
     );
-
-    // Cache the response
-    // await cacheService.setJSON(cacheKey, response, CacheService.TTL.FUNDS_LIST);
 
     return res.json(response);
   } catch (error) {
@@ -120,7 +150,7 @@ export const getFunds = async (
       });
     }
 
-    console.error('Get funds error:', error);
+    console.error('❌ Get funds error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -134,38 +164,15 @@ export const getFundById = async (
 
     console.log(`📥 GET /funds/${id} request received`);
 
-    // Check cache first for unauthenticated requests
-    // const cacheKey = CacheService.keys.fundDetail(id);
-    // const cachedData = await cacheService.getJSON(cacheKey);
-    // if (cachedData) {
-    //   return res.json(cachedData);
-    // }
+    // Get MongoDB collections
+    const fundsCollection = mongodb.getCollection<Fund>('funds');
+    const holdingsCollection = mongodb.getCollection('holdings');
+    const managersCollection = mongodb.getCollection('fund_managers');
+    const performancesCollection = mongodb.getCollection('fund_performances');
 
-    const fund = await prisma.fund.findUnique({
-      where: { id },
-      include: {
-        holdings: {
-          orderBy: { percent: 'desc' },
-          take: 10, // Top 10 holdings
-        },
-        managedBy: {
-          select: {
-            id: true,
-            name: true,
-            experience: true,
-            qualification: true,
-          },
-        },
-        performances: {
-          where: {
-            date: {
-              gte: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000), // Last 1 year
-            },
-          },
-          orderBy: { date: 'desc' },
-          take: 100, // Limit performance data
-        },
-      },
+    // Find the fund
+    const fund = await fundsCollection.findOne({
+      _id: new ObjectId(id),
     });
 
     if (!fund) {
@@ -173,15 +180,62 @@ export const getFundById = async (
       return res.status(404).json({ error: 'Fund not found' });
     }
 
-    console.log(`✅ Fund ${fund.name} retrieved successfully`);
-    const response = formatResponse(fund, 'Fund retrieved successfully');
+    // Get top 10 holdings
+    const holdings = await holdingsCollection
+      .find({ fundId: new ObjectId(id) })
+      .sort({ percent: -1 })
+      .limit(10)
+      .toArray();
 
-    // Cache the response
-    // await cacheService.setJSON(
-    //   cacheKey,
-    //   response,
-    //   CacheService.TTL.FUND_DETAIL
-    // );
+    // Get fund managers
+    const managedBy = await managersCollection
+      .find({ fundId: new ObjectId(id) })
+      .project({
+        _id: 1,
+        name: 1,
+        experience: 1,
+        qualification: 1,
+      })
+      .toArray();
+
+    // Get performance data for last 1 year
+    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    const performances = await performancesCollection
+      .find({
+        fundId: new ObjectId(id),
+        date: { $gte: oneYearAgo },
+      })
+      .sort({ date: -1 })
+      .limit(100)
+      .toArray();
+
+    // Combine all data
+    const fundWithDetails = {
+      id: fund._id.toString(),
+      ...fund,
+      _id: undefined,
+      holdings: holdings.map((h: any) => ({
+        id: h._id.toString(),
+        ...h,
+        _id: undefined,
+      })),
+      managedBy: managedBy.map((m: any) => ({
+        id: m._id.toString(),
+        ...m,
+        _id: undefined,
+      })),
+      performances: performances.map((p: any) => ({
+        id: p._id.toString(),
+        ...p,
+        _id: undefined,
+      })),
+    };
+
+    console.log(`✅ Fund ${fund.name} retrieved successfully`);
+    const response = formatResponse(
+      fundWithDetails,
+      'Fund retrieved successfully'
+    );
 
     return res.json(response);
   } catch (error) {
@@ -201,40 +255,34 @@ export const getFundNavs = async (
     const { id } = req.params;
     const { from, to } = getFundNavsSchema.parse(req.query);
 
-    // Create cache key for NAV data
-    // const cacheKey = CacheService.keys.fundNavs(
-    //   id + JSON.stringify({ from, to })
-    // );
-    // const cachedData = await cacheService.getJSON(cacheKey);
-    // if (cachedData) {
-    //   return res.json(cachedData);
-    // }
+    // Build MongoDB query for date filter
+    const query: any = {
+      fundId: new ObjectId(id),
+    };
 
-    // Build date filter
-    const dateFilter: any = {};
-    if (from) {
-      dateFilter.gte = new Date(from);
-    }
-    if (to) {
-      dateFilter.lte = new Date(to);
+    if (from || to) {
+      query.date = {};
+      if (from) {
+        query.date.$gte = new Date(from);
+      }
+      if (to) {
+        query.date.$lte = new Date(to);
+      }
     }
 
-    const navs = await prisma.fundPerformance.findMany({
-      where: {
-        fundId: id,
-        ...(Object.keys(dateFilter).length > 0 && { date: dateFilter }),
-      },
-      orderBy: { date: 'asc' },
-      select: {
-        date: true,
-        nav: true,
-      },
-    });
+    const performancesCollection = mongodb.getCollection('fund_performances');
+
+    const navs = await performancesCollection
+      .find(query)
+      .sort({ date: 1 })
+      .project({
+        _id: 0,
+        date: 1,
+        nav: 1,
+      })
+      .toArray();
 
     const response = formatResponse(navs, 'Fund NAVs retrieved successfully');
-
-    // Cache the NAV data
-    // await cacheService.setJSON(cacheKey, response, CacheService.TTL.FUND_NAVS);
 
     return res.json(response);
   } catch (error) {
@@ -245,7 +293,7 @@ export const getFundNavs = async (
       });
     }
 
-    console.error('Get fund NAVs error:', error);
+    console.error('❌ Get fund NAVs error:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };

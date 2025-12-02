@@ -58,7 +58,8 @@ model Fund {
   amfiCode      String    @unique
   name          String
   type          String    // EQUITY, DEBT, HYBRID, etc.
-  category      String    // LARGE_CAP, MID_CAP, SMALL_CAP, etc.
+  category      String    // equity, commodity, debt, hybrid, etc.
+  subCategory   String?   // Large Cap, Mid Cap, Small Cap, Multi Cap, Gold, Silver, etc.
   benchmark     String?
   expenseRatio  Float?
   inceptionDate DateTime?

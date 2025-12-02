@@ -53,7 +53,8 @@ export function useFunds(options?: {
     try {
       const params = new URLSearchParams();
       if (options?.type) params.append('type', options.type);
-      if (options?.category) params.append('category', options.category);
+      if (options?.category)
+        params.append('category', options.category.toLowerCase());
       if (options?.subCategory)
         params.append('subCategory', options.subCategory);
       if (options?.limit) params.append('limit', options.limit.toString());
@@ -65,6 +66,10 @@ export function useFunds(options?: {
         'https://mutualfun-backend.vercel.app/api';
       const apiUrl = `${baseUrl}/funds?${params.toString()}`;
       console.log('🚀 Fetching funds from API:', apiUrl);
+      console.log('📋 Query params:', {
+        category: options?.category,
+        subCategory: options?.subCategory,
+      });
 
       const httpResponse = await fetch(apiUrl);
 
@@ -98,12 +103,18 @@ export function useFunds(options?: {
           if (!cat) return 'Other';
           const mainCat =
             cat.charAt(0).toUpperCase() + cat.slice(1).toLowerCase();
-          // If subCategory exists and is meaningful, use it instead
+          // If subCategory exists and is meaningful, display it instead
           if (subCat && subCat !== 'Other' && subCat !== cat) {
             return subCat;
           }
           return mainCat;
         };
+
+        console.log('📦 Fund data:', {
+          name: fund.name,
+          category: fund.category,
+          subCategory: fund.subCategory,
+        });
 
         // Get real NAV from API response
         const latestNav = fund.currentNav || fund.nav || 0;
