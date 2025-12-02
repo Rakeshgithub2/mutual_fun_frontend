@@ -40,6 +40,7 @@ export function useFunds(options?: {
   type?: string;
   category?: string;
   subCategory?: string;
+  query?: string;
   limit?: number;
 }): UseFundsResult {
   const [funds, setFunds] = useState<Fund[]>([]);
@@ -57,6 +58,7 @@ export function useFunds(options?: {
         params.append('category', options.category.toLowerCase());
       if (options?.subCategory)
         params.append('subCategory', options.subCategory);
+      if (options?.query) params.append('q', options.query); // Map 'query' to 'q' for API
       if (options?.limit) params.append('limit', options.limit.toString());
       else params.append('limit', '100'); // Get more funds by default (max allowed by API)
 
@@ -69,6 +71,7 @@ export function useFunds(options?: {
       console.log('📋 Query params:', {
         category: options?.category,
         subCategory: options?.subCategory,
+        query: options?.query,
       });
 
       const httpResponse = await fetch(apiUrl);
