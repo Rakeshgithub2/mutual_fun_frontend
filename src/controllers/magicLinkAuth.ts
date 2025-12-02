@@ -45,8 +45,11 @@ export const sendMagicLink = async (
     });
 
     // Generate magic link URL
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5001';
-    const magicLinkUrl = `${frontendUrl}/auth/verify?token=${token}&email=${encodeURIComponent(email)}`;
+    const frontendUrl =
+      process.env.FRONTEND_URL || 'https://mutualfun-backend.vercel.app';
+    const magicLinkUrl = `${frontendUrl}/auth/verify?token=${token}&email=${encodeURIComponent(
+      email
+    )}`;
 
     // TODO: Send email with magic link
     // For now, just return the link (in production, use email service)

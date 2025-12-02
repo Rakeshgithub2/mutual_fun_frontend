@@ -16,8 +16,8 @@ const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 const REDIRECT_URI =
   process.env.GOOGLE_REDIRECT_URI ||
-  `http://localhost:${process.env.PORT || 3002}/auth/google/callback`;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5001';
+  `https://mutualfun-backend.vercel.app/auth/google/callback`;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'https://mutualfun-backend.vercel.app';
 
 // Debug logging
 console.log('🔐 Google OAuth Configuration:');

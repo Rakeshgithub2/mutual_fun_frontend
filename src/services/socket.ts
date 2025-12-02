@@ -22,9 +22,9 @@ export const initializeSocket = (httpServer: HTTPServer): Server => {
   io = new Server(httpServer, {
     cors: {
       origin: [
-        'http://localhost:5001',
+        'https://mutualfun-backend.vercel.app',
         'http://localhost:3001',
-        process.env.FRONTEND_URL || 'http://localhost:5001',
+        process.env.FRONTEND_URL || 'https://mutualfun-backend.vercel.app',
       ],
       credentials: true,
     },

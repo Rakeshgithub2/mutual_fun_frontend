@@ -153,7 +153,7 @@ if (process.env.NODE_ENV !== 'test' && !isServerless) {
 
   const server = httpServer.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
-    console.log(`✅ Server is running on http://localhost:${PORT}`);
+    console.log(`✅ Server is running on https://mutualfun-backend.vercel.app`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📡 WebSocket ready for real-time updates (after npm install)`);
   });
