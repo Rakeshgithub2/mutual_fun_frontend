@@ -17,7 +17,8 @@ const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 const REDIRECT_URI =
   process.env.GOOGLE_REDIRECT_URI ||
   `https://mutualfun-backend.vercel.app/auth/google/callback`;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'https://mutualfun-backend.vercel.app';
+const FRONTEND_URL =
+  process.env.FRONTEND_URL || 'https://mutualfun-backend.vercel.app';
 
 // Debug logging
 console.log('🔐 Google OAuth Configuration:');
@@ -133,32 +134,6 @@ export const handleGoogleCallback = async (
       createdAt: new Date(),
     };
 
-<<<<<<< HEAD:src/controllers/googleAuth.ts
-    if (existingUser) {
-      // User exists - update their Google info
-      console.log('✅ Found existing user, updating Google info...');
-
-      const updateResult = await usersCollection.findOneAndUpdate(
-        { _id: existingUser._id },
-        {
-          $set: {
-            googleId: payload.sub,
-            name: payload.name || existingUser.name,
-            ...(payload.picture && { profilePicture: payload.picture }),
-            provider: 'google',
-            isVerified: true,
-            updatedAt: new Date(),
-          },
-        },
-        {
-          returnDocument: 'after',
-        }
-      );
-
-      if (!updateResult) {
-        console.error('❌ Failed to update existing user');
-        return res.status(500).json({ error: 'Failed to update user' });
-=======
     // Upsert with googleId as the filter - preserves watchlist
     const filter = payload.sub
       ? { googleId: payload.sub }
@@ -172,49 +147,12 @@ export const handleGoogleCallback = async (
       {
         upsert: true,
         returnDocument: 'after',
->>>>>>> parent of 4a3bd6f (Complete mutual funds portal with all features):mutual-funds-backend/src/controllers/googleAuth.ts
       }
     );
 
-<<<<<<< HEAD:src/controllers/googleAuth.ts
-      user = updateResult;
-      console.log('✅ Updated existing user:', user.email);
-    } else {
-      // New user - create with Google info
-      console.log('🆕 Creating new user with Google account...');
-
-      const newUser: User = {
-        googleId: payload.sub,
-        email: payload.email,
-        name: payload.name || payload.email.split('@')[0],
-        ...(payload.picture && { profilePicture: payload.picture }),
-        provider: 'google',
-        password: await hashPassword(crypto.randomBytes(20).toString('hex')),
-        role: 'USER',
-        isVerified: true,
-        kycStatus: 'PENDING',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-
-      const insertResult = await usersCollection.insertOne(newUser);
-
-      const createdUser = await usersCollection.findOne({
-        _id: insertResult.insertedId,
-      });
-
-      if (!createdUser) {
-        console.error('❌ Failed to create new user');
-        return res.status(500).json({ error: 'Failed to create user' });
-      }
-
-      user = createdUser;
-      console.log('✅ Created new user:', user.email);
-=======
     if (!user) {
       console.error('❌ Failed to upsert user');
       return res.status(500).json({ error: 'Failed to create/update user' });
->>>>>>> parent of 4a3bd6f (Complete mutual funds portal with all features):mutual-funds-backend/src/controllers/googleAuth.ts
     }
 
     console.log('✅ User upserted successfully:', user.email);
@@ -254,7 +192,10 @@ export const handleGoogleCallback = async (
     );
 
     // Redirect to frontend with tokens (careful: in production prefer httpOnly cookie)
-    const redirectTo = `${FRONTEND_URL.replace(/\/$/, '')}/auth/success?accessToken=${encodeURIComponent(
+    const redirectTo = `${FRONTEND_URL.replace(
+      /\/$/,
+      ''
+    )}/auth/success?accessToken=${encodeURIComponent(
       accessToken
     )}&refreshToken=${encodeURIComponent(refreshToken)}&user=${userData}`;
 

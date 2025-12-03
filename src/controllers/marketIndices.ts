@@ -138,7 +138,6 @@ export const getMarketIndices = async (
       };
     }
 
-<<<<<<< HEAD:src/controllers/marketIndices.ts
     // If no data was fetched, return error
     if (Object.keys(indices).length === 0) {
       console.log('⚠️  No live data available from any source');
@@ -150,8 +149,6 @@ export const getMarketIndices = async (
       return;
     }
 
-=======
->>>>>>> parent of 4a3bd6f (Complete mutual funds portal with all features):mutual-funds-backend/src/controllers/marketIndices.ts
     res.json({
       success: true,
       data: indices,
@@ -160,10 +157,7 @@ export const getMarketIndices = async (
     });
   } catch (error: any) {
     console.error('Market indices fetch error:', error.message);
-<<<<<<< HEAD:src/controllers/marketIndices.ts
 
-=======
->>>>>>> parent of 4a3bd6f (Complete mutual funds portal with all features):mutual-funds-backend/src/controllers/marketIndices.ts
     res.status(500).json({
       success: false,
       error: 'Failed to fetch market data',

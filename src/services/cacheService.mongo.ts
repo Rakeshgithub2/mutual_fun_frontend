@@ -76,7 +76,6 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-<<<<<<< HEAD:src/services/cacheService.mongo.ts
         const cacheCollection = mongodb.getCollection<Cache>('cache');
         const cached = await cacheCollection.findOne({
           key,
@@ -84,13 +83,6 @@ class CacheService {
             { expiresAt: { $exists: false } },
             { expiresAt: { $gt: new Date() } },
           ],
-=======
-        const cached = await prisma.cache.findFirst({
-          where: {
-            key,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          },
->>>>>>> parent of 4a3bd6f (Complete mutual funds portal with all features):mutual-funds-backend/src/services/cacheService.mongo.ts
         });
         return cached?.value || null;
       } catch (error) {
@@ -135,7 +127,6 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-<<<<<<< HEAD:src/services/cacheService.mongo.ts
         const cacheCollection = mongodb.getCollection<Cache>('cache');
         const existingCache = await cacheCollection.findOne({ key });
 
@@ -165,23 +156,6 @@ class CacheService {
           }
           await cacheCollection.insertOne(docToInsert);
         }
-=======
-        await prisma.cache.upsert({
-          where: { key },
-          update: {
-            value,
-            expiresAt,
-            updatedAt: new Date(),
-          },
-          create: {
-            key,
-            value,
-            expiresAt,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          },
-        });
->>>>>>> parent of 4a3bd6f (Complete mutual funds portal with all features):mutual-funds-backend/src/services/cacheService.mongo.ts
       } catch (error) {
         console.error('Cache set error (MongoDB):', error);
       }
@@ -269,7 +243,6 @@ class CacheService {
     // MongoDB fallback
     if (this.mongoFallback) {
       try {
-<<<<<<< HEAD:src/services/cacheService.mongo.ts
         const cacheCollection = mongodb.getCollection<Cache>('cache');
         const cached = await cacheCollection.findOne({
           key,
@@ -277,13 +250,6 @@ class CacheService {
             { expiresAt: { $exists: false } },
             { expiresAt: { $gt: new Date() } },
           ],
-=======
-        const cached = await prisma.cache.findFirst({
-          where: {
-            key,
-            OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          },
->>>>>>> parent of 4a3bd6f (Complete mutual funds portal with all features):mutual-funds-backend/src/services/cacheService.mongo.ts
         });
         return !!cached;
       } catch (error) {
