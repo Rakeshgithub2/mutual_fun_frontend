@@ -6,8 +6,8 @@ import axios, {
 } from 'axios';
 import { authService } from './authService';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

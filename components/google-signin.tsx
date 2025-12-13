@@ -68,9 +68,9 @@ export function GoogleSignInButton({
 
   const handleGoogleRedirect = () => {
     // Redirect to backend OAuth flow
+    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
     const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ||
-      'https://mutualfun-backend.vercel.app';
+      process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || BASE_URL;
     window.location.href = `${backendUrl}/api/auth/google`;
   };
 

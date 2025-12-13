@@ -1,5 +1,5 @@
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 export interface Fund {
   id: string;

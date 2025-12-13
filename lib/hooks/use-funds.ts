@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 interface Fund {
   id: string;
@@ -63,10 +63,7 @@ export function useFunds(options?: {
       else params.append('limit', '100'); // Get more funds by default (max allowed by API)
 
       // Use the correct API_URL - it already includes /api from .env.local
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL ||
-        'https://mutualfun-backend.vercel.app/api';
-      const apiUrl = `${baseUrl}/funds?${params.toString()}`;
+      const apiUrl = `${API_URL}/funds?${params.toString()}`;
       console.log('🚀 Fetching funds from API:', apiUrl);
       console.log('📋 Query params:', {
         category: options?.category,
@@ -204,10 +201,7 @@ export function useFund(id: string) {
 
     try {
       // Use the correct API_URL - it already includes /api from .env.local
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL ||
-        'https://mutualfun-backend.vercel.app/api';
-      const httpResponse = await fetch(`${baseUrl}/funds/${id}`);
+      const httpResponse = await fetch(`${API_URL}/funds/${id}`);
 
       if (!httpResponse.ok) {
         throw new Error(`Failed to fetch fund: ${httpResponse.statusText}`);

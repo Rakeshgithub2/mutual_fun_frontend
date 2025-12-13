@@ -31,7 +31,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -281,20 +282,14 @@ export async function getAccessToken(): Promise<string | null> {
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) return null;
 
-      const response = await fetch(
-        `${
-          process.env.NEXT_PUBLIC_API_URL ||
-          'https://mutualfun-backend.vercel.app/api'
-        }/auth/refresh`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ refreshToken }),
-        }
-      );
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ refreshToken }),
+      });
 
       if (response.ok) {
         const data = await response.json();

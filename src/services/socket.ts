@@ -19,12 +19,13 @@ interface AuthenticatedSocket extends Socket {
 let io: Server | null = null;
 
 export const initializeSocket = (httpServer: HTTPServer): Server => {
+  const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
   io = new Server(httpServer, {
     cors: {
       origin: [
-        'https://mutualfun-backend.vercel.app',
+        BASE_URL,
         'http://localhost:3001',
-        process.env.FRONTEND_URL || 'https://mutualfun-backend.vercel.app',
+        process.env.FRONTEND_URL || BASE_URL,
       ],
       credentials: true,
     },

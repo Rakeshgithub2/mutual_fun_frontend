@@ -151,9 +151,10 @@ if (process.env.NODE_ENV !== 'test' && !isServerless) {
   //   console.log('ℹ️ Change Streams not started:', err.message);
   // });
 
+  const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
   const server = httpServer.listen(Number(PORT), '0.0.0.0', () => {
     console.log(`✅ Server is running on http://0.0.0.0:${PORT}`);
-    console.log(`✅ Server is running on https://mutualfun-backend.vercel.app`);
+    console.log(`✅ Server is running on ${BASE_URL}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`📡 WebSocket ready for real-time updates (after npm install)`);
   });

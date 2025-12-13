@@ -3,7 +3,8 @@
 
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 interface AuthResponse {
   statusCode: number;

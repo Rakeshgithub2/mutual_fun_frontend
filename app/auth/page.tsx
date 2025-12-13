@@ -25,8 +25,8 @@ import {
   Bell,
 } from 'lucide-react';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 export default function AuthPage() {
   const router = useRouter();

@@ -403,7 +403,10 @@ function SearchPageContent() {
                 <p className="text-xs text-red-600 mt-2">
                   Backend URL:{' '}
                   {process.env.NEXT_PUBLIC_API_URL ||
-                    'https://mutualfun-backend.vercel.app/api'}
+                    (() => {
+                      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+                      return `${BASE_URL}/api`;
+                    })()}
                 </p>
               </div>
             )}

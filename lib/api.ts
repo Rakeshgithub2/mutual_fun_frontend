@@ -2,8 +2,8 @@
 // Handles JWT token storage and automatic attachment to requests
 // Usage: import { api } from '@/lib/api'
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 // Token storage keys
 export const TOKEN_KEYS = {

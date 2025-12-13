@@ -345,9 +345,8 @@ export default function MarketIndexPage() {
   useEffect(() => {
     const fetchIndexData = async () => {
       try {
-        const response = await fetch(
-          'https://mutualfun-backend.vercel.app/api/market-indices'
-        );
+        const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+        const response = await fetch(`${BASE_URL}/api/market-indices`);
         const apiData = await response.json();
 
         if (!apiData.success || !apiData.data) {

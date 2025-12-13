@@ -19,11 +19,11 @@ export function useFunds(filters?: {
       setLoading(true);
       setError(null);
       try {
+        const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
         console.log('🔍 [useFunds] Fetching with filters:', filters);
         console.log(
           '🌐 [useFunds] API Base URL:',
-          process.env.NEXT_PUBLIC_API_URL ||
-            'https://mutualfun-backend.vercel.app/api'
+          process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
         );
         const response = await apiClient.getFunds(filters);
         console.log(

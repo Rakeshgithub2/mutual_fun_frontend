@@ -84,9 +84,8 @@ export function AIChatbot() {
     setIsLoading(true);
 
     try {
-      const API_URL =
-        process.env.NEXT_PUBLIC_API_URL ||
-        'https://mutualfun-backend.vercel.app/api';
+      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: {

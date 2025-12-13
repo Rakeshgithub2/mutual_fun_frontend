@@ -57,8 +57,8 @@ import { HoldingsTable } from '@/components/holdings-table';
 import { SectorAllocationChart } from '@/components/sector-allocation-chart';
 import { FundManagerCard } from '@/components/fund-manager-card';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app/api';
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
 
 const SECTOR_COLORS = [
   '#3b82f6', // blue

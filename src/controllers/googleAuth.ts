@@ -12,13 +12,12 @@ import { formatResponse } from '../utils/response';
 import crypto from 'crypto';
 import { ObjectId } from 'mongodb';
 
+const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
 const REDIRECT_URI =
-  process.env.GOOGLE_REDIRECT_URI ||
-  `https://mutualfun-backend.vercel.app/auth/google/callback`;
-const FRONTEND_URL =
-  process.env.FRONTEND_URL || 'https://mutualfun-backend.vercel.app';
+  process.env.GOOGLE_REDIRECT_URI || `${BASE_URL}/auth/google/callback`;
+const FRONTEND_URL = process.env.FRONTEND_URL || BASE_URL;
 
 // Debug logging
 console.log('🔐 Google OAuth Configuration:');
