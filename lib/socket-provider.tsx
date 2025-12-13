@@ -14,9 +14,10 @@ import React, {
 // import { io, Socket } from 'socket.io-client';
 import { getToken } from '@/lib/api';
 
-const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
-const SOCKET_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || BASE_URL;
+const BASE_URL = 'https://mutualfun-backend.vercel.app';
+const SOCKET_URL = (
+  process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || BASE_URL
+).replace(/\/+$/, '');
 
 interface SocketContextValue {
   // socket: Socket | null;

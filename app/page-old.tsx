@@ -54,8 +54,10 @@ export default function Home() {
   useEffect(() => {
     if (activeTab === 'news' && news.length === 0) {
       setNewsLoading(true);
-      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
+      const BASE_URL = 'https://mutualfun-backend.vercel.app';
+      const API_URL = (
+        process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
+      ).replace(/\/+$/, '');
 
       fetch(`${API_URL}/news/latest?limit=12`)
         .then((res) => res.json())

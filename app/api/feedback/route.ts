@@ -21,8 +21,10 @@ export async function POST(request: NextRequest) {
 
     // Send feedback to backend API
     // NEXT_PUBLIC_API_URL already includes /api, so just add /feedback
-    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
+    const BASE_URL = 'https://mutualfun-backend.vercel.app';
+    const backendUrl = (
+      process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
+    ).replace(/\/+$/, '');
 
     console.log('📤 Sending feedback to backend:', `${backendUrl}/feedback`);
 

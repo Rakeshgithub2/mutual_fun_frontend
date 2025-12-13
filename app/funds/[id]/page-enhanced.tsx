@@ -53,8 +53,11 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
-const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
-const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
+const BASE_URL = 'https://mutualfun-backend.vercel.app';
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`).replace(
+  /\/+$/,
+  ''
+);
 
 const SECTOR_COLORS = [
   '#3b82f6', // blue

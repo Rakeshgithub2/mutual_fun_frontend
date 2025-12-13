@@ -404,7 +404,7 @@ function SearchPageContent() {
                   Backend URL:{' '}
                   {process.env.NEXT_PUBLIC_API_URL ||
                     (() => {
-                      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+                      const BASE_URL = 'https://mutualfun-backend.vercel.app';
                       return `${BASE_URL}/api`;
                     })()}
                 </p>

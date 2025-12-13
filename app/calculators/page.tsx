@@ -176,7 +176,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+    const BASE_URL = 'https://mutualfun-backend.vercel.app';
     const response = await fetch(`${BASE_URL}/api/calculator/sip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -195,7 +195,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+    const BASE_URL = 'https://mutualfun-backend.vercel.app';
     const response = await fetch(`${BASE_URL}/api/calculator/lumpsum`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -214,7 +214,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+    const BASE_URL = 'https://mutualfun-backend.vercel.app';
     const response = await fetch(`${BASE_URL}/api/calculator/goal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -235,7 +235,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+    const BASE_URL = 'https://mutualfun-backend.vercel.app';
     const response = await fetch(`${BASE_URL}/api/calculator/step-up-sip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -255,7 +255,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+    const BASE_URL = 'https://mutualfun-backend.vercel.app';
     const response = await fetch(`${BASE_URL}/api/calculator/retirement`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

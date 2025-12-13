@@ -176,8 +176,10 @@ export default function OverlapPage() {
 
     try {
       // Fetch detailed data for all selected funds
-      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
+      const BASE_URL = 'https://mutualfun-backend.vercel.app';
+      const API_URL = (
+        process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
+      ).replace(/\/+$/, '');
       console.log('Using API URL:', API_URL);
 
       const fundDetailsPromises = selectedFundIds.map(async (id) => {

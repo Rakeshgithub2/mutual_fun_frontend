@@ -55,8 +55,10 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
+      const BASE_URL = 'https://mutualfun-backend.vercel.app';
+      const API_URL = (
+        process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
+      ).replace(/\/+$/, '');
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: {
