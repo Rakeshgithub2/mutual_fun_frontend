@@ -68,6 +68,33 @@ async function main() {
       console.log('✓ Test user already exists: test@example.com');
     }
 
+    // Create custom test user
+    const customUserPassword = await hashPassword('1234');
+    const existingCustomUser = await usersCollection.findOne({
+      email: 'rakeshdrakeshd0635@gmail.com',
+    });
+
+    if (!existingCustomUser) {
+      await usersCollection.insertOne({
+        email: 'rakeshdrakeshd0635@gmail.com',
+        password: customUserPassword,
+        name: 'Rakesh D',
+        role: 'USER',
+        isVerified: true,
+        age: 28,
+        riskLevel: 'MEDIUM',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      console.log(
+        '✓ Custom test user created: rakeshdrakeshd0635@gmail.com (password: 1234)'
+      );
+    } else {
+      console.log(
+        '✓ Custom test user already exists: rakeshdrakeshd0635@gmail.com'
+      );
+    }
+
     // Create sample funds
     const fundsCollection = db.collection('funds');
 
@@ -677,11 +704,14 @@ async function main() {
       `📊 Total: ${fundCount} new funds, ${funds.length - fundCount} existing`
     );
     console.log(
-      `📰 News: ${newsCount} new articles, ${newsArticles.length - newsCount} existing`
+      `📰 News: ${newsCount} new articles, ${
+        newsArticles.length - newsCount
+      } existing`
     );
     console.log('\n📝 Test Credentials:');
-    console.log('   Admin: admin@mutualfunds.com / admin123');
-    console.log('   User:  test@example.com / test123');
+    console.log('   Admin:       admin@mutualfunds.com / admin123');
+    console.log('   Test User:   test@example.com / test123');
+    console.log('   Demo User:   rakeshdrakeshd0635@gmail.com / 1234');
   } catch (error) {
     console.error('Error seeding database:', error);
     throw error;

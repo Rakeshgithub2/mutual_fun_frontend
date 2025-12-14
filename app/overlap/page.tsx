@@ -33,6 +33,7 @@ import {
   X,
 } from 'lucide-react';
 import { useFunds } from '@/lib/hooks/use-funds';
+import { useOverlap } from '@/lib/hooks/use-overlap';
 import Link from 'next/link';
 import { Input } from '@/components/ui/input';
 
@@ -101,13 +102,22 @@ interface OverlapResult {
 
 export default function OverlapPage() {
   const { funds, loading } = useFunds({ limit: 100 });
-  const [selectedFundIds, setSelectedFundIds] = useState<string[]>([]);
+  const {
+    overlapList,
+    addToOverlap,
+    removeFromOverlap,
+    clearOverlapList,
+    mounted: overlapMounted,
+  } = useOverlap();
   const [result, setResult] = useState<OverlapResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<
     'all' | 'equity' | 'commodity'
   >('all');
+
+  // Use overlapList as selectedFundIds
+  const selectedFundIds = overlapList;
 
   // Filter funds based on category and search query
   const filteredFunds = useMemo(() => {
@@ -158,14 +168,12 @@ export default function OverlapPage() {
   }, [funds, searchQuery, categoryFilter]);
 
   const toggleFundSelection = (fundId: string) => {
-    setSelectedFundIds((prev) => {
-      if (prev.includes(fundId)) {
-        return prev.filter((id) => id !== fundId);
-      } else {
-        if (prev.length >= 5) return prev; // Max 5 funds
-        return [...prev, fundId];
-      }
-    });
+    if (overlapList.includes(fundId)) {
+      removeFromOverlap(fundId);
+    } else {
+      if (overlapList.length >= 5) return; // Max 5 funds
+      addToOverlap(fundId);
+    }
   };
 
   const analyzeOverlap = async () => {
@@ -652,7 +660,8 @@ export default function OverlapPage() {
                                 {fund?.name}
                               </p>
                               <p className="text-xs text-gray-600 dark:text-gray-400">
-                                {fund?.category} • ⭐ {fund?.rating || 'N/A'}
+                                {fund?.category} • ⭐{' '}
+                                {fund?.rating?.toFixed(1) || '0.0'}
                               </p>
                             </div>
                           </div>
@@ -850,7 +859,7 @@ export default function OverlapPage() {
                             <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700">
                               {fund.category}
                             </span>
-                            <span>⭐ {fund.rating || 'N/A'}</span>
+                            <span>⭐ {fund.rating?.toFixed(1) || '0.0'}</span>
                             <span>
                               ₹{(fund.aum / 10000000).toFixed(0)} Cr AUM
                             </span>
@@ -1612,7 +1621,7 @@ export default function OverlapPage() {
                                 key={`rating-${fund.id}`}
                                 className="px-2 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 text-xs font-semibold"
                               >
-                                ⭐ {fund.rating || 'N/A'}/5
+                                ⭐ {fund.rating?.toFixed(1) || '0.0'}/5
                               </span>
                             </div>
                           </div>
@@ -1691,7 +1700,7 @@ export default function OverlapPage() {
                                   Volatility:
                                 </span>
                                 <span className="font-bold text-gray-900 dark:text-white">
-                                  {fund.volatility?.toFixed(2) || 'N/A'}%
+                                  {fund.volatility?.toFixed(2) || '0.00'}%
                                 </span>
                               </div>
                               <div className="flex justify-between">
@@ -1699,7 +1708,7 @@ export default function OverlapPage() {
                                   Sharpe Ratio:
                                 </span>
                                 <span className="font-bold text-gray-900 dark:text-white">
-                                  {fund.sharpeRatio?.toFixed(2) || 'N/A'}
+                                  {fund.sharpeRatio?.toFixed(2) || '0.00'}
                                 </span>
                               </div>
                               <div className="flex justify-between">
@@ -1732,7 +1741,7 @@ export default function OverlapPage() {
                                   Expense Ratio:
                                 </span>
                                 <span className="font-bold text-red-600 dark:text-red-400">
-                                  {fund.expenseRatio?.toFixed(2) || 'N/A'}%
+                                  {fund.expenseRatio?.toFixed(2) || '0.00'}%
                                 </span>
                               </div>
                               <div className="flex justify-between">
@@ -1795,7 +1804,7 @@ export default function OverlapPage() {
                                 Beta
                               </p>
                               <p className="font-bold text-gray-900 dark:text-white">
-                                {fund.beta?.toFixed(2) || 'N/A'}
+                                {fund.beta?.toFixed(2) || '1.00'}
                               </p>
                             </div>
                             <div>
@@ -1803,7 +1812,7 @@ export default function OverlapPage() {
                                 Turnover Ratio
                               </p>
                               <p className="font-bold text-gray-900 dark:text-white">
-                                {fund.portfolioTurnover?.toFixed(0) || 'N/A'}%
+                                {fund.portfolioTurnover?.toFixed(0) || '0'}%
                               </p>
                             </div>
                           </div>

@@ -7,6 +7,7 @@ import { useTheme } from '@/lib/hooks/use-theme';
 import { useTranslation, LANGUAGES } from '@/contexts/TranslationContext';
 import { useWatchlist } from '@/lib/hooks/use-watchlist';
 import { useCompare } from '@/lib/hooks/use-compare';
+import { useOverlap } from '@/lib/hooks/use-overlap';
 import { User, Briefcase, LogOut, ChevronDown, Menu, X } from 'lucide-react';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 
@@ -16,6 +17,7 @@ export function Header() {
   const { t, language } = useTranslation();
   const { watchlist, mounted: watchlistMounted } = useWatchlist();
   const { compareList, mounted: compareMounted } = useCompare();
+  const { overlapList, mounted: overlapMounted } = useOverlap();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
@@ -62,7 +64,12 @@ export function Header() {
   if (!mounted) return null;
 
   const accountMenuItems = [
-    { label: t('nav.goals'), icon: Briefcase, href: '/goal-planning' },
+    { label: '📊 Dashboard', icon: Briefcase, href: '/dashboard' },
+    { label: '💼 Portfolio', icon: Briefcase, href: '/portfolio' },
+    { label: '🎯 Goal Planning', icon: Briefcase, href: '/goal-planning' },
+    { label: '📑 Reports', icon: Briefcase, href: '/reports' },
+    { label: '🔔 Alerts', icon: Briefcase, href: '/alerts' },
+    { label: '⚙️ Settings', icon: Briefcase, href: '/settings' },
   ];
 
   return (
@@ -120,13 +127,27 @@ export function Header() {
               <span className="text-xl">📚</span>
             </Link>
 
+            {/* Fund Manager Link */}
+            <Link
+              href="/fund-manager"
+              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white transition-all hover:scale-110 shadow-lg"
+              title="Fund Managers"
+            >
+              <span className="text-xl">👨‍💼</span>
+            </Link>
+
             {/* Overlap Analyzer Link */}
             <Link
               href="/overlap"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white transition-all hover:scale-110 shadow-lg"
+              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white transition-all hover:scale-110 shadow-lg relative"
               title="Fund Overlap"
             >
               <span className="text-xl">🔄</span>
+              {overlapMounted && overlapList.length > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-xs font-bold text-white shadow-lg">
+                  {overlapList.length}
+                </span>
+              )}
             </Link>
 
             {/* Compare Link */}
@@ -141,6 +162,33 @@ export function Header() {
                   {compareList.length}
                 </span>
               )}
+            </Link>
+
+            {/* Portfolio Link */}
+            <Link
+              href="/portfolio"
+              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-green-600 hover:from-teal-600 hover:to-green-700 text-white transition-all hover:scale-110 shadow-lg"
+              title="Portfolio"
+            >
+              <span className="text-xl">💼</span>
+            </Link>
+
+            {/* News Link */}
+            <Link
+              href="/news"
+              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white transition-all hover:scale-110 shadow-lg"
+              title="Market News"
+            >
+              <span className="text-xl">📰</span>
+            </Link>
+
+            {/* Feedback Link */}
+            <Link
+              href="/feedback"
+              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white transition-all hover:scale-110 shadow-lg"
+              title="Send Feedback"
+            >
+              <span className="text-xl">💬</span>
             </Link>
 
             {/* Language Selector */}
@@ -323,12 +371,86 @@ export function Header() {
             {/* Mobile Navigation Links */}
             <div className="space-y-1 mb-4">
               <Link
+                href="/chat"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>🤖</span>
+                <span className="text-sm font-medium">AI Assistant</span>
+              </Link>
+              <Link
+                href="/dashboard"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>📊</span>
+                <span className="text-sm font-medium">Dashboard</span>
+              </Link>
+              <Link
+                href="/portfolio"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>💼</span>
+                <span className="text-sm font-medium">Portfolio</span>
+              </Link>
+              <Link
                 href="/calculators"
                 onClick={() => setShowMobileMenu(false)}
                 className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
               >
                 <span>🧮</span>
                 <span className="text-sm font-medium">Calculators</span>
+              </Link>
+              <Link
+                href="/fund-manager"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>👨‍💼</span>
+                <span className="text-sm font-medium">Fund Managers</span>
+              </Link>
+              <Link
+                href="/overlap"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>🔄</span>
+                <span className="text-sm font-medium">Fund Overlap</span>
+                {overlapMounted && overlapList.length > 0 && (
+                  <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-xs font-bold text-white">
+                    {overlapList.length}
+                  </span>
+                )}
+              </Link>
+              <Link
+                href="/compare"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>⚖️</span>
+                <span className="text-sm font-medium">Compare Funds</span>
+                {compareMounted && compareList.length > 0 && (
+                  <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-xs font-bold text-white">
+                    {compareList.length}
+                  </span>
+                )}
+              </Link>
+              <Link
+                href="/news"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>📰</span>
+                <span className="text-sm font-medium">Market News</span>
+              </Link>
+              <Link
+                href="/market"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>📈</span>
+                <span className="text-sm font-medium">Market</span>
               </Link>
               <Link
                 href="/glossary"
@@ -339,25 +461,36 @@ export function Header() {
                 <span className="text-sm font-medium">Glossary</span>
               </Link>
               <Link
-                href="/overlap"
+                href="/knowledge"
                 onClick={() => setShowMobileMenu(false)}
                 className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
               >
-                <span>🔄</span>
-                <span className="text-sm font-medium">Fund Overlap</span>
+                <span>💡</span>
+                <span className="text-sm font-medium">Knowledge Hub</span>
               </Link>
               <Link
-                href="/compare"
+                href="/reports"
                 onClick={() => setShowMobileMenu(false)}
                 className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
               >
-                <span>⚖️</span>
-                <span className="text-sm font-medium">Compare</span>
-                {compareMounted && compareList.length > 0 && (
-                  <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-xs font-bold text-white">
-                    {compareList.length}
-                  </span>
-                )}
+                <span>📑</span>
+                <span className="text-sm font-medium">Reports</span>
+              </Link>
+              <Link
+                href="/alerts"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>🔔</span>
+                <span className="text-sm font-medium">Alerts</span>
+              </Link>
+              <Link
+                href="/goal-planning"
+                onClick={() => setShowMobileMenu(false)}
+                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
+              >
+                <span>🎯</span>
+                <span className="text-sm font-medium">Goal Planning</span>
               </Link>
               <Link
                 href="/?tab=watchlist"

@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useWatchlist } from '@/lib/hooks/use-watchlist';
 import { useCompare } from '@/lib/hooks/use-compare';
+import { useOverlap } from '@/lib/hooks/use-overlap';
 import { getTranslation } from '@/lib/i18n';
 import type { Language } from '@/lib/i18n';
 import { Tooltip } from './tooltip';
 import { KnowledgeButton } from './knowledge-button';
-import { Bookmark, TrendingUp, TrendingDown } from 'lucide-react';
+import { Bookmark, TrendingUp, TrendingDown, GitCompare } from 'lucide-react';
 
 interface FundCardProps {
   id: string;
@@ -43,6 +44,7 @@ export function FundCard({
   const { isInWatchlist, addToWatchlist, removeFromWatchlist, mounted } =
     useWatchlist();
   const { addToCompare, isInCompare } = useCompare();
+  const { addToOverlap, isInOverlap } = useOverlap();
   const t = (key: string) => getTranslation(language, key);
 
   if (!mounted) return null;
@@ -64,11 +66,26 @@ export function FundCard({
     typeof returns5Y === 'number' && !isNaN(returns5Y) ? returns5Y : 0;
 
   const inWatchlist = isInWatchlist(id);
-  const inCompare = isInCompare(id);
+  const inOverlap = isInOverlap(id);
+  const inCompare = isInCompare(id); // <-- Fix: add this line after inWatchlist/inOverlap
   const isPositive = safeReturns5Y >= 0;
 
-  const handleCompare = () => {
+  const handleCompare = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Compare clicked for fund:', id);
     addToCompare(id);
+    console.log('Redirecting to compare page...');
+    router.push('/compare');
+  };
+
+  const handleOverlap = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    console.log('Overlap clicked for fund:', id);
+    addToOverlap(id);
+    console.log('Redirecting to overlap page...');
+    router.push('/overlaping to compare page...');
     router.push('/compare');
   };
 
@@ -225,28 +242,48 @@ export function FundCard({
         </div>
 
         {/* Actions - Enhanced */}
-        <div className="flex gap-3">
+        <div className="space-y-2">
           <Link
             href={`/funds/${id}`}
-            className="flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-3 text-center text-sm font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
+            className="block w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-3 text-center text-sm font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
           >
             {t('fund.viewDetails')}
           </Link>
-          <button
-            onClick={handleCompare}
-            className={`rounded-xl border-2 px-4 py-3 text-sm font-bold transition-all hover:scale-[1.02] shadow-md ${
-              inCompare
-                ? 'border-primary bg-primary text-white hover:bg-primary/90'
-                : 'border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:border-purple-300 dark:hover:border-purple-600'
-            }`}
-            title={
-              inCompare
-                ? 'Added to Compare - View Comparison'
-                : 'Add to Compare'
-            }
-          >
-            {inCompare ? '✓ View Compare' : t('fund.compare')}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleCompare}
+              className={`flex-1 rounded-xl border-2 px-3 py-2.5 text-xs font-bold transition-all hover:scale-[1.02] shadow-md ${
+                inCompare
+                  ? 'border-primary bg-primary text-white hover:bg-primary/90'
+                  : 'border-purple-200 dark:border-purple-700 bg-white dark:bg-gray-800 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-purple-600 dark:text-purple-400 hover:border-purple-300 dark:hover:border-purple-600'
+              }`}
+              title={
+                inCompare
+                  ? 'Added to Compare - View Comparison'
+                  : 'Add to Compare'
+              }
+            >
+              {inCompare ? '✓ Compare' : t('fund.compare')}
+            </button>
+            <button
+              type="button"
+              onClick={handleOverlap}
+              className={`flex-1 rounded-xl border-2 px-3 py-2.5 text-xs font-bold transition-all hover:scale-[1.02] shadow-md flex items-center justify-center gap-1 ${
+                inOverlap
+                  ? 'border-orange-500 bg-orange-500 text-white hover:bg-orange-600'
+                  : 'border-orange-200 dark:border-orange-700 bg-white dark:bg-gray-800 hover:bg-orange-50 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:border-orange-300 dark:hover:border-orange-600'
+              }`}
+              title={
+                inOverlap
+                  ? 'Added to Overlap - View Analysis'
+                  : 'Add to Overlap Analysis'
+              }
+            >
+              <GitCompare className="w-3.5 h-3.5" />
+              {inOverlap ? '✓ Overlap' : 'Overlap'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

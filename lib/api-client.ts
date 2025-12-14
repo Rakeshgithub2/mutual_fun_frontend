@@ -1,7 +1,31 @@
-const BASE_URL = 'https://mutualfun-backend.vercel.app';
-const API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
-).replace(/\/+$/, '');
+// API Configuration
+// Gets base URL from environment variable (without /api suffix)
+// The /api prefix will be added by the client methods
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+
+console.log('🌐 API Base URL configured:', API_BASE_URL);
+
+// Enhanced returns interface with all periods
+export interface Returns {
+  oneMonth: number;
+  threeMonth: number;
+  sixMonth: number;
+  ytd: number;
+  oneYear: number;
+  threeYear: number;
+  fiveYear: number;
+  tenYear: number;
+  sinceInception?: number;
+}
+
+// Enhanced risk metrics interface
+export interface RiskMetrics {
+  sharpeRatio: number;
+  beta: number;
+  alpha: number;
+  volatility: number;
+  standardDeviation: number;
+}
 
 export interface Fund {
   id: string;
@@ -14,23 +38,17 @@ export interface Fund {
   currentNav: number;
   previousNav?: number;
   navDate?: string;
-  returns?: {
-    day?: number;
-    week?: number;
-    month?: number;
-    threeMonth?: number;
-    sixMonth?: number;
-    oneYear?: number;
-    threeYear?: number;
-    fiveYear?: number;
-    sinceInception?: number;
-  };
-  riskMetrics?: {
-    sharpeRatio?: number;
-    standardDeviation?: number;
-    beta?: number;
-    alpha?: number;
-  };
+
+  // Enhanced returns with all periods from backend
+  returns?: Returns;
+
+  // Enhanced risk metrics from backend
+  riskMetrics?: RiskMetrics;
+
+  // New fields from backend
+  riskLevel?: string;
+  rating?: number;
+
   aum?: number;
   expenseRatio?: number;
   ratings?: {
@@ -183,7 +201,7 @@ export class ApiClient {
     }
 
     const queryString = searchParams.toString();
-    const endpoint = `/funds${queryString ? `?${queryString}` : ''}`;
+    const endpoint = `/api/funds${queryString ? `?${queryString}` : ''}`;
 
     return this.request<PaginatedResponse<Fund>>(endpoint);
   }
@@ -192,7 +210,7 @@ export class ApiClient {
    * GET /api/funds/:id - Get fund details
    */
   async getFundById(fundId: string): Promise<ApiResponse<FundDetails>> {
-    return this.request<ApiResponse<FundDetails>>(`/funds/${fundId}`);
+    return this.request<ApiResponse<FundDetails>>(`/api/funds/${fundId}`);
   }
 
   /**
@@ -219,7 +237,7 @@ export class ApiClient {
       }>;
     }>
   > {
-    return this.request(`/funds/${fundId}/price-history?period=${period}`);
+    return this.request(`/api/funds/${fundId}/price-history?period=${period}`);
   }
 
   /**
@@ -240,7 +258,7 @@ export class ApiClient {
       };
     }
 
-    return this.request(`/suggest?q=${encodeURIComponent(query)}`);
+    return this.request(`/api/suggest?q=${encodeURIComponent(query)}`);
   }
 
   /**
@@ -288,7 +306,7 @@ export class ApiClient {
       comparedAt: string;
     }>
   > {
-    return this.request('/compare', {
+    return this.request('/api/compare', {
       method: 'POST',
       body: JSON.stringify({ fundIds }),
     });
@@ -353,7 +371,7 @@ export class ApiClient {
       analyzedAt: string;
     }>
   > {
-    return this.request('/overlap', {
+    return this.request('/api/overlap', {
       method: 'POST',
       body: JSON.stringify({ fundIds }),
     });

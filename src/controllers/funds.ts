@@ -8,6 +8,7 @@ import {
   buildSortOrder,
 } from '../utils/response';
 import { ObjectId } from 'mongodb';
+import { enrichFundData } from '../utils/fundMetrics';
 // import { cacheService, CacheService } from '../services/cacheService';
 
 interface Fund {
@@ -142,12 +143,49 @@ export const getFunds = async (
 
     console.log('✅ Funds retrieved:', funds.length);
 
-    // Transform _id to id for consistency
-    const transformedFunds = funds.map((fund) => ({
-      id: fund._id?.toString(),
-      ...fund,
-      _id: undefined,
-    }));
+    // Get performance data for each fund to calculate metrics
+    const performancesCollection = mongodb.getCollection('fund_performances');
+
+    // Transform and enrich funds with calculated metrics
+    const transformedFunds = await Promise.all(
+      funds.map(async (fund) => {
+        const baseFundData = {
+          id: fund._id?.toString(),
+          ...fund,
+          _id: undefined,
+        };
+
+        // If fund already has returns and risk metrics in DB, use them
+        if (fund.returns && fund.riskMetrics) {
+          return baseFundData;
+        }
+
+        // Otherwise, calculate them (only for first page to avoid performance issues)
+        if (page === 1) {
+          try {
+            const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+            const performances = await performancesCollection
+              .find({
+                fundId: fund._id,
+                date: { $gte: oneYearAgo },
+              })
+              .sort({ date: -1 })
+              .limit(365)
+              .toArray();
+
+            if (performances.length > 30) {
+              return enrichFundData(baseFundData, performances);
+            }
+          } catch (error) {
+            console.error(`Error enriching fund ${fund._id}:`, error);
+          }
+        }
+
+        return baseFundData;
+      })
+    );
+
+    console.log('✅ Funds enriched with metrics');
 
     const response = formatPaginatedResponse(
       transformedFunds,
@@ -214,43 +252,76 @@ export const getFundById = async (
       })
       .toArray();
 
-    // Get performance data for last 1 year
-    const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+    // Get performance data for calculation (last 10 years for better metrics)
+    const tenYearsAgo = new Date(Date.now() - 10 * 365 * 24 * 60 * 60 * 1000);
     const performances = await performancesCollection
       .find({
         fundId: new ObjectId(id),
-        date: { $gte: oneYearAgo },
+        date: { $gte: tenYearsAgo },
       })
       .sort({ date: -1 })
-      .limit(100)
       .toArray();
 
-    // Combine all data
-    const fundWithDetails = {
+    // Prepare base fund data
+    const baseFundData = {
       id: fund._id.toString(),
       ...fund,
       _id: undefined,
+    };
+
+    // Enrich fund data with calculated metrics (returns, risk metrics, rating)
+    const enrichedFund = enrichFundData(baseFundData, performances);
+
+    // Combine all data with limited performance history for frontend
+    const fundWithDetails = {
+      ...enrichedFund,
       holdings: holdings.map((h: any) => ({
         id: h._id.toString(),
         ...h,
         _id: undefined,
+        fundId: undefined,
       })),
       managedBy: managedBy.map((m: any) => ({
         id: m._id.toString(),
         ...m,
         _id: undefined,
+        fundId: undefined,
       })),
-      performances: performances.map((p: any) => ({
-        id: p._id.toString(),
-        ...p,
-        _id: undefined,
-      })),
+      // Only send last 1 year of performance data to frontend
+      performances: performances
+        .filter((p: any) => {
+          const perfDate = new Date(p.date);
+          const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+          return perfDate >= oneYearAgo;
+        })
+        .slice(0, 365)
+        .map((p: any) => ({
+          date: p.date,
+          nav: p.nav,
+        })),
+      performanceHistory: performances
+        .filter((p: any) => {
+          const perfDate = new Date(p.date);
+          const oneYearAgo = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+          return perfDate >= oneYearAgo;
+        })
+        .slice(0, 365)
+        .map((p: any) => ({
+          date: p.date,
+          nav: p.nav,
+        })),
     };
 
-    console.log(`✅ Fund ${fund.name} retrieved successfully`);
+    console.log(`✅ Fund ${fund.name} retrieved successfully with metrics:`, {
+      returns: fundWithDetails.returns,
+      riskMetrics: fundWithDetails.riskMetrics,
+      riskLevel: fundWithDetails.riskLevel,
+      rating: fundWithDetails.rating,
+    });
+
     const response = formatResponse(
       fundWithDetails,
-      'Fund retrieved successfully'
+      'Fund details retrieved successfully'
     );
 
     return res.json(response);

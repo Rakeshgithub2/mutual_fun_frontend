@@ -1,12 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
-const BASE_URL = 'https://mutualfun-backend.vercel.app';
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`).replace(
-  /\/+$/,
-  ''
-);
+import { apiClient } from '@/lib/api-client';
 
 interface Fund {
   id: string;
@@ -55,49 +50,18 @@ export function useFunds(options?: {
     setError(null);
 
     try {
-      const params = new URLSearchParams();
-      if (options?.type) params.append('type', options.type);
-      if (options?.category)
-        params.append('category', options.category.toLowerCase());
-      if (options?.subCategory)
-        params.append('subCategory', options.subCategory);
-      if (options?.query) params.append('q', options.query); // Map 'query' to 'q' for API
-      if (options?.limit) params.append('limit', options.limit.toString());
-      else params.append('limit', '100'); // Get more funds by default (max allowed by API)
+      console.log('🔍 Fetching funds with filters:', options);
 
-      // Use the correct API_URL - it already includes /api from .env.local
-      const apiUrl = `${API_URL}/funds?${params.toString()}`;
-      console.log('🚀 Fetching funds from API:', apiUrl);
-      console.log('📋 Query params:', {
+      // Use the centralized API client
+      const response = await apiClient.getFunds({
+        query: options?.query,
+        type: options?.type,
         category: options?.category,
         subCategory: options?.subCategory,
-        query: options?.query,
+        limit: options?.limit || 100,
       });
 
-      const httpResponse = await fetch(apiUrl);
-
-      console.log('📡 Response status:', httpResponse.status);
-      console.log(
-        '📡 Response headers:',
-        Object.fromEntries(httpResponse.headers.entries())
-      );
-
-      if (!httpResponse.ok) {
-        const errorText = await httpResponse.text();
-        console.error('❌ API Error Response:', errorText);
-        throw new Error(
-          `Failed to fetch funds: ${httpResponse.status} ${httpResponse.statusText} - ${errorText}`
-        );
-      }
-
-      const response = await httpResponse.json();
-      console.log('✅ API Response received:', response.data?.length, 'funds');
-      console.log('📋 Response structure:', {
-        statusCode: response.statusCode,
-        message: response.message,
-        dataType: typeof response.data,
-        dataLength: response.data?.length,
-      });
+      console.log('✅ Funds fetched successfully:', response);
 
       // Transform API response to match frontend interface
       const transformedFunds = (response.data || []).map((fund: any) => {
@@ -203,14 +167,10 @@ export function useFund(id: string) {
     setError(null);
 
     try {
-      // Use the correct API_URL - it already includes /api from .env.local
-      const httpResponse = await fetch(`${API_URL}/funds/${id}`);
+      // Use the centralized API client
+      const apiResponse = await apiClient.getFundById(id);
 
-      if (!httpResponse.ok) {
-        throw new Error(`Failed to fetch fund: ${httpResponse.statusText}`);
-      }
-
-      const apiResponse = await httpResponse.json();
+      console.log('✅ Fund fetched successfully:', apiResponse);
 
       // Transform API response
       const formatCategory = (cat: string) => {

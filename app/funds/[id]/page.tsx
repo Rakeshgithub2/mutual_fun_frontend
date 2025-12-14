@@ -321,7 +321,7 @@ export default function FundDetailEnhanced({
                 CURRENT NAV
               </p>
               <p className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
-                ₹{fund.currentNav?.toFixed(2) || 'N/A'}
+                ₹{fund.currentNav?.toFixed(2) || '0.00'}
               </p>
               <div className="flex items-center justify-end gap-2">
                 {fund.returns?.oneYear >= 0 ? (
@@ -1008,7 +1008,7 @@ export default function FundDetailEnhanced({
                   >
                     {ret.value !== null && ret.value !== undefined
                       ? `${ret.value >= 0 ? '+' : ''}${ret.value.toFixed(2)}%`
-                      : 'N/A'}
+                      : '0.00%'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {ret.period} performance
@@ -1164,7 +1164,7 @@ export default function FundDetailEnhanced({
                     Volatility (Risk)
                   </p>
                   <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
-                    {fund.riskMetrics.volatility?.toFixed(2) || 'N/A'}%
+                    {fund.riskMetrics.volatility?.toFixed(2) || '0.00'}%
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Standard deviation of returns
@@ -1175,7 +1175,7 @@ export default function FundDetailEnhanced({
                     Sharpe Ratio
                   </p>
                   <p className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                    {fund.riskMetrics.sharpeRatio?.toFixed(2) || 'N/A'}
+                    {fund.riskMetrics.sharpeRatio?.toFixed(2) || '0.00'}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Risk-adjusted return measure
@@ -1186,7 +1186,7 @@ export default function FundDetailEnhanced({
                     Beta (Market Sensitivity)
                   </p>
                   <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                    {fund.riskMetrics.beta?.toFixed(2) || 'N/A'}
+                    {fund.riskMetrics.beta?.toFixed(2) || '1.00'}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Relative to market benchmark
@@ -1222,7 +1222,9 @@ export default function FundDetailEnhanced({
                 </div>
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <span className="font-semibold">Benchmark</span>
-                  <span className="font-bold">{fund.benchmark || 'N/A'}</span>
+                  <span className="font-bold">
+                    {fund.benchmark || 'Not Available'}
+                  </span>
                 </div>
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <span className="font-semibold">AMFI Code</span>
@@ -1235,7 +1237,7 @@ export default function FundDetailEnhanced({
                   <span className="font-bold">
                     {fund.inceptionDate
                       ? new Date(fund.inceptionDate).toLocaleDateString()
-                      : 'N/A'}
+                      : 'Not Available'}
                   </span>
                 </div>
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">

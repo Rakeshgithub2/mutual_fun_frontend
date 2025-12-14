@@ -258,25 +258,27 @@ export function FundManagerCard({
         {(managerDetails.specialization || managerDetails.performanceRank) && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Specialization */}
-            {managerDetails.specialization &&
-              managerDetails.specialization.length > 0 && (
-                <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-purple-200 dark:border-purple-800">
-                  <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                    <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                    Areas of Expertise
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {managerDetails.specialization.map((spec, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-full border border-purple-300 dark:border-purple-700"
-                      >
-                        {spec}
-                      </span>
-                    ))}
-                  </div>
+            {managerDetails.specialization && (
+              <div className="p-4 bg-white dark:bg-gray-900 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                  Areas of Expertise
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {(Array.isArray(managerDetails.specialization)
+                    ? managerDetails.specialization
+                    : [managerDetails.specialization]
+                  ).map((spec, idx) => (
+                    <span
+                      key={idx}
+                      className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-semibold rounded-full border border-purple-300 dark:border-purple-700"
+                    >
+                      {spec}
+                    </span>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
             {/* Performance Rank */}
             {managerDetails.performanceRank && (

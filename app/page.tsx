@@ -40,11 +40,34 @@ export default function Home() {
   const router = useRouter();
   const { language } = useLanguage();
   const { watchlist, mounted: watchlistMounted } = useWatchlist();
-  const { funds, loading } = useFunds({ limit: 100 });
+  const { funds: rawFunds, loading } = useFunds({ limit: 100 });
 
   const [activeTab, setActiveTab] = useState<
     'equity' | 'commodity' | 'news' | 'watchlist' | 'goals'
   >('equity');
+
+  // Transform API Fund type to FundList's expected type
+  const funds = useMemo(
+    () =>
+      rawFunds.map((fund) => ({
+        id: fund.id || fund.fundId,
+        name: fund.name,
+        fundHouse: fund.fundHouse,
+        category: fund.category,
+        nav: fund.currentNav,
+        returns1Y: fund.returns?.oneYear || 0,
+        returns3Y: fund.returns?.threeYear || 0,
+        returns5Y: fund.returns?.fiveYear || 0,
+        aum: fund.aum || 0,
+        expenseRatio: fund.expenseRatio || 0,
+        rating:
+          fund.ratings?.morningstar ||
+          fund.ratings?.crisil ||
+          fund.ratings?.valueResearch ||
+          0,
+      })),
+    [rawFunds]
+  );
 
   const { watchlistFunds } = useMemo(() => {
     const watchlistFunds = funds.filter((fund) => watchlist.includes(fund.id));
@@ -1115,35 +1138,40 @@ export default function Home() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-16">
               {[
                 {
-                  title: 'Investment',
+                  title: 'Explore',
                   links: [
-                    'Equity Funds',
-                    'Debt Funds',
-                    'Hybrid Funds',
-                    'Tax Saving',
+                    { label: 'Dashboard', href: '/dashboard' },
+                    { label: 'Portfolio', href: '/portfolio' },
+                    { label: 'Fund Managers', href: '/fund-manager' },
+                    { label: 'Market News', href: '/news' },
                   ],
                 },
                 {
                   title: 'Tools',
                   links: [
-                    'SIP Calculator',
-                    'Fund Compare',
-                    'Portfolio Tracker',
-                    'Goal Planner',
+                    { label: 'Calculators', href: '/calculators' },
+                    { label: 'Fund Compare', href: '/compare' },
+                    { label: 'Fund Overlap', href: '/overlap' },
+                    { label: 'Goal Planner', href: '/goal-planning' },
                   ],
                 },
                 {
                   title: 'Learn',
                   links: [
-                    'Investment Guide',
-                    'Market Analysis',
-                    'Fund Research',
-                    'Risk Assessment',
+                    { label: 'Knowledge Hub', href: '/knowledge' },
+                    { label: 'Glossary', href: '/glossary' },
+                    { label: 'Market Data', href: '/market' },
+                    { label: 'Reports', href: '/reports' },
                   ],
                 },
                 {
-                  title: 'Support',
-                  links: ['Help Center', 'Contact Us', 'FAQs', 'Feedback'],
+                  title: 'Account',
+                  links: [
+                    { label: 'Alerts', href: '/alerts' },
+                    { label: 'Settings', href: '/settings' },
+                    { label: 'AI Assistant', href: '/chat' },
+                    { label: 'Search', href: '/search' },
+                  ],
                 },
               ].map((section, index) => (
                 <motion.div
@@ -1156,12 +1184,13 @@ export default function Home() {
                   <h4 className="font-bold text-lg mb-4">{section.title}</h4>
                   <div className="space-y-2 text-gray-400 text-sm">
                     {section.links.map((link, linkIndex) => (
-                      <div
+                      <Link
                         key={linkIndex}
-                        className="hover:text-white transition-colors cursor-pointer"
+                        href={link.href}
+                        className="block hover:text-white transition-colors cursor-pointer"
                       >
-                        {link}
-                      </div>
+                        {link.label}
+                      </Link>
                     ))}
                   </div>
                 </motion.div>

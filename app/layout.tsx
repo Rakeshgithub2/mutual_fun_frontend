@@ -5,6 +5,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { FeedbackButton } from '@/components/FeedbackButton';
+import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 
 const geistSans = Geist({ subsets: ['latin'] });
@@ -34,6 +35,7 @@ export default function RootLayout({
             <AuthProvider>
               {children}
               <FeedbackButton />
+              <Toaster />
             </AuthProvider>
           </TranslationProvider>
         </GoogleOAuthProvider>

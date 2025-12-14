@@ -46,11 +46,7 @@ interface MarketIndex {
   constituents?: number;
 }
 
-const BASE_URL = 'https://mutualfun-backend.vercel.app';
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`).replace(
-  /\/+$/,
-  ''
-);
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 export function MarketIndices() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);
@@ -65,7 +61,7 @@ export function MarketIndices() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-        const response = await fetch(`${API_URL}/market-indices`, {
+        const response = await fetch(`${API_BASE_URL}/api/market-indices`, {
           signal: controller.signal,
         });
 

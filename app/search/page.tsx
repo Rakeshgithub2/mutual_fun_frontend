@@ -61,7 +61,12 @@ function SearchPageContent() {
     router.push(`/search?${params.toString()}`);
   };
 
-  const { funds, pagination, loading, error } = useFunds({
+  const {
+    funds: rawFunds,
+    pagination,
+    loading,
+    error,
+  } = useFunds({
     query: searchQuery,
     category: category || undefined,
     subCategory: subCategory || undefined,
@@ -70,6 +75,25 @@ function SearchPageContent() {
   });
 
   const t = (key: string) => getTranslation(language, key);
+
+  // Transform API Fund type to FundList's expected type
+  const funds = rawFunds.map((fund) => ({
+    id: fund.id || fund.fundId,
+    name: fund.name,
+    fundHouse: fund.fundHouse,
+    category: fund.category,
+    nav: fund.currentNav,
+    returns1Y: fund.returns?.oneYear || 0,
+    returns3Y: fund.returns?.threeYear || 0,
+    returns5Y: fund.returns?.fiveYear || 0,
+    aum: fund.aum || 0,
+    expenseRatio: fund.expenseRatio || 0,
+    rating:
+      fund.ratings?.morningstar ||
+      fund.ratings?.crisil ||
+      fund.ratings?.valueResearch ||
+      0,
+  }));
 
   // Get unique categories from loaded funds
   const categories = Array.from(new Set(funds.map((f) => f.category)));
@@ -88,8 +112,7 @@ function SearchPageContent() {
       (fund.expenseRatio >= clientFilters.minExpenseRatio &&
         fund.expenseRatio <= clientFilters.maxExpenseRatio);
     const matchesRating =
-      !fund.ratings?.morningstar ||
-      fund.ratings.morningstar >= clientFilters.minRating;
+      !fund.rating || fund.rating >= clientFilters.minRating;
     const matchesAUM = !fund.aum || fund.aum >= clientFilters.minAUM * 10000000; // Convert crores to actual value
 
     return matchesExpenseRatio && matchesRating && matchesAUM;

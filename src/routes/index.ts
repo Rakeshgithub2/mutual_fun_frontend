@@ -13,6 +13,7 @@ import adminRoutes from './admin';
 import calculatorRoutes from './calculator';
 import comparisonRoutes from './comparison';
 import taxRoutes from './tax';
+import feedbackRoutes from './feedback';
 
 const router = Router();
 
@@ -30,5 +31,6 @@ router.use('/admin', adminRoutes);
 router.use('/calculator', calculatorRoutes);
 router.use('/comparison', comparisonRoutes);
 router.use('/tax', taxRoutes);
+router.use('/feedback', feedbackRoutes);
 
 export default router;
