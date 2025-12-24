@@ -1,352 +1,512 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useMemo } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { FundList } from '@/components/fund-list';
-import { useLanguage } from '@/lib/hooks/use-language';
-import { getTranslation } from '@/lib/i18n';
 import { useFunds } from '@/hooks/use-funds';
-import { ArrowLeft, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Loader2, Search, X, ArrowLeft } from 'lucide-react';
 
-export default function CommodityFundsPage() {
-  const { language, mounted: langMounted } = useLanguage();
+function CommodityPageContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const [subCategory, setSubCategory] = useState('');
+  const [limitFilter, setLimitFilter] = useState<
+    'top20' | 'top50' | 'top100' | 'all'
+  >('all'); // Default to 'all' to show all funds
   const [searchQuery, setSearchQuery] = useState('');
-  const [subcategory, setSubcategory] = useState<
-    'ALL' | 'GOLD_ETF' | 'SILVER_ETF' | 'COMMODITY'
-  >('ALL');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [page, setPage] = useState(1);
+  const language = 'en'; // Default language
 
-  // Fetch commodity funds by category (3 separate API calls)
-  const { funds: goldFunds = [], loading: loadingGold } = useFunds({
-    category: 'GOLD_ETF',
-    limit: 100,
-    query: searchQuery || undefined,
+  useEffect(() => {
+    const urlType = searchParams.get('type');
+    if (urlType) {
+      setSubCategory(urlType);
+    } else {
+      setSubCategory('');
+    }
+  }, [searchParams]);
+
+  // Define commodity types
+  const commodityTypes = [
+    { label: 'All Funds', value: '', subCategory: '' },
+    { label: 'Gold Funds', value: 'gold', subCategory: 'Gold' },
+    { label: 'Silver Funds', value: 'silver', subCategory: 'Silver' },
+    {
+      label: 'Multi Commodity',
+      value: 'multi-commodity',
+      subCategory: 'Multi Commodity',
+    },
+  ];
+
+  // Fetch all funds without category filter to find commodity funds
+  // We'll filter on the client side for commodity-related funds
+  // ✅ PRODUCTION-SAFE: Using multi-page fetch strategy
+  const {
+    funds: allFunds,
+    loading,
+    error,
+  } = useFunds({
+    limit: 3000, // Multi-page fetch: 30 pages × 100 = 3000 funds
   });
 
-  const { funds: silverFunds = [], loading: loadingSilver } = useFunds({
-    category: 'SILVER_ETF',
-    limit: 100,
-    query: searchQuery || undefined,
-  });
+  // Log error details for debugging
+  useEffect(() => {
+    if (error) {
+      console.error('❌ [Commodity Page] API Error:', error);
+      console.error('❌ [Commodity Page] Error details:', {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+      });
+    }
+  }, [error]);
 
-  const { funds: commodityFunds = [], loading: loadingCommodity } = useFunds({
-    category: 'COMMODITY',
-    limit: 100,
-    query: searchQuery || undefined,
-  });
+  // Transform and filter commodity funds from all funds
+  const transformedFunds = useMemo(() => {
+    console.log('🔍 [Commodity Page] Total funds fetched:', allFunds.length);
+    console.log('🔍 [Commodity Page] Loading:', loading);
+    console.log('🔍 [Commodity Page] Error:', error);
 
-  const loading = loadingGold || loadingSilver || loadingCommodity;
-  const error = null; // Individual errors handled by each hook
+    if (allFunds.length > 0) {
+      console.log(
+        '📊 [Commodity Page] First 5 funds with full details:',
+        allFunds.slice(0, 5).map((f) => ({
+          name: f.name,
+          category: f.category,
+          subCategory: f.subCategory,
+          fundType: f.fundType,
+          schemeName: f.schemeName,
+        }))
+      );
 
-  const t = (key: string) => getTranslation(language, key);
+      // Log unique categories and subcategories to understand data structure
+      const categories = [
+        ...new Set(allFunds.map((f) => f.category).filter(Boolean)),
+      ];
+      const subCategories = [
+        ...new Set(allFunds.map((f) => f.subCategory).filter(Boolean)),
+      ];
+      const fundTypes = [
+        ...new Set(allFunds.map((f) => f.fundType).filter(Boolean)),
+      ];
 
-  // Combine all commodity funds
-  const allFundsRaw = [...goldFunds, ...silverFunds, ...commodityFunds];
+      console.log('📊 [Commodity Page] Unique categories:', categories);
+      console.log(
+        '📊 [Commodity Page] Unique subcategories:',
+        subCategories.slice(0, 20)
+      );
+      console.log('📊 [Commodity Page] Unique fund types:', fundTypes);
+    }
 
-  // Transform API Fund type to FundList's expected type
-  const allFunds = allFundsRaw.map((fund) => ({
-    id: fund.id || fund.fundId,
-    name: fund.name,
-    fundHouse: fund.fundHouse,
-    category: fund.category,
-    nav: fund.currentNav,
-    returns1Y: fund.returns?.oneYear || 0,
-    returns3Y: fund.returns?.threeYear || 0,
-    returns5Y: fund.returns?.fiveYear || 0,
-    aum: fund.aum || 0,
-    expenseRatio: fund.expenseRatio || 0,
-    rating:
-      fund.ratings?.morningstar ||
-      fund.ratings?.crisil ||
-      fund.ratings?.valueResearch ||
-      0,
-  }));
+    // Filter for commodity-related funds - be comprehensive to capture all commodity funds
+    const commodityFunds = allFunds.filter((fund) => {
+      const name = fund.name?.toLowerCase() || '';
+      const category = fund.category?.toLowerCase() || '';
+      const subCat = fund.subCategory?.toLowerCase() || '';
+      const fundType = fund.fundType?.toLowerCase() || '';
+      const schemeName = fund.schemeName?.toLowerCase() || '';
 
-  // Filter funds by subcategory
-  const filteredFunds =
-    subcategory === 'ALL'
-      ? allFunds
-      : allFunds.filter((fund) => fund.category === subcategory);
+      // Combine all searchable text
+      const searchText = `${name} ${category} ${subCat} ${fundType} ${schemeName}`;
 
-  // Count funds by category
-  const goldCount = allFunds.filter((f) => f.category === 'GOLD_ETF').length;
-  const silverCount = allFunds.filter(
-    (f) => f.category === 'SILVER_ETF'
-  ).length;
-  const otherCount = allFunds.filter((f) => f.category === 'COMMODITY').length;
+      // Comprehensive commodity keywords
+      const commodityKeywords = [
+        'commodity',
+        'commodities',
+        'gold',
+        'silver',
+        'platinum',
+        'palladium',
+        'metal',
+        'metals',
+        'precious metal',
+        'bullion',
+        'etf gold',
+        'gold etf',
+        'etf silver',
+        'silver etf',
+        'gold fund',
+        'silver fund',
+        'gold savings',
+        'gold exchange',
+        'gold deposit',
+        'mcx', // Multi Commodity Exchange
+        'ncdex', // National Commodity Exchange
+      ];
 
-  if (!langMounted) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        {t('common.loading')}
-      </div>
+      // Check if any commodity keyword is present
+      const isCommodity = commodityKeywords.some((keyword) =>
+        searchText.includes(keyword)
+      );
+
+      return isCommodity;
+    });
+
+    console.log(
+      '✅ [Commodity Page] Commodity funds found:',
+      commodityFunds.length
     );
-  }
+
+    // Log a sample of found funds to verify
+    if (commodityFunds.length > 0) {
+      console.log(
+        '📋 [Commodity Page] Sample commodity funds:',
+        commodityFunds.slice(0, 10).map((f) => f.name)
+      );
+    }
+
+    // API already returns commodity funds, just transform them
+    return commodityFunds.map((fund) => ({
+      id: fund.id || fund.fundId,
+      name: fund.name,
+      fundHouse: fund.fundHouse,
+      category: fund.category,
+      subCategory: fund.subCategory,
+      nav: fund.currentNav || 0,
+      returns1Y: fund.returns?.oneYear || 0,
+      returns3Y: fund.returns?.threeYear || 0,
+      returns5Y: fund.returns?.fiveYear || 0,
+      aum: fund.aum || 0,
+      expenseRatio: fund.expenseRatio || 0,
+      rating: fund.rating || 0,
+    }));
+  }, [allFunds]);
+
+  // Filter and limit funds based on user selection
+  const filteredFunds = useMemo(() => {
+    let filtered = [...transformedFunds];
+
+    console.log(
+      '🎯 [Commodity Page] Starting with transformed funds:',
+      filtered.length
+    );
+    console.log('🎯 [Commodity Page] SubCategory filter:', subCategory);
+    console.log('🎯 [Commodity Page] Limit filter:', limitFilter);
+
+    // Filter by subcategory (Gold, Silver, Multi Commodity)
+    if (subCategory) {
+      const selectedType = commodityTypes.find((c) => c.value === subCategory);
+      if (selectedType) {
+        filtered = filtered.filter((fund) => {
+          const fundName = fund.name?.toLowerCase() || '';
+          const fundSubCat = fund.subCategory?.toLowerCase() || '';
+          const fundCategory = fund.category?.toLowerCase() || '';
+          const searchText = `${fundName} ${fundSubCat} ${fundCategory}`;
+
+          // Match based on subcategory type
+          switch (subCategory) {
+            case 'gold':
+              return searchText.includes('gold');
+            case 'silver':
+              return searchText.includes('silver');
+            case 'multi-commodity':
+              // Multi commodity: includes commodity funds but excludes specific gold/silver funds
+              const hasGold = searchText.includes('gold');
+              const hasSilver = searchText.includes('silver');
+              const hasCommodity =
+                searchText.includes('commodity') ||
+                searchText.includes('multi');
+              const hasMetal =
+                searchText.includes('metal') ||
+                searchText.includes('platinum') ||
+                searchText.includes('palladium');
+
+              // Include if it has commodity/multi keyword or metal keyword, but exclude if it's specifically gold or silver only
+              return (hasCommodity || hasMetal) && !hasGold && !hasSilver;
+            default:
+              return true;
+          }
+        });
+        console.log(
+          '🔽 [Commodity Page] After subcategory filter:',
+          filtered.length,
+          'for type:',
+          subCategory
+        );
+      }
+    }
+
+    // Apply search filter with improved matching
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
+      const searchTerms = query.split(' ');
+
+      filtered = filtered.filter((fund) => {
+        const fundName = fund.name.toLowerCase();
+        const searchText = fundName;
+
+        // Match if all search terms are found in the fund name
+        return searchTerms.every((term) => searchText.includes(term));
+      });
+    }
+
+    // Sort by 2-year performance (using 1-year returns as proxy since 2-year not available)
+    // Sort in descending order (best performers first)
+    filtered = filtered.sort((a, b) => {
+      const returnA = a.returns1Y || 0;
+      const returnB = b.returns1Y || 0;
+      return returnB - returnA;
+    });
+
+    // Apply limit filter after sorting
+    if (limitFilter === 'top20') {
+      filtered = filtered.slice(0, 20);
+    } else if (limitFilter === 'top50') {
+      filtered = filtered.slice(0, 50);
+    } else if (limitFilter === 'top100') {
+      filtered = filtered.slice(0, 100);
+    }
+    // 'all' means no limit
+
+    console.log('✅ [Commodity Page] Final filtered count:', filtered.length);
+    return filtered;
+  }, [transformedFunds, searchQuery, limitFilter, subCategory]);
+
+  // Search suggestions
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery.trim() || searchQuery.length < 2) return [];
+
+    const query = searchQuery.toLowerCase();
+    return transformedFunds
+      .filter((fund) => fund.name.toLowerCase().includes(query))
+      .slice(0, 10);
+  }, [transformedFunds, searchQuery]);
+
+  const getTitle = () => {
+    if (!subCategory) return 'All Commodity Funds';
+    return (
+      commodityTypes.find((c) => c.value === subCategory)?.label ||
+      'Commodity Funds'
+    );
+  };
+
+  const limitFilters = [
+    { label: 'Top 20', value: 'top20' as const },
+    { label: 'Top 50', value: 'top50' as const },
+    { label: 'Top 100', value: 'top100' as const },
+    { label: 'All Funds', value: 'all' as const },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-yellow-50 to-orange-50 dark:from-gray-950 dark:via-amber-950/20 dark:to-orange-950/20">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Back Button */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="mb-6"
-        >
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300 font-medium transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
-        </motion.div>
+      {/* Fixed Back Button - Always Visible */}
+      <button
+        onClick={() => router.push('/')}
+        className="fixed top-20 left-6 z-50 flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-amber-600 dark:hover:text-amber-400 transition-colors font-medium"
+        title="Back to Home"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
 
-        {/* Page Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-600 via-yellow-600 to-orange-600 bg-clip-text text-transparent mb-3">
-            🥇 Commodity Funds & ETFs
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            {filteredFunds.length}{' '}
-            {subcategory === 'ALL'
-              ? 'Total'
-              : subcategory === 'GOLD_ETF'
-              ? 'Gold'
-              : subcategory === 'SILVER_ETF'
-              ? 'Silver'
-              : 'Other Metal'}{' '}
-            Funds Available
-          </p>
-        </motion.div>
-
-        {/* Category Filter Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8 bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-xl border-2 border-amber-200 dark:border-amber-800"
-        >
-          <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-500" />
-            Filter by Commodity Type
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button
-              onClick={() => {
-                setSubcategory('ALL');
-                setPage(1);
-              }}
-              className={`p-4 rounded-xl font-semibold text-center transition-all transform hover:scale-105 ${
-                subcategory === 'ALL'
-                  ? 'bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg scale-105'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              <div className="text-2xl mb-1">🌟</div>
-              <div className="text-lg">All</div>
-              <div className="text-sm opacity-90">
-                ({allFunds.length} funds)
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                setSubcategory('GOLD_ETF');
-                setPage(1);
-              }}
-              className={`p-4 rounded-xl font-semibold text-center transition-all transform hover:scale-105 ${
-                subcategory === 'GOLD_ETF'
-                  ? 'bg-gradient-to-br from-yellow-400 to-amber-600 text-white shadow-lg scale-105'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              <div className="text-2xl mb-1">🥇</div>
-              <div className="text-lg">Gold Funds</div>
-              <div className="text-sm opacity-90">({goldCount} funds)</div>
-            </button>
-
-            <button
-              onClick={() => {
-                setSubcategory('SILVER_ETF');
-                setPage(1);
-              }}
-              className={`p-4 rounded-xl font-semibold text-center transition-all transform hover:scale-105 ${
-                subcategory === 'SILVER_ETF'
-                  ? 'bg-gradient-to-br from-gray-300 to-gray-500 text-white shadow-lg scale-105'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              <div className="text-2xl mb-1">🥈</div>
-              <div className="text-lg">Silver Funds</div>
-              <div className="text-sm opacity-90">({silverCount} funds)</div>
-            </button>
-
-            <button
-              onClick={() => {
-                setSubcategory('COMMODITY');
-                setPage(1);
-              }}
-              className={`p-4 rounded-xl font-semibold text-center transition-all transform hover:scale-105 ${
-                subcategory === 'COMMODITY'
-                  ? 'bg-gradient-to-br from-orange-500 to-red-600 text-white shadow-lg scale-105'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-              }`}
-            >
-              <div className="text-2xl mb-1">⚡</div>
-              <div className="text-lg">Other Metals</div>
-              <div className="text-sm opacity-90">({otherCount} funds)</div>
-            </button>
-          </div>
-        </motion.div>
-
-        {/* Search Bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="mb-8"
-        >
-          <input
-            type="text"
-            placeholder="Search for funds by name or house..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border-2 border-amber-200 dark:border-amber-800 bg-white dark:bg-gray-900 px-6 py-4 text-lg placeholder-gray-400 focus:border-amber-500 dark:focus:border-amber-600 focus:outline-none focus:ring-4 focus:ring-amber-500/20 shadow-lg"
-          />
-        </motion.div>
-
-        {/* Info Cards */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mb-8 grid md:grid-cols-3 gap-4"
-        >
-          <div className="bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-950/30 dark:to-amber-950/30 p-6 rounded-xl border-2 border-yellow-300 dark:border-yellow-800">
-            <h3 className="text-lg font-bold text-amber-900 dark:text-amber-100 mb-2">
-              🥇 Gold Funds ({goldCount})
-            </h3>
-            <p className="text-sm text-amber-800 dark:text-amber-300">
-              Invest in physical gold through ETFs. Perfect for portfolio
-              diversification and inflation hedge.
-            </p>
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              {getTitle()}
+            </h1>
           </div>
 
-          <div className="bg-gradient-to-br from-gray-100 to-slate-200 dark:from-gray-900/30 dark:to-slate-900/30 p-6 rounded-xl border-2 border-gray-400 dark:border-gray-700">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
-              🥈 Silver Funds ({silverCount})
-            </h3>
-            <p className="text-sm text-gray-800 dark:text-gray-300">
-              Industrial precious metal with dual investment appeal. Used in
-              electronics, solar panels, and jewelry.
-            </p>
-          </div>
-
-          <div className="bg-gradient-to-br from-orange-50 to-red-100 dark:from-orange-950/30 dark:to-red-950/30 p-6 rounded-xl border-2 border-orange-300 dark:border-orange-800">
-            <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100 mb-2">
-              ⚡ Other Metals ({otherCount})
-            </h3>
-            <p className="text-sm text-orange-800 dark:text-orange-300">
-              Copper, Aluminum, Platinum, and multi-commodity funds. Exposure to
-              industrial and construction sectors.
-            </p>
-          </div>
-        </motion.div>
-
-        {/* Funds List */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-        >
-          {loading ? (
-            <div className="flex items-center justify-center min-h-[400px]">
-              <div className="text-center">
-                <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-amber-600 border-r-transparent"></div>
-                <p className="mt-4 text-lg text-gray-600 dark:text-gray-400">
-                  Loading commodity funds...
-                </p>
-              </div>
+          {/* Search Box with Autocomplete - Enhanced Visibility */}
+          <Card className="mb-6 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-700 shadow-lg">
+            <div className="mb-2">
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Search className="w-4 h-4 text-yellow-600 dark:text-yellow-400" />
+                Search Commodity Funds
+              </h3>
             </div>
-          ) : error ? (
-            <div className="bg-red-50 dark:bg-red-950/30 border-2 border-red-200 dark:border-red-800 rounded-xl p-8 text-center">
-              <p className="text-lg text-red-600 dark:text-red-400">
-                Error loading funds: {String(error)}
-              </p>
+            <div className="relative">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                <Input
+                  type="text"
+                  placeholder="🔍 Search Gold, Silver, Commodity funds... (e.g., Gold ETF, Silver Fund)"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  className="pl-14 pr-12 h-14 text-lg font-medium border-2 border-yellow-300 dark:border-yellow-600 focus:border-yellow-500 dark:focus:border-yellow-400 bg-white dark:bg-gray-800 shadow-md"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setShowSuggestions(false);
+                    }}
+                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-full p-1"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Search Suggestions Dropdown */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowSuggestions(false)}
+                  ></div>
+                  <div className="absolute z-20 w-full mt-2 bg-white dark:bg-gray-800 border-2 border-yellow-300 dark:border-yellow-600 rounded-lg shadow-2xl max-h-96 overflow-y-auto">
+                    {searchSuggestions.map((fund) => (
+                      <button
+                        key={fund.id}
+                        onClick={() => {
+                          setSearchQuery(fund.name);
+                          setShowSuggestions(false);
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900 dark:text-white text-sm">
+                          {fund.name}
+                        </div>
+                        {fund.category && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {fund.category}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
-          ) : filteredFunds.length > 0 ? (
-            <FundList funds={filteredFunds} language={language} />
-          ) : (
-            <div className="bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-200 dark:border-amber-800 rounded-xl p-12 text-center">
-              <div className="text-6xl mb-4">📭</div>
-              <p className="text-xl text-gray-600 dark:text-gray-400 mb-2">
-                No funds found
-              </p>
-              <p className="text-sm text-gray-500 dark:text-gray-500">
-                Try adjusting your search or filters
-              </p>
+          </Card>
+
+          {/* Commodity Type Filter */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Commodity Type
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {commodityTypes.map((type) => (
+                <Button
+                  key={type.value}
+                  onClick={() => {
+                    if (type.value) {
+                      router.push(`/commodity?type=${type.value}`);
+                    } else {
+                      router.push('/commodity');
+                    }
+                    setPage(1);
+                  }}
+                  variant={subCategory === type.value ? 'default' : 'outline'}
+                  size="sm"
+                  className="whitespace-nowrap"
+                >
+                  {type.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Top 20/50/100/All Filter */}
+          <div className="mb-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              Show
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {limitFilters.map((filter) => (
+                <Button
+                  key={filter.value}
+                  onClick={() => {
+                    setLimitFilter(filter.value);
+                    setPage(1);
+                  }}
+                  variant={limitFilter === filter.value ? 'default' : 'outline'}
+                  size="sm"
+                  className="whitespace-nowrap"
+                >
+                  {filter.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Results Count */}
+          {!loading && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              Showing {filteredFunds.length} of {transformedFunds.length} funds
             </div>
           )}
-        </motion.div>
+        </div>
 
-        {/* Educational Content */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-12 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/30 dark:to-indigo-950/30 rounded-2xl p-8 border-2 border-blue-200 dark:border-blue-800"
-        >
-          <h2 className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-4">
-            💡 Why Invest in Commodity Funds?
-          </h2>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                Portfolio Diversification
-              </h3>
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                Commodities have low correlation with stocks and bonds,
-                providing true diversification to your portfolio.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                Inflation Hedge
-              </h3>
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                Precious metals like gold and silver historically preserve
-                purchasing power during inflationary periods.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                Crisis Protection
-              </h3>
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                Gold is considered a safe-haven asset during economic
-                uncertainty and geopolitical tensions.
-              </p>
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
-                Easy & Liquid
-              </h3>
-              <p className="text-blue-700 dark:text-blue-300 text-sm">
-                ETFs provide easy way to invest in physical commodities without
-                storage concerns. Trade like stocks with high liquidity.
-              </p>
-            </div>
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
           </div>
-        </motion.div>
-      </main>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <Card className="p-6 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800">
+            <div className="space-y-3">
+              <p className="text-red-600 dark:text-red-400 font-semibold">
+                Failed to load commodity funds
+              </p>
+              <p className="text-sm text-red-500 dark:text-red-300">
+                Error: {error.message}
+              </p>
+              <div className="text-xs text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 p-3 rounded border">
+                <p className="font-semibold mb-1">Troubleshooting:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>The API might be temporarily unavailable</li>
+                  <li>Check your internet connection</li>
+                  <li>Try refreshing the page</li>
+                </ul>
+              </div>
+              <Button
+                onClick={() => window.location.reload()}
+                variant="outline"
+                size="sm"
+                className="mt-2"
+              >
+                Retry
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        {/* Funds List */}
+        {!loading && !error && (
+          <>
+            <FundList funds={filteredFunds} language={language} />
+
+            {filteredFunds.length === 0 && (
+              <Card className="p-12 text-center">
+                <p className="text-gray-600 dark:text-gray-400">
+                  No commodity funds found matching your criteria.
+                </p>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
     </div>
+  );
+}
+
+export default function CommodityPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+        </div>
+      }
+    >
+      <CommodityPageContent />
+    </Suspense>
   );
 }

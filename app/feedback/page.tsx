@@ -1,10 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
-import { Send, MessageSquare, Star, Lightbulb, Bug, Heart } from 'lucide-react';
+import {
+  Send,
+  MessageSquare,
+  Star,
+  Lightbulb,
+  Bug,
+  Heart,
+  ArrowLeft,
+} from 'lucide-react';
 
 export default function FeedbackPage() {
+  const router = useRouter();
   const [feedbackType, setFeedbackType] = useState<
     'bug' | 'feature' | 'general'
   >('general');
@@ -20,41 +30,48 @@ export default function FeedbackPage() {
     setError('');
 
     try {
-      const apiUrl =
-        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002/api';
-
       // Get user data if logged in
       const userData =
         localStorage.getItem('varta_user') || localStorage.getItem('user');
+      let userName = 'Anonymous';
       let userId = null;
       if (userData) {
         try {
           const user = JSON.parse(userData);
+          userName = user.name || user.username || 'Anonymous';
           userId = user.id || user._id;
         } catch (e) {
           console.error('Error parsing user data:', e);
         }
       }
 
-      const response = await fetch(`${apiUrl}/feedback`, {
+      const feedbackData = {
+        feedbackType,
+        rating,
+        name: userName,
+        email: null,
+        message: message.trim(),
+        userId,
+      };
+
+      const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          feedbackType,
-          rating,
-          name: 'Anonymous',
-          email: null,
-          message,
-          userId,
-        }),
+        body: JSON.stringify(feedbackData),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        throw new Error('Server returned invalid response. Please try again.');
+      }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Failed to submit feedback');
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit feedback');
       }
 
       // Show success message
@@ -83,6 +100,16 @@ export default function FeedbackPage() {
     <div className="min-h-screen bg-background">
       <Header />
 
+      {/* Back Button - Fixed at top left */}
+      <button
+        onClick={() => router.push('/')}
+        className="fixed top-20 left-6 z-50 flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
+        title="Back to Home"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>Back</span>
+      </button>
+
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="mb-12 text-center">
@@ -96,6 +123,12 @@ export default function FeedbackPage() {
             Help us improve MutualFunds.in with your valuable suggestions and
             reports
           </p>
+          <div className="mt-6 mx-auto max-w-2xl rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 p-4">
+            <p className="text-sm text-blue-800 dark:text-blue-200 text-center">
+              📧 Your feedback will open your email client to send to:{' '}
+              <strong>rakeshd01042024@gmail.com</strong>
+            </p>
+          </div>
         </div>
 
         {submitted ? (
@@ -276,28 +309,19 @@ export default function FeedbackPage() {
             <p>
               📧 Email:{' '}
               <a
-                href="mailto:support@mutualfunds.in"
+                href="mailto:rakeshd01042024@gmail.com"
                 className="text-primary hover:underline"
               >
-                support@mutualfunds.in
+                rakeshd01042024@gmail.com
               </a>
             </p>
             <p>
-              💬 Twitter:{' '}
+              📱 Mobile:{' '}
               <a
-                href="https://twitter.com/mutualfundsin"
+                href="tel:+919740104978"
                 className="text-primary hover:underline"
               >
-                @mutualfundsin
-              </a>
-            </p>
-            <p>
-              📱 WhatsApp:{' '}
-              <a
-                href="https://wa.me/1234567890"
-                className="text-primary hover:underline"
-              >
-                +91 123-456-7890
+                +91 9740104978
               </a>
             </p>
           </div>

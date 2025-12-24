@@ -1,25 +1,25 @@
 'use client';
 
 import type React from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { Header } from '@/components/header';
-import { useLanguage } from '@/lib/hooks/use-language';
 import { useTheme } from '@/lib/hooks/use-theme';
 import { useWatchlist } from '@/lib/hooks/use-watchlist';
-import { getTranslation } from '@/lib/i18n';
-import type { Language } from '@/lib/i18n';
+import { toast } from 'sonner';
 
 export default function SettingsPage() {
-  const { language, changeLanguage, mounted: langMounted } = useLanguage();
   const { isDark, toggleTheme, mounted: themeMounted } = useTheme();
   const { watchlist, mounted: watchlistMounted } = useWatchlist();
+  const [exporting, setExporting] = useState(false);
 
-  const t = (key: string) => getTranslation(language, key);
+  // TODO: Replace with actual user ID from authentication
+  const userId = 'temp-user-id';
 
-  if (!langMounted || !themeMounted || !watchlistMounted) {
+  if (!themeMounted || !watchlistMounted) {
     return (
       <div className="flex h-screen items-center justify-center">
-        {t('common.loading')}
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
@@ -40,6 +40,43 @@ export default function SettingsPage() {
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
+    toast.success('Watchlist downloaded successfully');
+  };
+
+  const handleEmailWatchlist = async () => {
+    if (watchlist.length === 0) {
+      toast.error('Your watchlist is empty');
+      return;
+    }
+
+    setExporting(true);
+    try {
+      const response = await fetch('/api/watchlist/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          watchlist,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.emailSent) {
+          toast.success('Watchlist sent to your registered email!');
+        } else {
+          toast.warning(data.message || 'Email service not configured');
+        }
+      } else {
+        toast.error('Failed to send watchlist');
+      }
+    } catch (error) {
+      console.error('Error sending watchlist:', error);
+      toast.error('Failed to send watchlist');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleImportWatchlist = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,43 +97,47 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Page Header */}
         <div className="mb-12">
-          <h1 className="text-4xl font-bold text-foreground">Settings</h1>
-          <p className="mt-2 text-lg text-muted">
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white">
+            Settings
+          </h1>
+          <p className="mt-2 text-lg text-gray-600 dark:text-gray-400">
             Customize your experience and manage preferences
           </p>
         </div>
 
         <div className="space-y-8">
           {/* Appearance Settings */}
-          <section className="rounded-lg border border-border bg-card p-8">
+          <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-foreground">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
                 Appearance
               </h2>
-              <p className="mt-1 text-sm text-muted">
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                 Customize how the app looks
               </p>
             </div>
 
             <div className="space-y-6">
               {/* Dark Mode Toggle */}
-              <div className="flex items-center justify-between p-4 rounded-lg bg-background">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-gray-50 dark:bg-gray-800">
                 <div>
-                  <p className="font-semibold text-foreground">Dark Mode</p>
-                  <p className="text-sm text-muted">
+                  <p className="font-semibold text-gray-900 dark:text-white">
+                    Dark Mode
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
                     Toggle between light and dark themes
                   </p>
                 </div>
                 <button
                   onClick={toggleTheme}
                   className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
-                    isDark ? 'bg-primary' : 'bg-muted'
+                    isDark ? 'bg-blue-600' : 'bg-gray-300'
                   }`}
                 >
                   <span
@@ -109,51 +150,21 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Language Settings */}
-          <section className="rounded-lg border border-border bg-card p-8">
+          {/* Watchlist Management */}
+          <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-foreground">
-                Language
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                Watchlist Management
               </h2>
-              <p className="mt-1 text-sm text-muted">
-                Choose your preferred language
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Manage your saved funds
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              {(['en', 'hi', 'kn'] as Language[]).map((lang) => (
-                <button
-                  key={lang}
-                  onClick={() => changeLanguage(lang)}
-                  className={`rounded-lg px-4 py-3 font-medium transition-all ${
-                    language === lang
-                      ? 'bg-primary text-white shadow-lg'
-                      : 'border border-border hover:border-primary text-foreground hover:bg-background'
-                  }`}
-                >
-                  {lang === 'en'
-                    ? '🇬🇧 English'
-                    : lang === 'hi'
-                    ? '🇮🇳 हिंदी'
-                    : '🇮🇳 ಕನ್ನಡ'}
-                </button>
-              ))}
-            </div>
-          </section>
-
-          {/* Watchlist Management */}
-          <section className="rounded-lg border border-border bg-card p-8">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-foreground">
-                Watchlist Management
-              </h2>
-              <p className="mt-1 text-sm text-muted">Manage your saved funds</p>
-            </div>
-
-            <div className="mb-6 rounded-lg bg-background p-4">
-              <p className="text-sm text-muted">
+            <div className="mb-6 rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 You have{' '}
-                <span className="font-semibold text-foreground">
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {watchlist.length}
                 </span>{' '}
                 fund(s) in your watchlist
@@ -163,41 +174,48 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={handleExportWatchlist}
-                className="flex-1 rounded-lg border border-border px-4 py-3 font-medium text-foreground hover:bg-background transition-colors"
+                className="flex-1 rounded-lg border border-gray-200 dark:border-gray-700 px-4 py-3 font-medium text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
               >
-                📥 Export Watchlist
+                📥 Download Watchlist
               </button>
-              <label className="flex-1 rounded-lg border border-border px-4 py-3 font-medium text-foreground hover:bg-background transition-colors cursor-pointer text-center">
-                📤 Import Watchlist
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportWatchlist}
-                  className="hidden"
-                />
-              </label>
+              <button
+                onClick={handleEmailWatchlist}
+                disabled={exporting}
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+              >
+                {exporting ? '⏳ Sending...' : '📧 Email Watchlist'}
+              </button>
             </div>
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+              Email will be sent to your registered email address
+            </p>
           </section>
 
           {/* About Section */}
-          <section className="rounded-lg border border-border bg-card p-8">
+          <section className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-8">
             <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-foreground">About</h2>
-              <p className="mt-1 text-sm text-muted">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                About
+              </h2>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                 App information and legal
               </p>
             </div>
 
             <div className="space-y-4 text-sm">
-              <div className="rounded-lg bg-background p-4">
-                <p className="text-muted">
-                  <strong className="text-foreground">App Version:</strong>{' '}
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
+                <p className="text-gray-600 dark:text-gray-400">
+                  <strong className="text-gray-900 dark:text-white">
+                    App Version:
+                  </strong>{' '}
                   1.0.0
                 </p>
               </div>
-              <div className="rounded-lg bg-background p-4">
-                <p className="text-muted">
-                  <strong className="text-foreground">Last Updated:</strong>{' '}
+              <div className="rounded-lg bg-gray-50 dark:bg-gray-800 p-4">
+                <p className="text-gray-600 dark:text-gray-400">
+                  <strong className="text-gray-900 dark:text-white">
+                    Last Updated:
+                  </strong>{' '}
                   {new Date().toLocaleDateString()}
                 </p>
               </div>
@@ -234,10 +252,13 @@ export default function SettingsPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card py-8 mt-12">
+      <footer className="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 py-8 mt-12">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          <div className="text-center text-sm text-muted">
-            <p>&copy; 2025 MutualFunds.in. All rights reserved.</p>
+          <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+            <p>
+              © {new Date().getFullYear()} MF Analyzer. All rights reserved.
+            </p>
+            <p className="mt-2">Version 2.0.0</p>
           </div>
         </div>
       </footer>

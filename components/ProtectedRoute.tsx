@@ -1,37 +1,67 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
+// Routes that don't require authentication
+const PUBLIC_ROUTES = [
+  '/',
+  '/auth/login',
+  '/auth/register',
+  '/auth/signin',
+  '/about',
+  '/glossary',
+];
+
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    // Skip redirect during initial loading
+    if (isLoading) return;
+
+    // Check if current route is public
+    const isPublicRoute = PUBLIC_ROUTES.some((route) => {
+      if (route === '/') return pathname === '/';
+      return pathname?.startsWith(route);
+    });
+
+    // Redirect to login if not authenticated and trying to access protected route
+    if (!user && !isPublicRoute) {
+      // Store the intended destination
+      sessionStorage.setItem('redirectAfterLogin', pathname || '/');
       router.push('/auth/login');
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [user, isLoading, pathname, router]);
 
-  // Show loading spinner while checking auth
+  // Show loading state while checking authentication
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
 
-  // If not authenticated, return null (will redirect)
-  if (!isAuthenticated) {
-    return null;
+  // Show login prompt for protected routes when not authenticated
+  const isPublicRoute = PUBLIC_ROUTES.some((route) => {
+    if (route === '/') return pathname === '/';
+    return pathname?.startsWith(route);
+  });
+
+  if (!user && !isPublicRoute) {
+    return null; // Router will handle redirect
   }
 
-  // Render children if authenticated
   return <>{children}</>;
 }

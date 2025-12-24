@@ -28,7 +28,25 @@ export function useFunds(filters?: {
             ''
           )
         );
-        const response = await apiClient.getFunds(filters);
+
+        // ✅ PRODUCTION-SAFE: Use multi-page fetching for large datasets
+        let response;
+        const requestedLimit = filters?.limit || 50;
+
+        if (requestedLimit > 100) {
+          // Use multi-page strategy for large requests
+          console.log(
+            '📚 [useFunds] Large request detected, using multi-page fetch'
+          );
+          response = await apiClient.getFundsMultiPage({
+            ...filters,
+            targetCount: requestedLimit,
+          });
+        } else {
+          // Normal single-page request with safe params
+          response = await apiClient.getFunds(filters);
+        }
+
         console.log(
           '✅ [useFunds] Response received:',
           response.data.length,

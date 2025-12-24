@@ -58,7 +58,7 @@ export function useFunds(options?: {
         type: options?.type,
         category: options?.category,
         subCategory: options?.subCategory,
-        limit: options?.limit || 100,
+        limit: options?.limit || 500, // ✅ Updated default from 100 to 500
       });
 
       console.log('✅ Funds fetched successfully:', response);

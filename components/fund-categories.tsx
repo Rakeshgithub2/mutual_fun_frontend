@@ -148,45 +148,62 @@ export function FundCategories({
 
   // Create API hooks for all subcategories
   const { funds: largeCapFunds, loading: largeCapLoading } = useFunds({
-    category: 'equity',
+    category: 'Equity',
     subCategory: 'Large Cap',
-    limit: 100,
+    limit: 500,
   });
   const { funds: midCapFunds, loading: midCapLoading } = useFunds({
-    category: 'equity',
+    category: 'Equity',
     subCategory: 'Mid Cap',
-    limit: 100,
+    limit: 500,
   });
   const { funds: smallCapFunds, loading: smallCapLoading } = useFunds({
-    category: 'equity',
+    category: 'Equity',
     subCategory: 'Small Cap',
-    limit: 100,
+    limit: 500,
   });
   const { funds: multiCapFunds, loading: multiCapLoading } = useFunds({
-    category: 'equity',
+    category: 'Equity',
     subCategory: 'Multi Cap',
-    limit: 100,
+    limit: 500,
   });
-  const { funds: goldFunds, loading: goldLoading } = useFunds({
-    category: 'commodity',
-    subCategory: 'Gold',
-    limit: 100,
+  // Backend doesn't support Commodity category, fetch all and filter client-side
+  const { funds: allFundsForGold, loading: goldLoading } = useFunds({
+    limit: 500,
   });
-  const { funds: silverFunds, loading: silverLoading } = useFunds({
-    category: 'commodity',
-    subCategory: 'Silver',
-    limit: 100,
+  const goldFunds = allFundsForGold.filter(
+    (fund) =>
+      fund.subCategory?.toLowerCase().includes('gold') ||
+      fund.name?.toLowerCase().includes('gold')
+  );
+  const { funds: allFundsForSilver, loading: silverLoading } = useFunds({
+    limit: 500,
   });
+  const silverFunds = allFundsForSilver.filter(
+    (fund) =>
+      fund.subCategory?.toLowerCase().includes('silver') ||
+      fund.name?.toLowerCase().includes('silver')
+  );
 
   // Get all funds for the active category
   const { funds: allEquityFunds, loading: allEquityLoading } = useFunds({
-    category: 'equity',
-    limit: 100,
+    category: 'Equity',
+    limit: 500,
   });
-  const { funds: allCommodityFunds, loading: allCommodityLoading } = useFunds({
-    category: 'commodity',
-    limit: 100,
-  });
+  const { funds: allFundsForCommodity, loading: allCommodityLoading } =
+    useFunds({
+      limit: 500,
+    });
+  const allCommodityFunds = allFundsForCommodity.filter(
+    (fund) =>
+      fund.category?.toLowerCase().includes('commodity') ||
+      fund.subCategory?.toLowerCase().includes('commodity') ||
+      fund.subCategory?.toLowerCase().includes('gold') ||
+      fund.subCategory?.toLowerCase().includes('silver') ||
+      fund.name?.toLowerCase().includes('gold') ||
+      fund.name?.toLowerCase().includes('silver') ||
+      fund.name?.toLowerCase().includes('commodity')
+  );
 
   // Get current funds based on active tab and subcategory
   const getCurrentFunds = () => {

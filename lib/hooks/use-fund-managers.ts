@@ -77,7 +77,7 @@ export function useFundManagers(options?: {
       if (options?.limit) params.append('limit', options.limit.toString());
       else params.append('limit', '100');
 
-      const apiUrl = `${API_URL}/fund-managers?${params.toString()}`;
+      const apiUrl = `${BASE_URL}/api/fund-managers?${params.toString()}`;
       console.log('🚀 Fetching fund managers from API:', apiUrl);
 
       const httpResponse = await fetch(apiUrl);

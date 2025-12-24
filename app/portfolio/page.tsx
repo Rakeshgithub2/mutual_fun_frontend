@@ -61,10 +61,11 @@ import {
 } from 'recharts';
 
 const BASE_URL = 'https://mutualfun-backend.vercel.app';
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`).replace(
-  /\/+$/,
-  ''
-);
+const API_URL = (
+  process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/api`
+    : `${BASE_URL}/api`
+).replace(/\/+$/, '');
 
 // Mock portfolio data for demo
 const MOCK_PORTFOLIO_DATA = {

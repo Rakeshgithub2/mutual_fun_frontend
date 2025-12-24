@@ -2,19 +2,29 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from '@/lib/hooks/use-theme';
-import { useTranslation, LANGUAGES } from '@/contexts/TranslationContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useWatchlist } from '@/lib/hooks/use-watchlist';
 import { useCompare } from '@/lib/hooks/use-compare';
 import { useOverlap } from '@/lib/hooks/use-overlap';
-import { User, Briefcase, LogOut, ChevronDown, Menu, X } from 'lucide-react';
-import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import {
+  User,
+  Briefcase,
+  LogOut,
+  Menu,
+  X,
+  Home,
+  TrendingUp,
+  Coins,
+  Building2,
+  Star,
+} from 'lucide-react';
 
 export function Header() {
   const router = useRouter();
-  const { isDark, toggleTheme, mounted } = useTheme();
-  const { t, language } = useTranslation();
+  const pathname = usePathname();
+  const { t } = useTranslation();
   const { watchlist, mounted: watchlistMounted } = useWatchlist();
   const { compareList, mounted: compareMounted } = useCompare();
   const { overlapList, mounted: overlapMounted } = useOverlap();
@@ -22,11 +32,16 @@ export function Header() {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [userData, setUserData] = useState<any>(null);
+  const [mounted, setMounted] = useState(false);
 
-  // Check authentication status on mount and when localStorage changes
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+
     const checkAuth = () => {
-      // Try both old and new token keys for backward compatibility
       const token =
         localStorage.getItem('varta_token') ||
         localStorage.getItem('accessToken');
@@ -47,21 +62,14 @@ export function Header() {
     };
 
     checkAuth();
-
-    // Listen for storage changes (cross-tab sync)
     window.addEventListener('storage', checkAuth);
-
-    // Custom event for same-tab updates
-    const handleAuthChange = () => checkAuth();
-    window.addEventListener('authChange', handleAuthChange);
+    window.addEventListener('authChange', checkAuth);
 
     return () => {
       window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('authChange', handleAuthChange);
+      window.removeEventListener('authChange', checkAuth);
     };
-  }, []);
-
-  if (!mounted) return null;
+  }, [mounted]);
 
   const accountMenuItems = [
     { label: '📊 Dashboard', icon: Briefcase, href: '/dashboard' },
@@ -72,513 +80,225 @@ export function Header() {
     { label: '⚙️ Settings', icon: Briefcase, href: '/settings' },
   ];
 
+  const navigationTabs = [
+    { label: 'Home', icon: Home, href: '/' },
+    { label: 'Equity', icon: TrendingUp, href: '/equity' },
+    { label: 'Commodity', icon: Coins, href: '/commodity' },
+    { label: 'Debt', icon: Building2, href: '/debt' },
+    { label: 'Watchlist', icon: Star, href: '/watchlist' },
+  ];
+
+  const isActiveTab = (href: string) => {
+    if (href === '/') {
+      return pathname === '/';
+    }
+    return pathname?.startsWith(href);
+  };
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-accent">
-              <span className="text-sm font-bold text-white">MF</span>
+    <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-sm">
+      <div className="px-4 sm:px-6">
+        <div className="flex h-14 items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+              <span className="text-base font-bold text-white">MF</span>
             </div>
-            <span className="hidden font-bold text-primary sm:inline">
-              MutualFunds.in
+          </Link>
+
+          <Link href="/" className="flex-1 text-center">
+            <span className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">
+              MF Analyzer
             </span>
           </Link>
 
-          {/* Search Bar */}
-          <div className="hidden flex-1 mx-8 md:block">
-            <Link href="/search">
-              <input
-                type="text"
-                placeholder={t('common.search')}
-                className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm placeholder-muted focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer"
-                readOnly
-              />
-            </Link>
-          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowMobileMenu(!showMobileMenu)}
+              className="sm:hidden p-2"
+              aria-label="Menu"
+              type="button"
+              suppressHydrationWarning
+            >
+              {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
+            </button>
 
-          {/* Right Actions */}
-          <div className="flex items-center gap-4">
-            {/* AI Chatbot Button - First Position */}
+            {isSignedIn && userData ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowAccountMenu(!showAccountMenu)}
+                  className="flex items-center gap-2 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5 transition-all hover:scale-105"
+                >
+                  {userData.picture || userData.profilePicture ? (
+                    <img
+                      src={userData.picture || userData.profilePicture}
+                      alt={userData.name || 'User'}
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full bg-white dark:bg-gray-800">
+                      <User className="h-4 w-4 sm:h-5 sm:w-5 text-gray-700 dark:text-gray-300" />
+                    </div>
+                  )}
+                </button>
+
+                {showAccountMenu && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg z-50">
+                    <div className="p-3 border-b border-gray-200 dark:border-gray-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">
+                        {userData.name || userData.email}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {userData.email}
+                      </p>
+                    </div>
+                    <div className="p-2">
+                      {accountMenuItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md"
+                          onClick={() => setShowAccountMenu(false)}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('varta_token');
+                          localStorage.removeItem('varta_user');
+                          localStorage.removeItem('accessToken');
+                          localStorage.removeItem('user');
+                          setIsSignedIn(false);
+                          setUserData(null);
+                          setShowAccountMenu(false);
+                          window.dispatchEvent(new Event('authChange'));
+                          router.push('/');
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md mt-1"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link href="/auth/login">
+                <button
+                  suppressHydrationWarning
+                  className="flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 transition-all shadow-md"
+                >
+                  <User className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+                </button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Tabs */}
+      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <div className="px-4 sm:px-6">
+          <nav className="flex gap-1 overflow-x-auto scrollbar-hide py-1">
+            {navigationTabs.map((tab) => {
+              const Icon = tab.icon;
+              const active = isActiveTab(tab.href);
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    active
+                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.href === '/watchlist' &&
+                    watchlistMounted &&
+                    watchlist.length > 0 && (
+                      <span
+                        className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                          active ? 'bg-white/20' : 'bg-blue-500 text-white'
+                        }`}
+                      >
+                        {watchlist.length}
+                      </span>
+                    )}
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {showMobileMenu && (
+        <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <div className="p-4 space-y-2">
             <Link
               href="/chat"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white transition-all hover:scale-110 shadow-lg"
-              title="AI Assistant"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">🤖</span>
+              <span>AI Assistant</span>
             </Link>
-
-            {/* Calculators Link */}
             <Link
               href="/calculators"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white transition-all hover:scale-110 shadow-lg"
-              title="Calculators"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">🧮</span>
+              <span>Calculators</span>
             </Link>
-
-            {/* Glossary Link */}
             <Link
               href="/glossary"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white transition-all hover:scale-110 shadow-lg"
-              title="Glossary"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">📚</span>
+              <span>Glossary</span>
             </Link>
-
-            {/* Fund Manager Link */}
             <Link
               href="/fund-manager"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white transition-all hover:scale-110 shadow-lg"
-              title="Fund Managers"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">👨‍💼</span>
+              <span>Fund Managers</span>
             </Link>
-
-            {/* Overlap Analyzer Link */}
             <Link
               href="/overlap"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white transition-all hover:scale-110 shadow-lg relative"
-              title="Fund Overlap"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">🔄</span>
+              <span>Fund Overlap</span>
               {overlapMounted && overlapList.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-xs font-bold text-white shadow-lg">
+                <span className="ml-auto bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                   {overlapList.length}
                 </span>
               )}
             </Link>
-
-            {/* Compare Link */}
             <Link
               href="/compare"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white transition-all hover:scale-110 shadow-lg relative"
-              title="Compare Funds"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">⚖️</span>
+              <span>Compare Funds</span>
               {compareMounted && compareList.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-xs font-bold text-white shadow-lg">
+                <span className="ml-auto bg-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                   {compareList.length}
                 </span>
               )}
             </Link>
-
-            {/* Portfolio Link */}
-            <Link
-              href="/portfolio"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-teal-500 to-green-600 hover:from-teal-600 hover:to-green-700 text-white transition-all hover:scale-110 shadow-lg"
-              title="Portfolio"
-            >
-              <span className="text-xl">💼</span>
-            </Link>
-
-            {/* News Link */}
-            <Link
-              href="/news"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white transition-all hover:scale-110 shadow-lg"
-              title="Market News"
-            >
-              <span className="text-xl">📰</span>
-            </Link>
-
-            {/* Feedback Link */}
-            <Link
-              href="/feedback"
-              className="hidden sm:flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 text-white transition-all hover:scale-110 shadow-lg"
-              title="Send Feedback"
-            >
-              <span className="text-xl">💬</span>
-            </Link>
-
-            {/* Language Selector */}
-            <LanguageSwitcher />
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white transition-all hover:scale-110 shadow-lg"
-              aria-label={
-                isDark ? t('settings.lightMode') : t('settings.darkMode')
-              }
-            >
-              <span className="text-xl">{isDark ? '☀️' : '🌙'}</span>
-            </button>
-
-            {/* Watchlist */}
-            <Link
-              href="/?tab=watchlist"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-600 hover:to-amber-700 text-white transition-all hover:scale-110 shadow-lg relative"
-              title="Watchlist"
-            >
-              <span className="text-xl">⭐</span>
-              {watchlistMounted && watchlist.length > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-xs font-bold text-white shadow-lg animate-pulse">
-                  {watchlist.length}
-                </span>
-              )}
-            </Link>
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="lg:hidden rounded-lg p-2 hover:bg-card transition-colors"
-            >
-              {showMobileMenu ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
-            </button>
-
-            {/* Account Menu */}
-            {!isSignedIn ? (
-              <Link
-                href="/auth"
-                className="hidden lg:inline-flex rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-light transition-colors"
-              >
-                {t('nav.signIn')}
-              </Link>
-            ) : (
-              <div className="relative hidden lg:block">
-                <button
-                  onClick={() => setShowAccountMenu(!showAccountMenu)}
-                  className="flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
-                >
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                    {userData?.profilePicture ? (
-                      <img
-                        src={userData.profilePicture}
-                        alt={userData.name || 'User'}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to icon if image fails to load
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.parentElement!.innerHTML =
-                            '<svg class="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
-                        }}
-                      />
-                    ) : (
-                      <User className="w-4 h-4 text-primary" />
-                    )}
-                  </div>
-                  <span className="hidden xl:inline">My Account</span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-
-                {showAccountMenu && (
-                  <>
-                    {/* Backdrop */}
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowAccountMenu(false)}
-                    ></div>
-
-                    {/* Dropdown Menu */}
-                    <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-background shadow-lg z-50">
-                      <div className="p-4 border-b border-border flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {userData?.profilePicture ? (
-                            <img
-                              src={userData.profilePicture}
-                              alt={userData.name || 'User'}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                // Fallback to icon if image fails to load
-                                e.currentTarget.style.display = 'none';
-                                e.currentTarget.parentElement!.innerHTML =
-                                  '<svg class="w-6 h-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>';
-                              }}
-                            />
-                          ) : (
-                            <User className="w-6 h-6 text-primary" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold text-foreground truncate">
-                            {userData?.name || 'User'}
-                          </p>
-                          <p className="text-xs text-muted truncate">
-                            {userData?.email || 'user@example.com'}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="py-2">
-                        {accountMenuItems.map((item) => {
-                          const Icon = item.icon;
-                          return (
-                            <Link
-                              key={item.href}
-                              href={item.href}
-                              onClick={() => setShowAccountMenu(false)}
-                              className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-card transition-colors"
-                            >
-                              <Icon className="w-4 h-4 text-muted" />
-                              <span>{item.label}</span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-
-                      <div className="border-t border-border p-2">
-                        <button
-                          onClick={() => {
-                            // Clear authentication data (both old and new keys)
-                            localStorage.removeItem('varta_token');
-                            localStorage.removeItem('varta_refresh_token');
-                            localStorage.removeItem('varta_user');
-                            localStorage.removeItem('accessToken');
-                            localStorage.removeItem('refreshToken');
-                            localStorage.removeItem('user');
-                            setIsSignedIn(false);
-                            setUserData(null);
-                            setShowAccountMenu(false);
-                            // Dispatch event for cross-tab sync
-                            window.dispatchEvent(new Event('authChange'));
-                            // Redirect to home
-                            router.push('/');
-                          }}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-danger hover:bg-danger/10 rounded-md transition-colors"
-                        >
-                          <LogOut className="w-4 h-4" />
-                          <span>Sign Out</span>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {showMobileMenu && (
-          <div className="lg:hidden border-t border-border py-4">
-            {/* Mobile Search */}
-            <Link href="/search" onClick={() => setShowMobileMenu(false)}>
-              <div className="mb-4">
-                <input
-                  type="text"
-                  placeholder={t('common.search')}
-                  className="w-full rounded-lg border border-border bg-card px-4 py-2 text-sm placeholder-muted cursor-pointer"
-                  readOnly
-                />
-              </div>
-            </Link>
-
-            {/* Mobile Navigation Links */}
-            <div className="space-y-1 mb-4">
-              <Link
-                href="/chat"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>🤖</span>
-                <span className="text-sm font-medium">AI Assistant</span>
-              </Link>
-              <Link
-                href="/dashboard"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>📊</span>
-                <span className="text-sm font-medium">Dashboard</span>
-              </Link>
-              <Link
-                href="/portfolio"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>💼</span>
-                <span className="text-sm font-medium">Portfolio</span>
-              </Link>
-              <Link
-                href="/calculators"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>🧮</span>
-                <span className="text-sm font-medium">Calculators</span>
-              </Link>
-              <Link
-                href="/fund-manager"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>👨‍💼</span>
-                <span className="text-sm font-medium">Fund Managers</span>
-              </Link>
-              <Link
-                href="/overlap"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>🔄</span>
-                <span className="text-sm font-medium">Fund Overlap</span>
-                {overlapMounted && overlapList.length > 0 && (
-                  <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-orange-500 to-red-500 text-xs font-bold text-white">
-                    {overlapList.length}
-                  </span>
-                )}
-              </Link>
-              <Link
-                href="/compare"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>⚖️</span>
-                <span className="text-sm font-medium">Compare Funds</span>
-                {compareMounted && compareList.length > 0 && (
-                  <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-primary to-accent text-xs font-bold text-white">
-                    {compareList.length}
-                  </span>
-                )}
-              </Link>
-              <Link
-                href="/news"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>📰</span>
-                <span className="text-sm font-medium">Market News</span>
-              </Link>
-              <Link
-                href="/market"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>📈</span>
-                <span className="text-sm font-medium">Market</span>
-              </Link>
-              <Link
-                href="/glossary"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>📚</span>
-                <span className="text-sm font-medium">Glossary</span>
-              </Link>
-              <Link
-                href="/knowledge"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>💡</span>
-                <span className="text-sm font-medium">Knowledge Hub</span>
-              </Link>
-              <Link
-                href="/reports"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>📑</span>
-                <span className="text-sm font-medium">Reports</span>
-              </Link>
-              <Link
-                href="/alerts"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>🔔</span>
-                <span className="text-sm font-medium">Alerts</span>
-              </Link>
-              <Link
-                href="/goal-planning"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>🎯</span>
-                <span className="text-sm font-medium">Goal Planning</span>
-              </Link>
-              <Link
-                href="/?tab=watchlist"
-                onClick={() => setShowMobileMenu(false)}
-                className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-              >
-                <span>⭐</span>
-                <span className="text-sm font-medium">Watchlist</span>
-                {watchlistMounted && watchlist.length > 0 && (
-                  <span className="ml-auto flex h-6 w-6 items-center justify-center rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-xs font-bold text-white">
-                    {watchlist.length}
-                  </span>
-                )}
-              </Link>
-            </div>
-
-            {/* Mobile Account Menu */}
-            {isSignedIn && (
-              <>
-                <div className="border-t border-border pt-4 mb-4">
-                  <div className="px-4 mb-3">
-                    <p className="font-semibold text-foreground">
-                      {userData?.name || 'User'}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {userData?.email || 'user@example.com'}
-                    </p>
-                  </div>
-
-                  {accountMenuItems.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setShowMobileMenu(false)}
-                        className="flex items-center gap-3 rounded-lg px-4 py-3 hover:bg-card transition-colors"
-                      >
-                        <Icon className="w-4 h-4 text-muted" />
-                        <span className="text-sm font-medium">
-                          {item.label}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
-
-                <div className="border-t border-border pt-2">
-                  <button
-                    onClick={() => {
-                      // Clear authentication data (both old and new keys)
-                      localStorage.removeItem('varta_token');
-                      localStorage.removeItem('varta_refresh_token');
-                      localStorage.removeItem('varta_user');
-                      localStorage.removeItem('accessToken');
-                      localStorage.removeItem('refreshToken');
-                      localStorage.removeItem('user');
-                      setIsSignedIn(false);
-                      setUserData(null);
-                      setShowMobileMenu(false);
-                      // Dispatch event for cross-tab sync
-                      window.dispatchEvent(new Event('authChange'));
-                      // Redirect to home
-                      router.push('/');
-                    }}
-                    className="flex items-center gap-3 w-full rounded-lg px-4 py-3 text-danger hover:bg-danger/10 transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span className="text-sm font-medium">Sign Out</span>
-                  </button>
-                </div>
-              </>
-            )}
-
-            {!isSignedIn && (
-              <div className="border-t border-border pt-4">
-                <Link
-                  href="/auth"
-                  onClick={() => setShowMobileMenu(false)}
-                  className="block text-center rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white hover:bg-primary-light transition-colors"
-                >
-                  {t('nav.signIn')}
-                </Link>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </header>
   );
 }

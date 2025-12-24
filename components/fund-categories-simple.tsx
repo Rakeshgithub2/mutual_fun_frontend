@@ -45,38 +45,45 @@ export function FundCategories({
   const { funds: largeCapFunds, loading: largeCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Large Cap',
-    limit: 100,
+    limit: 500,
   });
   const { funds: midCapFunds, loading: midCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Mid Cap',
-    limit: 100,
+    limit: 500,
   });
   const { funds: smallCapFunds, loading: smallCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Small Cap',
-    limit: 100,
+    limit: 500,
   });
   const { funds: multiCapFunds, loading: multiCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Multi Cap',
-    limit: 100,
+    limit: 500,
   });
-  const { funds: goldFunds, loading: goldLoading } = useFunds({
-    category: 'commodity',
-    subCategory: 'Gold',
-    limit: 100,
+  // Backend doesn't support commodity category, fetch all and filter
+  const { funds: allFundsForGold, loading: goldLoading } = useFunds({
+    limit: 500,
   });
-  const { funds: silverFunds, loading: silverLoading } = useFunds({
-    category: 'commodity',
-    subCategory: 'Silver',
-    limit: 100,
+  const goldFunds = allFundsForGold.filter(
+    (fund) =>
+      fund.subCategory?.toLowerCase().includes('gold') ||
+      fund.name?.toLowerCase().includes('gold')
+  );
+  const { funds: allFundsForSilver, loading: silverLoading } = useFunds({
+    limit: 500,
   });
+  const silverFunds = allFundsForSilver.filter(
+    (fund) =>
+      fund.subCategory?.toLowerCase().includes('silver') ||
+      fund.name?.toLowerCase().includes('silver')
+  );
 
   // Get all funds for the active category
   const { funds: allEquityFunds, loading: allEquityLoading } = useFunds({
     category: 'equity',
-    limit: 100,
+    limit: 500,
   });
   const { funds: allCommodityFunds, loading: allCommodityLoading } = useFunds({
     category: 'commodity',

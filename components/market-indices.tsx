@@ -52,10 +52,17 @@ export function MarketIndices() {
   const [indices, setIndices] = useState<MarketIndex[]>([]);
   const [selectedIndex, setSelectedIndex] = useState<MarketIndex | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'indian' | 'global'>('indian'); // ✅ NEW: Tab state
+
+  // ✅ NEW: Refresh interval for real-time updates
+  useEffect(() => {
+    fetchRealMarketData();
+    const interval = setInterval(fetchRealMarketData, 60000); // Refresh every 60s
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch real market data from backend API
-  useEffect(() => {
-    const fetchRealMarketData = async () => {
+  const fetchRealMarketData = async () => {
       try {
         // Fetch from our backend proxy API with timeout
         const controller = new AbortController();
@@ -295,6 +302,120 @@ export function MarketIndices() {
             constituents: 6,
           },
           {
+            id: 'niftybank',
+            name: 'Nifty Bank',
+            shortName: 'NIFTY BANK',
+            value: 47823.45,
+            change: 234.56,
+            changePercent: 0.49,
+            high: 48012.34,
+            low: 47654.23,
+            open: 47654.23,
+            previousClose: 47588.89,
+            volume: '890 Cr',
+            lastUpdated: new Date().toLocaleTimeString('en-IN'),
+            icon: Building2,
+            color: 'blue',
+            description:
+              'Nifty Bank index represents the 12 most liquid and large capitalized Indian banking stocks.',
+            constituents: 12,
+          },
+          {
+            id: 'niftyit',
+            name: 'Nifty IT',
+            shortName: 'NIFTY IT',
+            value: 34567.89,
+            change: -123.45,
+            changePercent: -0.36,
+            high: 34789.12,
+            low: 34456.78,
+            open: 34691.34,
+            previousClose: 34691.34,
+            volume: '345 Cr',
+            lastUpdated: new Date().toLocaleTimeString('en-IN'),
+            icon: Activity,
+            color: 'cyan',
+            description:
+              'Nifty IT index tracks the performance of the top IT companies listed on NSE.',
+            constituents: 10,
+          },
+          {
+            id: 'niftypharma',
+            name: 'Nifty Pharma',
+            shortName: 'NIFTY PHARMA',
+            value: 19876.54,
+            change: 87.32,
+            changePercent: 0.44,
+            high: 19923.45,
+            low: 19789.12,
+            open: 19789.22,
+            previousClose: 19789.22,
+            volume: '234 Cr',
+            lastUpdated: new Date().toLocaleTimeString('en-IN'),
+            icon: Activity,
+            color: 'teal',
+            description:
+              'Nifty Pharma index represents the pharmaceutical sector companies.',
+            constituents: 10,
+          },
+          {
+            id: 'niftyauto',
+            name: 'Nifty Auto',
+            shortName: 'NIFTY AUTO',
+            value: 21234.56,
+            change: 156.78,
+            changePercent: 0.74,
+            high: 21345.67,
+            low: 21098.45,
+            open: 21077.78,
+            previousClose: 21077.78,
+            volume: '456 Cr',
+            lastUpdated: new Date().toLocaleTimeString('en-IN'),
+            icon: Activity,
+            color: 'orange',
+            description:
+              'Nifty Auto index tracks the performance of the automobile sector.',
+            constituents: 15,
+          },
+          {
+            id: 'niftymetal',
+            name: 'Nifty Metal',
+            shortName: 'NIFTY METAL',
+            value: 8765.43,
+            change: -45.67,
+            changePercent: -0.52,
+            high: 8823.45,
+            low: 8734.56,
+            open: 8811.1,
+            previousClose: 8811.1,
+            volume: '567 Cr',
+            lastUpdated: new Date().toLocaleTimeString('en-IN'),
+            icon: Coins,
+            color: 'gray',
+            description:
+              'Nifty Metal index represents the metal and mining sector companies.',
+            constituents: 15,
+          },
+          {
+            id: 'niftyfmcg',
+            name: 'Nifty FMCG',
+            shortName: 'NIFTY FMCG',
+            value: 54321.98,
+            change: 234.12,
+            changePercent: 0.43,
+            high: 54456.78,
+            low: 54123.45,
+            open: 54087.86,
+            previousClose: 54087.86,
+            volume: '123 Cr',
+            lastUpdated: new Date().toLocaleTimeString('en-IN'),
+            icon: Activity,
+            color: 'pink',
+            description:
+              'Nifty FMCG index tracks the performance of fast-moving consumer goods companies.',
+            constituents: 15,
+          },
+          {
             id: 'giftnifty',
             name: 'Gift Nifty',
             shortName: 'GIFT NIFTY',
@@ -318,18 +439,7 @@ export function MarketIndices() {
         setLoading(false);
       }
     };
-
-    // Initial fetch
-    fetchRealMarketData();
-
-    // Refresh every 60 seconds (reduced frequency to minimize errors)
-    // Only refresh if component is still mounted
-    const interval = setInterval(() => {
-      fetchRealMarketData();
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
+  }; // ✅ Close the function
 
   if (loading) {
     return (

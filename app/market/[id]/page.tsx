@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { BackButton } from '@/components/back-button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   TrendingUp,
@@ -62,6 +62,118 @@ interface MarketIndex {
   topStocks?: Array<{ name: string; weight: string }>;
   historicalData?: Array<{ date: string; value: number }>;
 }
+
+// Helper function to get importance points for each index
+const getImportancePoints = (indexId: string): string[] => {
+  const importanceMap: Record<string, string[]> = {
+    sensex: [
+      'Benchmark for large-cap equity mutual funds performance comparison',
+      'Represents the pulse and health of Indian stock market',
+      'Used by fund managers to compare portfolio returns against market',
+      "Reflects the performance of India's top blue-chip companies",
+      'Key indicator for portfolio rebalancing and asset allocation decisions',
+      'Helps investors understand market trends and investment timing',
+    ],
+    nifty50: [
+      'Primary benchmark for index funds and ETFs tracking Indian markets',
+      'Indicates overall market direction and investor sentiment',
+      'Used extensively for derivatives trading and hedging strategies',
+      'Essential for passive investment strategies and portfolio construction',
+      'Helps in making informed asset allocation decisions',
+      'Critical reference point for active fund managers to beat',
+    ],
+    niftymidcap: [
+      'Benchmark for mid-cap mutual funds performance evaluation',
+      'Higher growth potential compared to large-cap indices',
+      'Balances risk and return in diversified investment portfolios',
+      "Captures India's emerging companies and growth stories",
+      'Important for diversification beyond large-cap investments',
+      'Reflects domestic economic growth and consumption trends',
+    ],
+    niftysmallcap: [
+      'Benchmark for small-cap mutual funds and aggressive portfolios',
+      'Highest return potential with proportionally higher risk',
+      'Captures grassroots economic growth and entrepreneurship',
+      'Suitable for long-term wealth creation in aggressive portfolios',
+      'Indicates domestic consumption and manufacturing trends',
+      'Provides diversification benefits in bull markets',
+    ],
+    niftybank: [
+      'Benchmark for banking sector mutual funds',
+      'Reflects health of Indian financial system and credit growth',
+      'Key indicator of economic activity and lending trends',
+      'Important for sectoral allocation in equity portfolios',
+      'Highly responsive to RBI monetary policy changes',
+      'Essential for understanding interest rate cycle impact',
+    ],
+    niftyit: [
+      'Benchmark for technology sector mutual funds',
+      'Reflects global IT demand and outsourcing trends',
+      'Dollar-dependent sector providing forex diversification',
+      'Important for export-oriented exposure in portfolios',
+      'Key indicator of digital transformation worldwide',
+      'Benefits from global tech spending and innovation',
+    ],
+    niftypharma: [
+      'Benchmark for pharma and healthcare sector funds',
+      'Defensive sector providing stability during market volatility',
+      'Benefits from rising healthcare spending and aging population',
+      'Export-oriented sector with global market exposure',
+      'Key for portfolio diversification and risk reduction',
+      'Non-cyclical nature provides consistent returns',
+    ],
+    niftyauto: [
+      'Benchmark for auto sector mutual funds',
+      'Indicates consumer demand and economic prosperity',
+      'Cyclical sector useful for tactical allocation strategies',
+      'Benefits from rural income growth and urbanization',
+      'Key indicator of manufacturing sector health',
+      'Sensitive to interest rates and fuel prices',
+    ],
+    niftyfmcg: [
+      'Defensive sector benchmark for conservative investors',
+      'Provides stable returns during market downturns',
+      'Reflects consumer spending patterns and sentiment',
+      'Low volatility sector for risk-averse portfolios',
+      'Essential for balanced and conservative mutual funds',
+      'Non-discretionary consumption provides recession resistance',
+    ],
+    niftymetal: [
+      'Cyclical sector for tactical investment opportunities',
+      'Benefits from infrastructure and construction spending',
+      'Sensitive to global commodity prices and demand',
+      'High beta sector for aggressive portfolio allocation',
+      'Important industrial growth and capex indicator',
+      'Provides inflation hedge through commodity exposure',
+    ],
+    commodity: [
+      'Benchmark for commodity mutual funds and ETFs',
+      'Provides hedge against inflation in portfolios',
+      'Diversification beyond traditional equity investments',
+      'Reflects raw material price trends for industries',
+      'Important for inflation-protected investment strategies',
+      'Useful for understanding supply-demand dynamics',
+    ],
+    giftnifty: [
+      'Early market sentiment indicator before NSE opens',
+      'Used by fund managers for pre-market analysis',
+      'Helps in timing entry and exit decisions',
+      'Indicates global participation and foreign interest',
+      'Useful for intraday and tactical fund strategies',
+      'Provides overnight market direction cues',
+    ],
+  };
+
+  return (
+    importanceMap[indexId] || [
+      'Important market indicator for investment decisions',
+      'Helps in portfolio diversification strategies',
+      'Used for performance comparison and benchmarking',
+      'Reflects specific sector or market segment trends',
+      'Essential for understanding market dynamics',
+    ]
+  );
+};
 
 export default function MarketIndexPage() {
   const params = useParams();
@@ -1227,6 +1339,47 @@ export default function MarketIndexPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
         >
+          {/* Why This Index Matters - Importance Section */}
+          <Card className="mb-6 shadow-xl border-2 border-indigo-200 dark:border-indigo-800">
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg">
+                  <Info className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                    Why This Index Matters for Mutual Fund Investors
+                  </CardTitle>
+                  <p className="text-gray-600 dark:text-gray-400 text-sm">
+                    Key insights for your investment decisions
+                  </p>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {getImportancePoints(id).map((point, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + idx * 0.05 }}
+                    className="flex items-start gap-3 p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800/30"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-white text-xs font-bold">
+                        {idx + 1}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 dark:text-gray-300 leading-relaxed">
+                      {point}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
           <div className="flex items-start gap-3 p-6 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border-2 border-blue-200 dark:border-blue-800">
             <Activity className="w-6 h-6 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
             <div>

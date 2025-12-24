@@ -71,7 +71,7 @@ function SearchPageContent() {
     category: category || undefined,
     subCategory: subCategory || undefined,
     page,
-    limit: 100, // Get all 100 funds
+    limit: 500,
   });
 
   const t = (key: string) => getTranslation(language, key);

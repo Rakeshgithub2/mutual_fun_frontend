@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Header } from '@/components/header';
+import { BackButton } from '@/components/back-button';
 import { Send, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,7 +58,9 @@ export default function ChatPage() {
     try {
       const BASE_URL = 'https://mutualfun-backend.vercel.app';
       const API_URL = (
-        process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
+        process.env.NEXT_PUBLIC_API_URL
+          ? `${process.env.NEXT_PUBLIC_API_URL}/api`
+          : `${BASE_URL}/api`
       ).replace(/\/+$/, '');
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
@@ -139,26 +142,27 @@ export default function ChatPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-red-600">
       <Header />
 
-      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-4">
-          <h1 className="text-3xl font-bold text-white drop-shadow-lg mb-2">
+      <main className="mx-auto max-w-6xl px-2 sm:px-4 py-3 sm:py-6">
+        <div className="mb-3 sm:mb-4 px-2">
+          <BackButton />
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg mb-1 sm:mb-2 mt-2">
             AI Investment Assistant
           </h1>
-          <p className="text-white/80 text-sm">
+          <p className="text-white/80 text-xs sm:text-sm">
             Get instant answers about mutual funds, investments, and financial
             planning
           </p>
         </div>
 
         {/* Full-Page Chat Interface */}
-        <div className="rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl border-2 border-white/30 h-[calc(100vh-220px)] flex flex-col">
+        <div className="rounded-xl sm:rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl border-2 border-white/30 h-[calc(100vh-180px)] sm:h-[calc(100vh-220px)] flex flex-col">
           {/* Chat Header */}
-          <div className="flex items-center gap-3 p-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-t-2xl">
-            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
+          <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-t-xl sm:rounded-t-2xl">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
             <div>
-              <h2 className="font-bold text-white text-lg">
+              <h2 className="font-bold text-white text-base sm:text-lg">
                 AI Investment Assistant
               </h2>
               <p className="text-xs text-white/80">
@@ -168,7 +172,7 @@ export default function ChatPage() {
           </div>
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -177,13 +181,13 @@ export default function ChatPage() {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
                     message.role === 'user'
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
                       : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-md'
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                  <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
                     {message.content}
                   </p>
                   <p
@@ -229,7 +233,7 @@ export default function ChatPage() {
                       setInputValue(question);
                       inputRef.current?.focus();
                     }}
-                    className="block w-full text-left text-sm px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-400 hover:shadow-md transition-all"
+                    className="block w-full text-left text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-400 hover:shadow-md transition-all min-h-[44px] flex items-center"
                   >
                     {question}
                   </button>
@@ -241,21 +245,21 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area */}
-          <div className="p-4 border-t-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-b-2xl">
-            <div className="flex gap-2">
+          <div className="p-2 sm:p-3 lg:p-4 border-t-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-b-xl sm:rounded-b-2xl">
+            <div className="flex gap-1.5 sm:gap-2">
               <Input
                 ref={inputRef}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask me anything about investments..."
-                className="flex-1 rounded-xl border-2 focus:border-purple-400 h-12 text-base"
+                placeholder="Ask about investments..."
+                className="flex-1 rounded-lg sm:rounded-xl border-2 focus:border-purple-400 h-10 sm:h-11 lg:h-12 text-sm sm:text-base"
                 disabled={isLoading}
               />
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading}
-                className="rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-12 px-6"
+                className="rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-10 sm:h-11 lg:h-12 px-3 sm:px-4 lg:px-6 min-w-[44px]"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

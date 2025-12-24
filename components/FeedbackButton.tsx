@@ -111,7 +111,7 @@ export function FeedbackButton() {
         userId: user?.userId || null,
       };
 
-      const response = await fetch(`${API_BASE_URL}/api/feedback`, {
+      const response = await fetch('/api/feedback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,45 +119,42 @@ export function FeedbackButton() {
         body: JSON.stringify(feedbackData),
       });
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        throw new Error('Server returned invalid response');
+      }
 
       if (!response.ok) {
-        if (response.status === 429) {
-          toast({
-            title: 'Too Many Submissions',
-            description:
-              "You've submitted too much feedback recently. Please try again in 1 hour.",
-            variant: 'destructive',
-          });
-        } else {
-          toast({
-            title: 'Error',
-            description: data.error || 'Failed to submit feedback',
-            variant: 'destructive',
-          });
-        }
-        return;
+        throw new Error(data.error || 'Failed to submit feedback');
       }
 
       // Success
       setSubmitted(true);
       toast({
         title: 'Success! 🎉',
-        description: "Thank you for your feedback! We'll review it shortly.",
+        description: data.emailSent
+          ? 'Your feedback has been sent to rakeshd01042024@gmail.com'
+          : 'Your feedback has been received. ' + (data.warning || ''),
       });
 
       resetForm();
 
-      // Auto-close modal after 2 seconds
+      // Auto-close modal after 3 seconds
       setTimeout(() => {
         setOpen(false);
         setSubmitted(false);
-      }, 2000);
+      }, 3000);
     } catch (error) {
       console.error('Error submitting feedback:', error);
       toast({
-        title: 'Network Error',
-        description: 'Failed to submit feedback. Please try again.',
+        title: 'Error',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'Failed to submit feedback. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -180,6 +177,7 @@ export function FeedbackButton() {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button
+          suppressHydrationWarning
           className="fixed bottom-8 right-8 group flex items-center gap-3 h-16 px-6 rounded-full bg-gradient-to-r from-orange-500 via-pink-500 to-red-500 shadow-2xl hover:shadow-[0_0_30px_rgba(251,146,60,0.5)] hover:scale-105 transition-all duration-300 z-50 animate-pulse hover:animate-none"
           title="Share your feedback with us!"
         >

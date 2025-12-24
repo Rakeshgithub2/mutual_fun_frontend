@@ -1,26 +1,26 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Header } from "@/components/header";
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { Header } from '@/components/header';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Bell,
   BellOff,
@@ -32,14 +32,15 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
-} from "lucide-react";
-import { useLanguage } from "@/lib/hooks/use-language";
-import { getTranslation } from "@/lib/i18n";
+} from 'lucide-react';
+import { useLanguage } from '@/lib/hooks/use-language';
+import { getTranslation } from '@/lib/i18n';
+import { toast } from 'sonner';
 
 interface Alert {
   id: string;
   fundName: string;
-  type: "NAV_ABOVE" | "NAV_BELOW" | "RETURN_TARGET" | "NEWS";
+  type: 'NAV_ABOVE' | 'NAV_BELOW' | 'RETURN_TARGET' | 'NEWS';
   threshold?: number;
   isActive: boolean;
   lastTriggered?: string;
@@ -49,43 +50,66 @@ interface Alert {
 export default function AlertsPage() {
   const { language, mounted } = useLanguage();
   const [showAddForm, setShowAddForm] = useState(false);
-  const [alerts, setAlerts] = useState<Alert[]>([
-    {
-      id: "1",
-      fundName: "HDFC Top 100 Fund",
-      type: "NAV_ABOVE",
-      threshold: 250,
-      isActive: true,
-      createdAt: "2025-11-01",
-    },
-    {
-      id: "2",
-      fundName: "SBI Small Cap Fund",
-      type: "NAV_BELOW",
-      threshold: 245,
-      isActive: true,
-      lastTriggered: "2025-11-03",
-      createdAt: "2025-10-28",
-    },
-    {
-      id: "3",
-      fundName: "ICICI Prudential Value Discovery Fund",
-      type: "RETURN_TARGET",
-      threshold: 15,
-      isActive: false,
-      createdAt: "2025-10-25",
-    },
-  ]);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [triggeredToday, setTriggeredToday] = useState(0);
 
   const [newAlert, setNewAlert] = useState({
-    fundName: "",
-    type: "NAV_ABOVE" as Alert["type"],
-    threshold: "",
+    fundName: '',
+    type: 'NAV_ABOVE' as Alert['type'],
+    threshold: '',
   });
+
+  // TODO: Replace with actual user ID from authentication
+  const userId = 'temp-user-id';
 
   const t = (key: string) => getTranslation(language, key);
 
-  if (!mounted) {
+  useEffect(() => {
+    if (mounted) {
+      fetchAlerts();
+    }
+  }, [mounted]);
+
+  const fetchAlerts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/alerts?userId=${userId}`);
+      const data = await response.json();
+
+      if (data.success) {
+        // Transform API data to component format
+        const transformedAlerts = data.alerts.map((alert: any) => ({
+          id: alert.id,
+          fundName: alert.fund?.name || 'Unknown Fund',
+          type: alert.type,
+          threshold: JSON.parse(alert.condition).value,
+          isActive: alert.isActive,
+          lastTriggered: alert.lastTriggered,
+          createdAt: alert.createdAt,
+        }));
+        setAlerts(transformedAlerts);
+
+        // Count triggered today
+        const today = new Date().toDateString();
+        const triggered = transformedAlerts.filter(
+          (a: Alert) =>
+            a.lastTriggered &&
+            new Date(a.lastTriggered).toDateString() === today
+        ).length;
+        setTriggeredToday(triggered);
+      } else {
+        toast.error('Failed to load alerts');
+      }
+    } catch (error) {
+      console.error('Error fetching alerts:', error);
+      toast.error('Failed to load alerts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!mounted || loading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -93,57 +117,119 @@ export default function AlertsPage() {
     );
   }
 
-  const handleToggleAlert = (id: string) => {
-    setAlerts((prev) =>
-      prev.map((alert) =>
-        alert.id === id ? { ...alert, isActive: !alert.isActive } : alert
-      )
-    );
-  };
+  const handleToggleAlert = async (id: string) => {
+    const alert = alerts.find((a) => a.id === id);
+    if (!alert) return;
 
-  const handleDeleteAlert = (id: string) => {
-    setAlerts((prev) => prev.filter((alert) => alert.id !== id));
-  };
+    try {
+      const response = await fetch(`/api/alerts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: !alert.isActive }),
+      });
 
-  const handleAddAlert = () => {
-    if (newAlert.fundName && newAlert.threshold) {
-      const alert: Alert = {
-        id: Date.now().toString(),
-        fundName: newAlert.fundName,
-        type: newAlert.type,
-        threshold: parseFloat(newAlert.threshold),
-        isActive: true,
-        createdAt: new Date().toISOString().split("T")[0],
-      };
-      setAlerts((prev) => [alert, ...prev]);
-      setNewAlert({ fundName: "", type: "NAV_ABOVE", threshold: "" });
-      setShowAddForm(false);
+      const data = await response.json();
+
+      if (data.success) {
+        setAlerts((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, isActive: !a.isActive } : a))
+        );
+        toast.success(`Alert ${!alert.isActive ? 'activated' : 'paused'}`);
+      } else {
+        toast.error('Failed to update alert');
+      }
+    } catch (error) {
+      console.error('Error toggling alert:', error);
+      toast.error('Failed to update alert');
     }
   };
 
-  const getAlertIcon = (type: Alert["type"]) => {
+  const handleDeleteAlert = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this alert?')) return;
+
+    try {
+      const response = await fetch(`/api/alerts/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setAlerts((prev) => prev.filter((alert) => alert.id !== id));
+        toast.success('Alert deleted successfully');
+      } else {
+        toast.error('Failed to delete alert');
+      }
+    } catch (error) {
+      console.error('Error deleting alert:', error);
+      toast.error('Failed to delete alert');
+    }
+  };
+
+  const handleAddAlert = async () => {
+    if (!newAlert.fundName || !newAlert.threshold) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    try {
+      const condition = {
+        type: newAlert.type,
+        value: parseFloat(newAlert.threshold),
+      };
+
+      const response = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId,
+          type: newAlert.type,
+          condition,
+          isActive: true,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(
+          'Alert created successfully! You will receive email notifications.'
+        );
+        fetchAlerts();
+        setNewAlert({ fundName: '', type: 'NAV_ABOVE', threshold: '' });
+        setShowAddForm(false);
+      } else {
+        toast.error('Failed to create alert');
+      }
+    } catch (error) {
+      console.error('Error creating alert:', error);
+      toast.error('Failed to create alert');
+    }
+  };
+
+  const getAlertIcon = (type: Alert['type']) => {
     switch (type) {
-      case "NAV_ABOVE":
+      case 'NAV_ABOVE':
         return <TrendingUp className="w-5 h-5 text-success" />;
-      case "NAV_BELOW":
+      case 'NAV_BELOW':
         return <TrendingDown className="w-5 h-5 text-danger" />;
-      case "RETURN_TARGET":
+      case 'RETURN_TARGET':
         return <CheckCircle className="w-5 h-5 text-primary" />;
-      case "NEWS":
+      case 'NEWS':
         return <Bell className="w-5 h-5 text-accent" />;
     }
   };
 
   const getAlertDescription = (alert: Alert) => {
     switch (alert.type) {
-      case "NAV_ABOVE":
+      case 'NAV_ABOVE':
         return `Alert when NAV goes above ₹${alert.threshold}`;
-      case "NAV_BELOW":
+      case 'NAV_BELOW':
         return `Alert when NAV goes below ₹${alert.threshold}`;
-      case "RETURN_TARGET":
+      case 'RETURN_TARGET':
         return `Alert when returns reach ${alert.threshold}%`;
-      case "NEWS":
-        return "Alert on important fund news";
+      case 'NEWS':
+        return 'Alert on important fund news';
     }
   };
 
@@ -204,7 +290,9 @@ export default function AlertsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-muted">Triggered Today</p>
-                  <p className="text-3xl font-bold text-accent">2</p>
+                  <p className="text-3xl font-bold text-accent">
+                    {triggeredToday}
+                  </p>
                 </div>
                 <AlertCircle className="w-8 h-8 text-accent" />
               </div>
@@ -258,7 +346,7 @@ export default function AlertsPage() {
                       onValueChange={(value) =>
                         setNewAlert({
                           ...newAlert,
-                          type: value as Alert["type"],
+                          type: value as Alert['type'],
                         })
                       }
                     >
@@ -283,9 +371,9 @@ export default function AlertsPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="threshold">
-                    {newAlert.type.includes("NAV")
-                      ? "NAV Threshold (₹)"
-                      : "Return Target (%)"}
+                    {newAlert.type.includes('NAV')
+                      ? 'NAV Threshold (₹)'
+                      : 'Return Target (%)'}
                   </Label>
                   <Input
                     id="threshold"
@@ -341,7 +429,7 @@ export default function AlertsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
               >
-                <Card className={alert.isActive ? "" : "opacity-60"}>
+                <Card className={alert.isActive ? '' : 'opacity-60'}>
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1">
@@ -355,12 +443,12 @@ export default function AlertsPage() {
                           </p>
                           <div className="flex items-center gap-4 text-xs text-muted">
                             <span>
-                              Created:{" "}
+                              Created:{' '}
                               {new Date(alert.createdAt).toLocaleDateString()}
                             </span>
                             {alert.lastTriggered && (
                               <span className="text-accent">
-                                Last triggered:{" "}
+                                Last triggered:{' '}
                                 {new Date(
                                   alert.lastTriggered
                                 ).toLocaleDateString()}
@@ -376,7 +464,7 @@ export default function AlertsPage() {
                             htmlFor={`switch-${alert.id}`}
                             className="text-xs text-muted cursor-pointer"
                           >
-                            {alert.isActive ? "Active" : "Paused"}
+                            {alert.isActive ? 'Active' : 'Paused'}
                           </Label>
                           <Switch
                             id={`switch-${alert.id}`}

@@ -116,7 +116,7 @@ export function useFundSearch(
           limit: limit.toString(),
         });
 
-        const apiUrl = `${API_URL}/funds/search?${params.toString()}`;
+        const apiUrl = `${BASE_URL}/api/funds/search?${params.toString()}`;
         console.log('🔍 Searching funds:', apiUrl);
 
         const response = await fetch(apiUrl, {

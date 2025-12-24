@@ -1,0 +1,170 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft } from 'lucide-react';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+
+    if (!email) {
+      setError('Email is required');
+      setLoading(false);
+      return;
+    }
+
+    if (!email.includes('@')) {
+      setError('Please enter a valid email address');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send OTP');
+      }
+
+      console.log('✅ OTP sent:', data);
+      setSuccess(true);
+
+      // Redirect to verify OTP page after 2 seconds
+      setTimeout(() => {
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
+      }, 2000);
+    } catch (err: any) {
+      console.error('❌ Forgot password error:', err);
+      setError(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-indigo-950 px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Back Button */}
+        <Link
+          href="/auth/login"
+          className="inline-flex items-center gap-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium">Back to Login</span>
+        </Link>
+
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 mx-auto mb-4 shadow-lg">
+              <span className="text-3xl">🔐</span>
+            </div>
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              Forgot Password?
+            </h1>
+            <p className="text-gray-600 dark:text-gray-400">
+              No worries! Enter your email and we'll send you an OTP to reset
+              your password.
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-800 dark:text-red-300 text-sm">
+                ⚠️ {error}
+              </p>
+            </div>
+          )}
+
+          {/* Success Message */}
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <p className="text-green-800 dark:text-green-300 text-sm">
+                ✓ OTP sent to your email! Redirecting...
+              </p>
+            </div>
+          )}
+
+          {/* Forgot Password Form */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <Label
+                htmlFor="email"
+                className="text-gray-700 dark:text-gray-300 font-medium"
+              >
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="mt-1.5 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                disabled={loading || success}
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading || success}
+              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg hover:shadow-xl"
+            >
+              {loading ? 'Sending OTP...' : success ? 'OTP Sent!' : 'Send OTP'}
+            </Button>
+          </form>
+
+          {/* Login Link */}
+          <div className="mt-8 text-center">
+            <p className="text-gray-600 dark:text-gray-400">
+              Remember your password?{' '}
+              <Link
+                href="/auth/login"
+                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
+              >
+                Back to login
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
+          Need help? Contact our{' '}
+          <Link
+            href="/contact"
+            className="text-indigo-600 dark:text-indigo-400 hover:underline"
+          >
+            support team
+          </Link>
+        </p>
+      </div>
+    </div>
+  );
+}

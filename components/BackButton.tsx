@@ -11,7 +11,7 @@ export default function BackButton() {
     <Button
       onClick={() => router.back()}
       variant="outline"
-      className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+      className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mt-2"
     >
       <ArrowLeft className="w-4 h-4" />
       Back

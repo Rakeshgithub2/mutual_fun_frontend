@@ -1,12 +1,14 @@
 import type React from 'react';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import Script from 'next/script';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { TranslationProvider } from '@/contexts/TranslationContext';
-import { FeedbackButton } from '@/components/FeedbackButton';
 import { Toaster } from '@/components/ui/toaster';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import './globals.css';
+import './mobile-responsive.css';
 
 const geistSans = Geist({ subsets: ['latin'] });
 const geistMono = Geist_Mono({ subsets: ['latin'] });
@@ -16,11 +18,16 @@ export const metadata: Metadata = {
   description:
     'Explore, compare, and invest in mutual funds and ETFs with expert insights',
   generator: 'v0.app',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
   '336417139932-cofv6fogqqch4uub4k19krimj1mhoslc.apps.googleusercontent.com';
+
+const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 
 export default function RootLayout({
   children,
@@ -29,16 +36,52 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Bootstrap 5.3.8 CSS */}
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+          crossOrigin="anonymous"
+        />
+
+        {/* Google Analytics */}
+        {GA_MEASUREMENT_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_MEASUREMENT_ID}', {
+                  page_path: window.location.pathname,
+                });
+              `}
+            </Script>
+          </>
+        )}
+      </head>
       <body className={`${geistSans.className} text-foreground`}>
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <TranslationProvider>
             <AuthProvider>
-              {children}
-              <FeedbackButton />
+              <ProtectedRoute>{children}</ProtectedRoute>
               <Toaster />
             </AuthProvider>
           </TranslationProvider>
         </GoogleOAuthProvider>
+
+        {/* Bootstrap 5.3.8 JS Bundle */}
+        <Script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+          crossOrigin="anonymous"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );

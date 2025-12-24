@@ -62,7 +62,9 @@ export default function KYCPage() {
 
   const BASE_URL = 'https://mutualfun-backend.vercel.app';
   const API_URL = (
-    process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
+    process.env.NEXT_PUBLIC_API_URL
+      ? `${process.env.NEXT_PUBLIC_API_URL}/api`
+      : `${BASE_URL}/api`
   ).replace(/\/+$/, '');
 
   const t = (key: string) => getTranslation(language, key);

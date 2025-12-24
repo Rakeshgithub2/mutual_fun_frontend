@@ -5,6 +5,52 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 console.log('🌐 API Base URL configured:', API_BASE_URL);
 
+// ✅ PRODUCTION-SAFE QUERY PARAM BUILDER
+// Prevents 400 validation errors by sanitizing all parameters
+function buildSafeQueryParams(
+  params?: Record<string, any>
+): Record<string, string> {
+  const safeParams: Record<string, string> = {};
+
+  if (!params) return safeParams;
+
+  // ✅ Safe defaults for pagination
+  const MAX_LIMIT = 100; // Backend-safe maximum
+  const DEFAULT_LIMIT = 50;
+  const DEFAULT_PAGE = 1;
+
+  Object.entries(params).forEach(([key, value]) => {
+    // Skip undefined, null, empty strings
+    if (value === undefined || value === null || value === '') {
+      return;
+    }
+
+    // Sanitize specific parameters
+    if (key === 'limit') {
+      const numValue = Number(value);
+      if (!isNaN(numValue) && numValue > 0) {
+        // Cap to safe maximum
+        safeParams[key] = String(Math.min(numValue, MAX_LIMIT));
+      } else {
+        safeParams[key] = String(DEFAULT_LIMIT);
+      }
+    } else if (key === 'page') {
+      const numValue = Number(value);
+      if (!isNaN(numValue) && numValue > 0) {
+        safeParams[key] = String(numValue);
+      } else {
+        safeParams[key] = String(DEFAULT_PAGE);
+      }
+    } else if (typeof value === 'string' || typeof value === 'number') {
+      // Only include valid string/number values
+      safeParams[key] = String(value);
+    }
+  });
+
+  console.log('🛡️ [SafeParams] Original:', params, '→ Safe:', safeParams);
+  return safeParams;
+}
+
 // Enhanced returns interface with all periods
 export interface Returns {
   oneMonth: number;
@@ -93,7 +139,8 @@ export interface FundDetails extends Fund {
 }
 
 export interface PaginatedResponse<T> {
-  success: boolean;
+  statusCode?: number; // ✅ Backend uses statusCode
+  success?: boolean; // ✅ Optional for compatibility
   message: string;
   data: T[];
   pagination: {
@@ -101,21 +148,28 @@ export interface PaginatedResponse<T> {
     page: number;
     limit: number;
     totalPages: number;
-    hasMore: boolean;
+    hasMore?: boolean;
+    hasNext?: boolean; // ✅ Backend uses hasNext
+    hasPrev?: boolean; // ✅ Backend uses hasPrev
   };
+  timestamp?: string; // ✅ Backend includes timestamp
 }
 
 export interface ApiResponse<T> {
-  success: boolean;
+  statusCode?: number; // ✅ Backend uses statusCode
+  success?: boolean; // ✅ Optional for compatibility
   message: string;
   data: T;
+  timestamp?: string; // ✅ Backend includes timestamp
 }
 
 export class ApiClient {
   private baseUrl: string;
+  private timeout: number; // ✅ NEW: timeout property
 
-  constructor(baseUrl: string = API_BASE_URL) {
+  constructor(baseUrl: string = API_BASE_URL, timeout: number = 30000) {
     this.baseUrl = baseUrl;
+    this.timeout = timeout; // ✅ Default 30s timeout for large datasets
   }
 
   private async request<T>(
@@ -126,23 +180,53 @@ export class ApiClient {
 
     console.log('🌐 API Request:', url);
 
+    // ✅ NEW: AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+
     try {
       const response = await fetch(url, {
         ...options,
         mode: 'cors',
         credentials: 'omit',
+        signal: controller.signal, // ✅ NEW: attach abort signal
         headers: {
           'Content-Type': 'application/json',
           ...options?.headers,
         },
       });
 
-      if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: response.statusText }));
+      clearTimeout(timeoutId); // ✅ Clear timeout on successful response
 
-        const errorMessage = error.message || response.statusText;
+      if (!response.ok) {
+        let error: any = { message: response.statusText };
+        let errorText = '';
+
+        try {
+          errorText = await response.text();
+          if (errorText) {
+            error = JSON.parse(errorText);
+          }
+        } catch (parseError) {
+          console.warn('Failed to parse error response:', errorText);
+        }
+
+        const errorMessage =
+          error.message ||
+          error.error ||
+          response.statusText ||
+          'Unknown error';
+
+        // Log detailed error information
+        console.error('❌ API Error Details:', {
+          status: response.status,
+          statusText: response.statusText,
+          url: url,
+          endpoint: endpoint,
+          errorMessage: errorMessage,
+          fullError: error,
+          rawResponse: errorText.substring(0, 200), // First 200 chars
+        });
 
         // More helpful error messages
         if (response.status === 404) {
@@ -156,6 +240,10 @@ export class ApiClient {
         } else if (response.status === 0 || response.type === 'opaque') {
           throw new Error(
             `Network Error: Cannot connect to API at ${this.baseUrl}. Please ensure the backend server is running.`
+          );
+        } else if (response.status === 400) {
+          throw new Error(
+            `Bad Request (400): ${errorMessage}. Please check the request parameters. URL: ${endpoint}`
           );
         }
 
@@ -176,11 +264,13 @@ export class ApiClient {
 
       console.error(`API request failed: ${url}`, error);
       throw error;
+    } finally {
+      clearTimeout(timeoutId); // ✅ NEW: always clear timeout
     }
   }
 
   /**
-   * GET /api/funds - Search and filter funds
+   * GET /api/funds - Search and filter funds (Production-Safe)
    */
   async getFunds(params?: {
     query?: string;
@@ -190,20 +280,78 @@ export class ApiClient {
     page?: number;
     limit?: number;
   }): Promise<PaginatedResponse<Fund>> {
-    const searchParams = new URLSearchParams();
-
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          searchParams.append(key, String(value));
-        }
-      });
-    }
+    // ✅ Use safe query param builder
+    const safeParams = buildSafeQueryParams(params);
+    const searchParams = new URLSearchParams(safeParams);
 
     const queryString = searchParams.toString();
     const endpoint = `/api/funds${queryString ? `?${queryString}` : ''}`;
 
     return this.request<PaginatedResponse<Fund>>(endpoint);
+  }
+
+  /**
+   * GET /api/funds - Fetch multiple pages (for large datasets)
+   * ✅ Production-safe: Automatically handles pagination
+   */
+  async getFundsMultiPage(params?: {
+    query?: string;
+    type?: string;
+    category?: string;
+    subCategory?: string;
+    targetCount?: number; // How many funds to fetch
+  }): Promise<PaginatedResponse<Fund>> {
+    const MAX_PER_PAGE = 100;
+    const targetCount = params?.targetCount || 500;
+    const pagesToFetch = Math.ceil(targetCount / MAX_PER_PAGE);
+
+    console.log(
+      `📚 [MultiPage] Fetching ${pagesToFetch} pages to get ~${targetCount} funds`
+    );
+
+    let allFunds: Fund[] = [];
+    let pagination: any = null;
+
+    // Fetch up to 12 pages to get 1200 funds (1000+ equity funds after filtering)
+    for (let page = 1; page <= Math.min(pagesToFetch, 12); page++) {
+      try {
+        const response = await this.getFunds({
+          ...params,
+          page,
+          limit: MAX_PER_PAGE,
+        });
+
+        allFunds = [...allFunds, ...response.data];
+        pagination = response.pagination;
+
+        console.log(
+          `✅ [MultiPage] Page ${page}: ${response.data.length} funds (Total: ${allFunds.length})`
+        );
+
+        // Stop if we have enough or no more pages
+        if (allFunds.length >= targetCount || !response.pagination?.hasNext) {
+          break;
+        }
+      } catch (error) {
+        console.warn(`⚠️ [MultiPage] Page ${page} failed, stopping:`, error);
+        break;
+      }
+    }
+
+    return {
+      statusCode: 200,
+      success: true,
+      message: 'Multi-page fetch successful',
+      data: allFunds,
+      pagination: pagination || {
+        total: allFunds.length,
+        page: 1,
+        limit: allFunds.length,
+        totalPages: 1,
+        hasNext: false,
+        hasPrev: false,
+      },
+    };
   }
 
   /**
