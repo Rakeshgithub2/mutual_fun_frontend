@@ -8,6 +8,7 @@
     "dev:backend": "tsx watch src/index.ts",
     "dev:all": "concurrently \"npm run dev\" \"npm run dev:backend\"",
     "lint": "eslint .",
+    "postinstall": "prisma generate",
     "start": "next start -p 5001",
     "start:backend": "tsx src/index.ts"
   },
