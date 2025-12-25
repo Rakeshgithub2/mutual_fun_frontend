@@ -94,12 +94,50 @@ export const trackFundComparison = (fundIds: string[]): void => {
  * Track authentication events
  */
 export const trackAuth = (
-  action: 'login' | 'register' | 'logout',
+  action: 'login' | 'signup' | 'logout',
   method: 'email' | 'google' = 'email'
 ): void => {
   event(action, {
     method,
     category: 'Authentication',
+  });
+};
+
+/**
+ * Track watchlist actions
+ */
+export const trackWatchlistAction = (
+  action: 'add' | 'remove',
+  fundId: string
+): void => {
+  event(`watchlist_${action}`, {
+    fund_id: fundId,
+    category: 'Watchlist',
+  });
+};
+
+/**
+ * Track sorting actions
+ */
+export const trackSort = (sortBy: string, sortOrder: 'asc' | 'desc'): void => {
+  event('sort_applied', {
+    sort_by: sortBy,
+    sort_order: sortOrder,
+    category: 'Sort',
+  });
+};
+
+/**
+ * Track export actions
+ */
+export const trackExport = (
+  exportType: 'pdf' | 'excel' | 'csv',
+  contentType: string
+): void => {
+  event('export', {
+    export_type: exportType,
+    content_type: contentType,
+    category: 'Export',
   });
 };
 
@@ -194,6 +232,9 @@ const analytics = {
   trackFundView,
   trackFundComparison,
   trackAuth,
+  trackWatchlistAction,
+  trackSort,
+  trackExport,
   trackFilter,
   trackButtonClick,
   trackPortfolio,

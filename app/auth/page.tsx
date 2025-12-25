@@ -89,7 +89,8 @@ export default function AuthPage() {
               Get Started Today
             </h2>
             <p className="text-gray-600 dark:text-gray-400 text-center mb-10 max-w-2xl mx-auto">
-              Choose how you'd like to continue. Already have an account? Sign in. New here? Create your free account.
+              Choose how you'd like to continue. Already have an account? Sign
+              in. New here? Create your free account.
             </p>
 
             {/* Action Cards */}

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { Header } from '@/components/header';
 import { BackButton } from '@/components/back-button';
@@ -318,15 +320,15 @@ export default function GoalPlanningPage() {
                                 goal.status === 'completed'
                                   ? 'bg-green-100 text-green-600'
                                   : goal.status === 'paused'
-                                  ? 'bg-yellow-100 text-yellow-600'
-                                  : 'bg-blue-100 text-blue-600'
+                                    ? 'bg-yellow-100 text-yellow-600'
+                                    : 'bg-blue-100 text-blue-600'
                               }`}
                             >
                               {goal.status === 'completed'
                                 ? 'Completed'
                                 : goal.status === 'paused'
-                                ? 'Paused'
-                                : 'Active'}
+                                  ? 'Paused'
+                                  : 'Active'}
                             </span>
                           </div>
                         </div>

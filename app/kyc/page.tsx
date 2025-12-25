@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '@/components/header';
@@ -257,8 +259,8 @@ export default function KYCPage() {
                       currentStep > step.id
                         ? 'bg-primary border-primary text-white'
                         : currentStep === step.id
-                        ? 'bg-primary border-primary text-white'
-                        : 'bg-background border-muted text-muted'
+                          ? 'bg-primary border-primary text-white'
+                          : 'bg-background border-muted text-muted'
                     } transition-all z-10`}
                   >
                     {currentStep > step.id ? (

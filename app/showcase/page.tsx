@@ -5,6 +5,8 @@
 
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { CategoryFilter } from '@/components/category-filter';
 import { FundSearch } from '@/components/fund-search';

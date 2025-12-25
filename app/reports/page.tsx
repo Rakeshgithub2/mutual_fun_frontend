@@ -1,24 +1,26 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Header } from "@/components/header";
+export const dynamic = 'force-dynamic';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { Header } from '@/components/header';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   FileText,
   Download,
@@ -29,14 +31,14 @@ import {
   FileSpreadsheet,
   Receipt,
   BarChart3,
-} from "lucide-react";
-import { useLanguage } from "@/lib/hooks/use-language";
-import { getTranslation } from "@/lib/i18n";
+} from 'lucide-react';
+import { useLanguage } from '@/lib/hooks/use-language';
+import { getTranslation } from '@/lib/i18n';
 
 export default function ReportsPage() {
   const { language, mounted } = useLanguage();
-  const [selectedYear, setSelectedYear] = useState("2025");
-  const [selectedQuarter, setSelectedQuarter] = useState("all");
+  const [selectedYear, setSelectedYear] = useState('2025');
+  const [selectedQuarter, setSelectedQuarter] = useState('all');
 
   const t = (key: string) => getTranslation(language, key);
 
@@ -64,39 +66,39 @@ export default function ReportsPage() {
 
   const reportTypes = [
     {
-      id: "investment-summary",
-      title: "Investment Summary",
-      description: "Comprehensive overview of all investments",
+      id: 'investment-summary',
+      title: 'Investment Summary',
+      description: 'Comprehensive overview of all investments',
       icon: PieChart,
-      color: "text-primary",
+      color: 'text-primary',
     },
     {
-      id: "capital-gains",
-      title: "Capital Gains Report",
-      description: "Realized and unrealized gains/losses",
+      id: 'capital-gains',
+      title: 'Capital Gains Report',
+      description: 'Realized and unrealized gains/losses',
       icon: TrendingUp,
-      color: "text-success",
+      color: 'text-success',
     },
     {
-      id: "tax-report",
-      title: "Tax Computation Report",
-      description: "Calculate taxable income and deductions",
+      id: 'tax-report',
+      title: 'Tax Computation Report',
+      description: 'Calculate taxable income and deductions',
       icon: Receipt,
-      color: "text-accent",
+      color: 'text-accent',
     },
     {
-      id: "transaction-history",
-      title: "Transaction History",
-      description: "Detailed record of all transactions",
+      id: 'transaction-history',
+      title: 'Transaction History',
+      description: 'Detailed record of all transactions',
       icon: FileText,
-      color: "text-foreground",
+      color: 'text-foreground',
     },
     {
-      id: "portfolio-performance",
-      title: "Portfolio Performance",
-      description: "Historical performance analysis",
+      id: 'portfolio-performance',
+      title: 'Portfolio Performance',
+      description: 'Historical performance analysis',
       icon: BarChart3,
-      color: "text-primary",
+      color: 'text-primary',
     },
   ];
 
@@ -252,10 +254,10 @@ export default function ReportsPage() {
                             <div className="flex items-center gap-2 text-xs text-muted">
                               <Calendar className="w-3 h-3" />
                               <span>
-                                Period: {selectedYear}{" "}
-                                {selectedQuarter !== "all"
+                                Period: {selectedYear}{' '}
+                                {selectedQuarter !== 'all'
                                   ? `- ${selectedQuarter.toUpperCase()}`
-                                  : ""}
+                                  : ''}
                               </span>
                             </div>
                           </div>
@@ -377,22 +379,22 @@ export default function ReportsPage() {
             <div className="space-y-3">
               {[
                 {
-                  name: "Capital Gains Report - Q2 2025",
-                  date: "2025-11-02",
-                  type: "PDF",
-                  size: "245 KB",
+                  name: 'Capital Gains Report - Q2 2025',
+                  date: '2025-11-02',
+                  type: 'PDF',
+                  size: '245 KB',
                 },
                 {
-                  name: "Transaction History - Oct 2025",
-                  date: "2025-11-01",
-                  type: "Excel",
-                  size: "156 KB",
+                  name: 'Transaction History - Oct 2025',
+                  date: '2025-11-01',
+                  type: 'Excel',
+                  size: '156 KB',
                 },
                 {
-                  name: "Portfolio Performance - FY 2024-25",
-                  date: "2025-10-28",
-                  type: "PDF",
-                  size: "532 KB",
+                  name: 'Portfolio Performance - FY 2024-25',
+                  date: '2025-10-28',
+                  type: 'PDF',
+                  size: '532 KB',
                 },
               ].map((download, index) => (
                 <div
@@ -400,7 +402,7 @@ export default function ReportsPage() {
                   className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    {download.type === "PDF" ? (
+                    {download.type === 'PDF' ? (
                       <FileText className="w-5 h-5 text-danger" />
                     ) : (
                       <FileSpreadsheet className="w-5 h-5 text-success" />
@@ -410,7 +412,7 @@ export default function ReportsPage() {
                         {download.name}
                       </p>
                       <p className="text-xs text-muted">
-                        {new Date(download.date).toLocaleDateString()} •{" "}
+                        {new Date(download.date).toLocaleDateString()} •{' '}
                         {download.size}
                       </p>
                     </div>

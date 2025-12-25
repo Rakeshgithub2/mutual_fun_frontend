@@ -7,6 +7,8 @@ import { AuthProvider } from '@/lib/auth-context';
 import { TranslationProvider } from '@/contexts/TranslationContext';
 import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import GoogleAnalytics from '@/components/GoogleAnalytics';
+import AnalyticsPageTracker from '@/components/AnalyticsPageTracker';
 import './globals.css';
 import './mobile-responsive.css';
 
@@ -27,8 +29,6 @@ const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
   '336417139932-cofv6fogqqch4uub4k19krimj1mhoslc.apps.googleusercontent.com';
 
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-
 export default function RootLayout({
   children,
 }: {
@@ -44,28 +44,12 @@ export default function RootLayout({
           integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
           crossOrigin="anonymous"
         />
-
-        {/* Google Analytics */}
-        {GA_MEASUREMENT_ID && (
-          <>
-            <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-              strategy="afterInteractive"
-            />
-            <Script id="google-analytics" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${GA_MEASUREMENT_ID}', {
-                  page_path: window.location.pathname,
-                });
-              `}
-            </Script>
-          </>
-        )}
       </head>
       <body className={`${geistSans.className} text-foreground`}>
+        {/* Google Analytics - Loaded first for tracking */}
+        <GoogleAnalytics />
+        <AnalyticsPageTracker />
+
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
           <TranslationProvider>
             <AuthProvider>

@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Header } from '@/components/header';
@@ -208,14 +210,14 @@ export default function PortfolioPage() {
     riskScore < 35
       ? 'text-green-600'
       : riskScore < 65
-      ? 'text-yellow-600'
-      : 'text-red-600';
+        ? 'text-yellow-600'
+        : 'text-red-600';
   const riskBg =
     riskScore < 35
       ? 'bg-green-100 dark:bg-green-950/30'
       : riskScore < 65
-      ? 'bg-yellow-100 dark:bg-yellow-950/30'
-      : 'bg-red-100 dark:bg-red-950/30';
+        ? 'bg-yellow-100 dark:bg-yellow-950/30'
+        : 'bg-red-100 dark:bg-red-950/30';
 
   // Generate smart insights
   const insights = useMemo(() => {
@@ -1008,8 +1010,8 @@ export default function PortfolioPage() {
                         riskScore < 35
                           ? 'from-green-500 to-emerald-600'
                           : riskScore < 65
-                          ? 'from-yellow-500 to-orange-600'
-                          : 'from-red-500 to-pink-600'
+                            ? 'from-yellow-500 to-orange-600'
+                            : 'from-red-500 to-pink-600'
                       } rounded-xl flex items-center justify-center`}
                     >
                       <Shield className="w-5 h-5 text-white" />
@@ -1036,8 +1038,8 @@ export default function PortfolioPage() {
                           riskScore < 35
                             ? 'bg-gradient-to-r from-green-400 to-green-600'
                             : riskScore < 65
-                            ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
-                            : 'bg-gradient-to-r from-red-400 to-red-600'
+                              ? 'bg-gradient-to-r from-yellow-400 to-orange-500'
+                              : 'bg-gradient-to-r from-red-400 to-red-600'
                         }`}
                       />
                     </div>
@@ -1062,15 +1064,15 @@ export default function PortfolioPage() {
                           {riskScore < 35
                             ? 'Well-balanced portfolio'
                             : riskScore < 65
-                            ? 'Moderate risk exposure'
-                            : 'High risk concentration'}
+                              ? 'Moderate risk exposure'
+                              : 'High risk concentration'}
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">
                           {riskScore < 35
                             ? 'Your portfolio is well-diversified across safe and stable fund categories.'
                             : riskScore < 65
-                            ? 'Consider diversifying into more stable categories to reduce risk.'
-                            : 'High allocation to volatile categories. Consider rebalancing for better risk management.'}
+                              ? 'Consider diversifying into more stable categories to reduce risk.'
+                              : 'High allocation to volatile categories. Consider rebalancing for better risk management.'}
                         </p>
                       </div>
                     </div>

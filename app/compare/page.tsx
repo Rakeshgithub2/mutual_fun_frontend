@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
@@ -495,10 +497,10 @@ export default function ComparePage() {
                         {fund.aum >= 10000
                           ? 'Very Large'
                           : fund.aum >= 5000
-                          ? 'Large'
-                          : fund.aum >= 1000
-                          ? 'Medium'
-                          : 'Small'}
+                            ? 'Large'
+                            : fund.aum >= 1000
+                              ? 'Medium'
+                              : 'Small'}
                       </p>
                     </div>
                   ))}
@@ -619,10 +621,10 @@ export default function ComparePage() {
                         {fund.expenseRatio <= 0.5
                           ? 'Very Low'
                           : fund.expenseRatio <= 1.0
-                          ? 'Low'
-                          : fund.expenseRatio <= 1.5
-                          ? 'Moderate'
-                          : 'High'}
+                            ? 'Low'
+                            : fund.expenseRatio <= 1.5
+                              ? 'Moderate'
+                              : 'High'}
                       </p>
                     </div>
                   ))}

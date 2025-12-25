@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
@@ -927,12 +929,12 @@ export default function MarketIndexPage() {
                           {selectedTimeRange === '1D'
                             ? "Today's intraday movement"
                             : selectedTimeRange === '1W'
-                            ? 'Last 7 days'
-                            : selectedTimeRange === '1M'
-                            ? 'Last 30 days'
-                            : selectedTimeRange === '1Y'
-                            ? 'Last 12 months'
-                            : 'Last 5 years'}
+                              ? 'Last 7 days'
+                              : selectedTimeRange === '1M'
+                                ? 'Last 30 days'
+                                : selectedTimeRange === '1Y'
+                                  ? 'Last 12 months'
+                                  : 'Last 5 years'}
                         </p>
                         {isLiveUpdating && selectedTimeRange === '1D' && (
                           <span className="flex items-center gap-1 text-xs font-medium text-green-600 dark:text-green-400">
@@ -1046,8 +1048,8 @@ export default function MarketIndexPage() {
                           selectedTimeRange === '1D'
                             ? 'preserveStartEnd'
                             : selectedTimeRange === '5Y'
-                            ? Math.floor(chartData.length / 8)
-                            : 'preserveEnd'
+                              ? Math.floor(chartData.length / 8)
+                              : 'preserveEnd'
                         }
                         angle={selectedTimeRange === '5Y' ? -15 : 0}
                         textAnchor={

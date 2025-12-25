@@ -1,10 +1,12 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Header } from "@/components/header";
-import { useLanguage } from "@/lib/hooks/use-language";
-import { getTranslation } from "@/lib/i18n";
-import glossaryData from "@/data/glossary.json";
+export const dynamic = 'force-dynamic';
+
+import { useState } from 'react';
+import { Header } from '@/components/header';
+import { useLanguage } from '@/lib/hooks/use-language';
+import { getTranslation } from '@/lib/i18n';
+import glossaryData from '@/data/glossary.json';
 import {
   Search,
   BookOpen,
@@ -12,12 +14,12 @@ import {
   AlertCircle,
   Lightbulb,
   TrendingUp,
-} from "lucide-react";
+} from 'lucide-react';
 
 export default function GlossaryPage() {
   const { language, mounted: langMounted } = useLanguage();
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showQuizResult, setShowQuizResult] = useState(false);
 
@@ -26,7 +28,7 @@ export default function GlossaryPage() {
   if (!langMounted) {
     return (
       <div className="flex h-screen items-center justify-center">
-        {t("common.loading")}
+        {t('common.loading')}
       </div>
     );
   }
@@ -109,7 +111,7 @@ export default function GlossaryPage() {
                 </p>
                 {searchQuery && (
                   <button
-                    onClick={() => setSearchQuery("")}
+                    onClick={() => setSearchQuery('')}
                     className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                   >
                     Clear
@@ -127,8 +129,8 @@ export default function GlossaryPage() {
                     }}
                     className={`w-full rounded-xl px-4 py-3 text-left text-sm font-semibold transition-all duration-200 ${
                       selectedTerm === term.id
-                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-[1.02]"
-                        : "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 hover:shadow-md hover:scale-[1.01]"
+                        ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-500/30 scale-[1.02]'
+                        : 'bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-750 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 hover:shadow-md hover:scale-[1.01]'
                     }`}
                   >
                     {term.term}
@@ -231,10 +233,10 @@ export default function GlossaryPage() {
                           selectedAnswer === i
                             ? showQuizResult
                               ? i === selectedTermData.quiz.correctAnswer
-                                ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-                                : "border-red-500 bg-red-50 dark:bg-red-950/30"
-                              : "border-blue-500 bg-blue-50 dark:bg-blue-950/30"
-                            : "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800"
+                                ? 'border-green-500 bg-green-50 dark:bg-green-950/30'
+                                : 'border-red-500 bg-red-50 dark:bg-red-950/30'
+                              : 'border-blue-500 bg-blue-50 dark:bg-blue-950/30'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800'
                         }`}
                       >
                         <input
@@ -278,15 +280,15 @@ export default function GlossaryPage() {
                       <div
                         className={`p-4 rounded-xl ${
                           selectedAnswer === selectedTermData.quiz.correctAnswer
-                            ? "bg-green-100 dark:bg-green-950/30 border-2 border-green-500"
-                            : "bg-red-100 dark:bg-red-950/30 border-2 border-red-500"
+                            ? 'bg-green-100 dark:bg-green-950/30 border-2 border-green-500'
+                            : 'bg-red-100 dark:bg-red-950/30 border-2 border-red-500'
                         }`}
                       >
                         <p className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
                           {selectedAnswer ===
                           selectedTermData.quiz.correctAnswer
-                            ? "✓ Correct!"
-                            : "✗ Incorrect"}
+                            ? '✓ Correct!'
+                            : '✗ Incorrect'}
                         </p>
                         {selectedTermData.quiz.explanation && (
                           <p className="text-sm text-gray-700 dark:text-gray-300">

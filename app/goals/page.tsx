@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
@@ -122,7 +124,7 @@ export default function GoalsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingGoal, setEditingGoal] = useState<Goal | null>(null);
   const [selectedType, setSelectedType] = useState('');
-  
+
   // Form fields
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -144,7 +146,7 @@ export default function GoalsPage() {
       setLoading(true);
       const response = await fetch(`/api/goals?userId=${userId}`);
       const data = await response.json();
-      
+
       if (data.success) {
         setGoals(data.goals);
       } else {
@@ -180,7 +182,8 @@ export default function GoalsPage() {
     }
 
     // Calculate monthly SIP using future value of annuity formula
-    const sip = (remaining * monthlyRate) / (Math.pow(1 + monthlyRate, months) - 1);
+    const sip =
+      (remaining * monthlyRate) / (Math.pow(1 + monthlyRate, months) - 1);
 
     return Math.round(sip);
   };
@@ -329,7 +332,8 @@ export default function GoalsPage() {
             Financial Goal Planner
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-6">
-            Create, manage, and track your financial goals with real-time updates
+            Create, manage, and track your financial goals with real-time
+            updates
           </p>
           <Button
             onClick={() => setShowForm(true)}
@@ -351,7 +355,9 @@ export default function GoalsPage() {
             {loading ? (
               <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600 dark:text-gray-400">Loading your goals...</p>
+                <p className="mt-4 text-gray-600 dark:text-gray-400">
+                  Loading your goals...
+                </p>
               </div>
             ) : goals.length === 0 ? (
               <Card className="max-w-2xl mx-auto text-center py-12">
@@ -361,7 +367,8 @@ export default function GoalsPage() {
                     No Goals Yet
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 mb-6">
-                    Start planning your financial future by creating your first goal
+                    Start planning your financial future by creating your first
+                    goal
                   </p>
                   <Button
                     onClick={() => setShowForm(true)}
@@ -396,7 +403,9 @@ export default function GoalsPage() {
                                 <goalInfo.icon className="w-6 h-6 text-white" />
                               </div>
                               <div>
-                                <CardTitle className="text-lg">{goal.name}</CardTitle>
+                                <CardTitle className="text-lg">
+                                  {goal.name}
+                                </CardTitle>
                                 <p className="text-sm text-gray-500">
                                   {goalInfo.name}
                                 </p>
@@ -454,9 +463,12 @@ export default function GoalsPage() {
                               </p>
                             </div>
                             <div>
-                              <p className="text-xs text-gray-500">Monthly SIP</p>
+                              <p className="text-xs text-gray-500">
+                                Monthly SIP
+                              </p>
                               <p className="font-bold text-emerald-600">
-                                ₹{goal.monthlyInvestment.toLocaleString('en-IN')}
+                                ₹
+                                {goal.monthlyInvestment.toLocaleString('en-IN')}
                               </p>
                             </div>
                             <div>
@@ -472,8 +484,8 @@ export default function GoalsPage() {
                                   goal.status === 'ACTIVE'
                                     ? 'text-green-600'
                                     : goal.status === 'COMPLETED'
-                                    ? 'text-blue-600'
-                                    : 'text-gray-600'
+                                      ? 'text-blue-600'
+                                      : 'text-gray-600'
                                 }`}
                               >
                                 {goal.status}
@@ -561,7 +573,10 @@ export default function GoalsPage() {
 
                     {/* Description */}
                     <div>
-                      <Label htmlFor="description" className="text-base font-semibold">
+                      <Label
+                        htmlFor="description"
+                        className="text-base font-semibold"
+                      >
                         Description (Optional)
                       </Label>
                       <Textarea
