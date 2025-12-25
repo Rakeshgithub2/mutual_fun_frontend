@@ -8,6 +8,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { useWatchlist } from '@/lib/hooks/use-watchlist';
 import { useCompare } from '@/lib/hooks/use-compare';
 import { useOverlap } from '@/lib/hooks/use-overlap';
+import { useAuth } from '@/lib/auth-context';
 import {
   User,
   Briefcase,
@@ -25,51 +26,31 @@ export function Header() {
   const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
+  const { user, logout: authLogout } = useAuth();
   const { watchlist, mounted: watchlistMounted } = useWatchlist();
   const { compareList, mounted: compareMounted } = useCompare();
   const { overlapList, mounted: overlapMounted } = useOverlap();
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [isSignedIn, setIsSignedIn] = useState(false);
-  const [userData, setUserData] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (!mounted) return;
-
-    const checkAuth = () => {
-      const token =
-        localStorage.getItem('varta_token') ||
-        localStorage.getItem('accessToken');
-      const user =
-        localStorage.getItem('varta_user') || localStorage.getItem('user');
-
-      if (token && user) {
-        setIsSignedIn(true);
-        try {
-          setUserData(JSON.parse(user));
-        } catch (e) {
-          console.error('Error parsing user data:', e);
-        }
-      } else {
-        setIsSignedIn(false);
-        setUserData(null);
-      }
-    };
-
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    window.addEventListener('authChange', checkAuth);
-
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('authChange', checkAuth);
-    };
-  }, [mounted]);
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await authLogout();
+      setShowAccountMenu(false);
+      window.location.reload(); // Refresh to update auth state
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear local state even if backend call fails
+      setShowAccountMenu(false);
+      window.location.reload();
+    }
+  };
 
   const accountMenuItems = [
     { label: '📊 Dashboard', icon: Briefcase, href: '/dashboard' },
@@ -122,16 +103,16 @@ export function Header() {
               {showMobileMenu ? <X size={24} /> : <Menu size={24} />}
             </button>
 
-            {isSignedIn && userData ? (
+            {user ? (
               <div className="relative">
                 <button
                   onClick={() => setShowAccountMenu(!showAccountMenu)}
                   className="flex items-center gap-2 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5 transition-all hover:scale-105"
                 >
-                  {userData.picture || userData.profilePicture ? (
+                  {user.picture ? (
                     <img
-                      src={userData.picture || userData.profilePicture}
-                      alt={userData.name || 'User'}
+                      src={user.picture}
+                      alt={user.name || 'User'}
                       className="h-8 w-8 sm:h-9 sm:w-9 rounded-full object-cover"
                       referrerPolicy="no-referrer"
                     />
@@ -146,10 +127,10 @@ export function Header() {
                   <div className="absolute right-0 mt-2 w-56 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-lg z-50">
                     <div className="p-3 border-b border-gray-200 dark:border-gray-700">
                       <p className="text-sm font-medium text-gray-900 dark:text-white">
-                        {userData.name || userData.email}
+                        {user.name || user.email}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        {userData.email}
+                        {user.email}
                       </p>
                     </div>
                     <div className="p-2">
@@ -164,17 +145,7 @@ export function Header() {
                         </Link>
                       ))}
                       <button
-                        onClick={() => {
-                          localStorage.removeItem('varta_token');
-                          localStorage.removeItem('varta_user');
-                          localStorage.removeItem('accessToken');
-                          localStorage.removeItem('user');
-                          setIsSignedIn(false);
-                          setUserData(null);
-                          setShowAccountMenu(false);
-                          window.dispatchEvent(new Event('authChange'));
-                          router.push('/');
-                        }}
+                        onClick={handleLogout}
                         className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md mt-1"
                       >
                         <LogOut className="h-4 w-4" />

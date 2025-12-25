@@ -11,11 +11,30 @@ interface ProtectedRouteProps {
 // Routes that don't require authentication
 const PUBLIC_ROUTES = [
   '/',
-  '/auth/login',
-  '/auth/register',
-  '/auth/signin',
+  '/auth',
   '/about',
   '/glossary',
+  '/equity',
+  '/debt',
+  '/commodity',
+  '/funds-demo',
+  '/search',
+  '/compare',
+  '/overlap',
+  '/fund-manager',
+  '/fund-managers',
+  '/knowledge',
+  '/how-it-works',
+  '/contact',
+  '/feedback',
+  '/help',
+  '/terms',
+  '/privacy',
+  '/disclaimer',
+  '/calculators',
+  '/chat',
+  '/news',
+  '/market',
 ];
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {

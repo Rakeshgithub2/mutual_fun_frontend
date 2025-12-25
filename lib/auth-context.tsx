@@ -31,7 +31,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -65,15 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
-    const refreshInterval = setInterval(async () => {
-      try {
-        await refreshAccessToken();
-      } catch (error) {
-        console.error('Auto token refresh failed:', error);
-        // If refresh fails, logout user
-        await logout();
-      }
-    }, 14 * 60 * 1000); // Refresh every 14 minutes (access token expires in 15 minutes)
+    const refreshInterval = setInterval(
+      async () => {
+        try {
+          await refreshAccessToken();
+        } catch (error) {
+          console.error('Auto token refresh failed:', error);
+          // If refresh fails, logout user
+          await logout();
+        }
+      },
+      14 * 60 * 1000
+    ); // Refresh every 14 minutes (access token expires in 15 minutes)
 
     return () => clearInterval(refreshInterval);
   }, [user]);
