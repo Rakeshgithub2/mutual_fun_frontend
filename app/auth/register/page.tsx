@@ -120,14 +120,13 @@ export default function RegisterPage() {
         sessionStorage.removeItem('redirectAfterLogin');
 
         // Redirect to intended page or home on successful Google sign-up
-        router.push(redirectPath);
-        // Force reload to update authentication state
-        window.location.reload();
+        window.location.href = redirectPath;
       } else {
         setError('Google sign-in failed. Please try again.');
         setLoading(false);
       }
     } catch (err: any) {
+      console.error('Google sign-up error:', err);
       setError(err.message || 'Google sign-in failed. Please try again.');
       setLoading(false);
     }
