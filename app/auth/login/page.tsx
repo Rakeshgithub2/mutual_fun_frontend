@@ -200,6 +200,8 @@ export default function LoginPage() {
               theme="outline"
               text="signin_with"
               shape="rectangular"
+              useOneTap={false}
+              type="standard"
             />
           </div>
 

@@ -314,6 +314,8 @@ export default function RegisterPage() {
               theme="outline"
               text="signup_with"
               shape="rectangular"
+              useOneTap={false}
+              type="standard"
             />
           </div>
 
