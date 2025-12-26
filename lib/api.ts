@@ -2,8 +2,9 @@
 // Handles JWT token storage and automatic attachment to requests
 // Usage: import { api } from '@/lib/api'
 
-const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`;
+// ✅ FIXED: Remove /api from base URL (routes already include /api)
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
 
 // Token storage keys
 export const TOKEN_KEYS = {
@@ -82,12 +83,15 @@ export const api = {
     let url = `${API_BASE_URL}${endpoint}`;
     if (params) {
       const queryString = new URLSearchParams(
-        Object.entries(params).reduce((acc, [key, value]) => {
-          if (value !== undefined && value !== null) {
-            acc[key] = String(value);
-          }
-          return acc;
-        }, {} as Record<string, string>)
+        Object.entries(params).reduce(
+          (acc, [key, value]) => {
+            if (value !== undefined && value !== null) {
+              acc[key] = String(value);
+            }
+            return acc;
+          },
+          {} as Record<string, string>
+        )
       ).toString();
       if (queryString) {
         url += `?${queryString}`;

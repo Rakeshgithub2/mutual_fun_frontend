@@ -51,7 +51,9 @@ interface MarketIndex {
   importance: string[];
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+// ✅ FIXED: Use correct backend URL
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
 
 // Comprehensive market indices with importance points for mutual fund investors
 const MARKET_INDICES: Omit<

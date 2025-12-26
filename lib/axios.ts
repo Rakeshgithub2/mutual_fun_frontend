@@ -23,8 +23,9 @@ const API_BASE_URL = (
 console.log('🌐 Axios API Base URL:', API_BASE_URL);
 
 // Create axios instance with production-safe defaults
+// ✅ FIXED: No /api in baseURL - routes already include /api prefix
 const api: AxiosInstance = axios.create({
-  baseURL: `${API_BASE_URL}/api`, // Add /api prefix here once
+  baseURL: API_BASE_URL,
   timeout: 30000, // 30 seconds
   headers: {
     'Content-Type': 'application/json',
