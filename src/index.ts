@@ -27,10 +27,13 @@ app.use(
 // CORS Configuration - IMPORTANT FOR VERCEL
 const allowedOrigins = [
   'http://localhost:5001',
+  'http://localhost:3000',
   'http://localhost:3001',
   'https://mf-frontend-coral.vercel.app',
+  'https://mutual-fun-frontend-osed.vercel.app',
   process.env.FRONTEND_URL || 'http://localhost:5001',
-];
+  process.env.NEXT_PUBLIC_FRONTEND_URL,
+].filter(Boolean); // Remove undefined values
 
 app.use(
   cors({
