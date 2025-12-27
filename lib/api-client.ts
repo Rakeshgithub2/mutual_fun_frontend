@@ -15,6 +15,21 @@ class ApiClient {
     return this.request(`/api/funds?page=${page}&limit=${limit}`);
   }
 
+  async getFundsMultiPage(targetCount = 4000) {
+    let all: any[] = [];
+    let page = 1;
+    const limit = 200;
+
+    while (all.length < targetCount) {
+      const res = await this.getFunds(page, limit);
+      all.push(...res.data);
+      if (!res.pagination?.hasNext) break;
+      page++;
+    }
+
+    return { data: all };
+  }
+
   getFund(id: string) {
     return this.request(`/api/funds/${id}`);
   }

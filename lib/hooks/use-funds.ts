@@ -51,9 +51,20 @@ export function useFunds(options?: {
 
     try {
       console.log('🔍 Fetching funds with filters:', options);
+      console.log('🌐 [useFunds] API Base URL:', process.env.NEXT_PUBLIC_API_URL);
 
-      // Use the centralized API client - load 1000 funds per page
-      const response = await api.getFunds(1, 1000);
+      // Determine the limit - use multi-page fetch for large requests
+      const requestedLimit = options?.limit || 4000;
+      const isLargeRequest = requestedLimit > 1000;
+
+      let response;
+      if (isLargeRequest) {
+        console.log('📚 [useFunds] Large request detected, using multi-page fetch');
+        response = await api.getFundsMultiPage(requestedLimit);
+      } else {
+        // Use single page for smaller requests
+        response = await api.getFunds(1, requestedLimit);
+      }
 
       console.log('✅ Funds fetched successfully:', response);
 
@@ -162,7 +173,7 @@ export function useFund(id: string) {
 
     try {
       // Use the centralized API client
-      const apiResponse = await apiClient.getFundById(id);
+      const apiResponse = await api.getFund(id);
 
       console.log('✅ Fund fetched successfully:', apiResponse);
 
