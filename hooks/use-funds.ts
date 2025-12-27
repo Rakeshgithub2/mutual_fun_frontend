@@ -19,14 +19,10 @@ export function useFunds(filters?: {
       setLoading(true);
       setError(null);
       try {
-        const BASE_URL = 'https://mutualfun-backend.vercel.app';
         console.log('🔍 [useFunds] Fetching with filters:', filters);
         console.log(
           '🌐 [useFunds] API Base URL:',
-          (process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`).replace(
-            /\/+$/,
-            ''
-          )
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
         );
 
         // ✅ PRODUCTION-SAFE: Use multi-page fetching for large datasets
@@ -38,13 +34,18 @@ export function useFunds(filters?: {
           console.log(
             '📚 [useFunds] Large request detected, using multi-page fetch'
           );
-          response = await apiClient.getFundsMultiPage({
-            ...filters,
-            targetCount: requestedLimit,
+          response = await apiClient.getFundsMultiPage(requestedLimit, {
+            category: filters?.category,
+            subCategory: filters?.subCategory,
+            fundHouse: filters?.fundHouse,
           });
         } else {
           // Normal single-page request with safe params
-          response = await apiClient.getFunds(filters);
+          response = await apiClient.getFunds(filters?.page, filters?.limit, {
+            category: filters?.category,
+            subCategory: filters?.subCategory,
+            fundHouse: filters?.fundHouse,
+          });
         }
 
         console.log(
