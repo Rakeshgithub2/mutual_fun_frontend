@@ -1,5 +1,3 @@
-// lib/api-client.ts
-
 const RAW_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 // 🔒 Ensure no trailing /api or slash
@@ -49,14 +47,45 @@ export class ApiClient {
     return res.json();
   }
 
+  // ---------------------------------------
+  // FUND APIs
+  // ---------------------------------------
+
   async getFunds(params?: { page?: number; limit?: number }) {
     const q = new URLSearchParams(buildSafeQueryParams(params)).toString();
     return this.request(`/api/funds${q ? `?${q}` : ''}`);
   }
 
+  // ✅ THIS FIXES YOUR ERROR
+  async getFundsMultiPage(params?: { targetCount?: number }) {
+    const MAX = 100;
+    const target = params?.targetCount || 500;
+    const pages = Math.ceil(target / MAX);
+
+    let allFunds: any[] = [];
+    let lastPagination: any = null;
+
+    for (let page = 1; page <= pages; page++) {
+      const res: any = await this.getFunds({ page, limit: MAX });
+      allFunds.push(...res.data);
+      lastPagination = res.pagination;
+
+      if (!res.pagination?.hasNext) break;
+    }
+
+    return {
+      data: allFunds,
+      pagination: lastPagination,
+    };
+  }
+
   async getFundById(id: string) {
     return this.request(`/api/funds/${id}`);
   }
+
+  // ---------------------------------------
+  // ANALYSIS APIs
+  // ---------------------------------------
 
   async compareFunds(fundIds: string[]) {
     return this.request('/api/compare', {
