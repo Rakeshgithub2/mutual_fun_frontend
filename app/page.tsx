@@ -13,50 +13,13 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
-
-const MARKET_INDICES = [
-  {
-    name: 'NIFTY 50',
-    value: '21,349.40',
-    change: '+145.20',
-    changePercent: '+0.68%',
-    isPositive: true,
-  },
-  {
-    name: 'SENSEX',
-    value: '70,514.20',
-    change: '+485.75',
-    changePercent: '+0.69%',
-    isPositive: true,
-  },
-  {
-    name: 'NIFTY MIDCAP',
-    value: '53,256.80',
-    change: '-124.50',
-    changePercent: '-0.23%',
-    isPositive: false,
-  },
-  {
-    name: 'MIDCAP 100',
-    value: '48,632.15',
-    change: '+256.30',
-    changePercent: '+0.53%',
-    isPositive: true,
-  },
-  {
-    name: 'GIFT NIFTY',
-    value: '21,385.00',
-    change: '+35.60',
-    changePercent: '+0.17%',
-    isPositive: true,
-  },
-];
+import { MarketIndices } from '@/components/market-indices';
 
 const FUND_CATEGORIES = [
   {
     name: 'Equity Funds',
     description: 'High growth potential with market-linked returns',
-    count: '500+ funds',
+    count: '2000+ funds',
     color: 'from-blue-500 to-blue-600',
     category: 'equity',
     icon: '📈',
@@ -64,7 +27,7 @@ const FUND_CATEGORIES = [
   {
     name: 'Commodity Funds',
     description: 'Invest in gold, silver & commodities',
-    count: '80+ funds',
+    count: '200+ funds',
     color: 'from-yellow-500 to-orange-600',
     category: 'commodity',
     icon: '🪙',
@@ -72,7 +35,7 @@ const FUND_CATEGORIES = [
   {
     name: 'Debt Funds',
     description: 'Stable returns with lower risk',
-    count: '300+ funds',
+    count: '1500+ funds',
     color: 'from-green-500 to-green-600',
     category: 'debt',
     icon: '💰',
@@ -123,45 +86,8 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
 
-      {/* Market Indices - Compact Horizontal Cards */}
-      <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="overflow-x-auto scrollbar-hide px-4 py-3">
-          <div className="flex gap-3 min-w-max">
-            {MARKET_INDICES.map((index) => (
-              <div
-                key={index.name}
-                className="flex flex-col min-w-[140px] px-3 py-2 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-              >
-                <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                  {index.name}
-                </span>
-                <span className="text-sm font-semibold text-gray-900 dark:text-white mt-1">
-                  {index.value}
-                </span>
-                <div className="flex items-center gap-1 mt-1">
-                  {index.isPositive ? (
-                    <TrendingUp className="w-3 h-3 text-green-600" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-red-600" />
-                  )}
-                  <span
-                    className={`text-xs font-medium ${
-                      index.isPositive ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {index.changePercent}
-                  </span>
-                </div>
-              </div>
-            ))}
-            <Link href="/market">
-              <button className="flex items-center justify-center min-w-[100px] px-4 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 text-xs font-medium hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors">
-                View All <ChevronRight className="w-3 h-3 ml-1" />
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
+      {/* Market Indices - Real-time data from backend */}
+      <MarketIndices />
 
       {/* Main Content */}
       <div className="px-4 py-6 space-y-6">

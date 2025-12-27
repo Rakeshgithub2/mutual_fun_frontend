@@ -45,26 +45,26 @@ export function FundCategories({
   const { funds: largeCapFunds, loading: largeCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Large Cap',
-    limit: 500,
+    limit: 2000,
   });
   const { funds: midCapFunds, loading: midCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Mid Cap',
-    limit: 500,
+    limit: 2000,
   });
   const { funds: smallCapFunds, loading: smallCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Small Cap',
-    limit: 500,
+    limit: 2000,
   });
   const { funds: multiCapFunds, loading: multiCapLoading } = useFunds({
     category: 'equity',
     subCategory: 'Multi Cap',
-    limit: 500,
+    limit: 2000,
   });
   // Backend doesn't support commodity category, fetch all and filter
   const { funds: allFundsForGold, loading: goldLoading } = useFunds({
-    limit: 500,
+    limit: 2000,
   });
   const goldFunds = allFundsForGold.filter(
     (fund) =>
@@ -72,7 +72,7 @@ export function FundCategories({
       fund.name?.toLowerCase().includes('gold')
   );
   const { funds: allFundsForSilver, loading: silverLoading } = useFunds({
-    limit: 500,
+    limit: 2000,
   });
   const silverFunds = allFundsForSilver.filter(
     (fund) =>
@@ -83,11 +83,11 @@ export function FundCategories({
   // Get all funds for the active category
   const { funds: allEquityFunds, loading: allEquityLoading } = useFunds({
     category: 'equity',
-    limit: 500,
+    limit: 2000,
   });
   const { funds: allCommodityFunds, loading: allCommodityLoading } = useFunds({
     category: 'commodity',
-    limit: 100,
+    limit: 1000,
   });
 
   // Get current funds based on active tab and subcategory
@@ -259,8 +259,8 @@ export function FundCategories({
                   activeSubCategory[activeTab] === 'all'
                     ? 'bg-white/20'
                     : activeTab === 'equity'
-                    ? 'bg-gradient-to-br from-blue-500 to-blue-700'
-                    : 'bg-gradient-to-br from-amber-500 to-orange-700'
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-700'
+                      : 'bg-gradient-to-br from-amber-500 to-orange-700'
                 }`}
               >
                 <BarChart3
@@ -396,8 +396,8 @@ export function FundCategories({
                         activeSubCategory[activeTab] === subCategory.id
                           ? 'bg-white/20'
                           : subCategory.id === 'gold'
-                          ? 'bg-gradient-to-br from-yellow-500 to-amber-700'
-                          : 'bg-gradient-to-br from-gray-500 to-slate-700'
+                            ? 'bg-gradient-to-br from-yellow-500 to-amber-700'
+                            : 'bg-gradient-to-br from-gray-500 to-slate-700'
                       }`}
                     >
                       <subCategory.icon className="w-6 h-6 text-white" />

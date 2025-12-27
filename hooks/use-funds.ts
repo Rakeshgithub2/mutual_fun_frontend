@@ -27,7 +27,7 @@ export function useFunds(filters?: {
 
         // ✅ PRODUCTION-SAFE: Use multi-page fetching for large datasets
         let response;
-        const requestedLimit = filters?.limit || 50;
+        const requestedLimit = filters?.limit || 1000; // Default: 1000 funds for comprehensive display
 
         if (requestedLimit > 100) {
           // Use multi-page strategy for large requests

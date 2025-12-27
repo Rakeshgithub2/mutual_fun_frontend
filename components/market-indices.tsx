@@ -63,300 +63,314 @@ export function MarketIndices() {
 
   // Fetch real market data from backend API
   const fetchRealMarketData = async () => {
-      try {
-        // Fetch from our backend proxy API with timeout
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    try {
+      // Fetch from our backend proxy API with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-        const response = await fetch(`${API_BASE_URL}/api/market/summary`, {
-          signal: controller.signal,
-        });
+      const response = await fetch(`${API_BASE_URL}/api/market-indices`, {
+        signal: controller.signal,
+      });
 
-        clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch market data');
-        }
-
-        const apiData = await response.json();
-
-        if (!apiData.success || !apiData.data) {
-          throw new Error('Invalid API response');
-        }
-
-        // Backend returns array of indices: [{symbol, name, value, change, changePercent, lastUpdated}]
-        const indicesData = apiData.data;
-
-        // Map API data to our MarketIndex interface
-        const realIndices: MarketIndex[] = indicesData.map((index: any) => {
-          // Icon mapping
-          const iconMap: Record<string, any> = {
-            'NIFTY50': BarChart3,
-            'SENSEX': Building2,
-            'NIFTY_MIDCAP': Activity,
-            'GIFT_NIFTY': Globe,
-            'NIFTY_BANK': Coins,
-          };
-
-          // Color mapping
-          const colorMap: Record<string, string> = {
-            'NIFTY50': 'from-blue-500 to-blue-600',
-            'SENSEX': 'from-purple-500 to-purple-600',
-            'NIFTY_MIDCAP': 'from-green-500 to-green-600',
-            'GIFT_NIFTY': 'from-orange-500 to-orange-600',
-            'NIFTY_BANK': 'from-red-500 to-red-600',
-          };
-
-          return {
-            id: index.symbol.toLowerCase(),
-            name: index.name,
-            shortName: index.symbol,
-            value: index.value,
-            change: index.change,
-            changePercent: index.changePercent,
-            high: index.value, // Using current value as high
-            low: index.value,  // Using current value as low
-            open: index.value - index.change, // Calculate open from change
-            previousClose: index.value - index.change,
-            lastUpdated: index.lastUpdated,
-            icon: iconMap[index.symbol] || Activity,
-            color: colorMap[index.symbol] || 'from-gray-500 to-gray-600',
-            description: `${index.name} index`,
-            constituents: index.symbol === 'NIFTY50' ? 50 : index.symbol === 'SENSEX' ? 30 : undefined,
-          };
-        });
-
-        if (realIndices.length > 0) {
-          setIndices(realIndices);
-        } else {
-          throw new Error('No market data received from API');
-        }
-        setLoading(false);
-      } catch (error) {
-        // Silently use fallback data - no console error needed for expected behavior
-        if (error instanceof Error && error.name !== 'AbortError') {
-          console.debug('Market API unavailable, using mock data');
-        }
-
-        // Fallback to mock data if API fails
-        const mockData: MarketIndex[] = [
-          {
-            id: 'sensex',
-            name: 'S&P BSE Sensex',
-            shortName: 'SENSEX',
-            value: 65432.18,
-            change: 234.56,
-            changePercent: 0.36,
-            high: 65789.32,
-            low: 65123.45,
-            open: 65198.76,
-            previousClose: 65197.62,
-            volume: '3.2 Cr',
-            marketCap: '₹280 Lakh Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Building2,
-            color: 'blue',
-            description:
-              "The S&P BSE Sensex is India's most tracked bellwether index, comprising 30 of the largest and most actively traded stocks on the BSE.",
-            constituents: 30,
-          },
-          {
-            id: 'nifty50',
-            name: 'Nifty 50',
-            shortName: 'NIFTY 50',
-            value: 19543.65,
-            change: -87.23,
-            changePercent: -0.44,
-            high: 19632.18,
-            low: 19498.43,
-            open: 19610.88,
-            previousClose: 19630.88,
-            volume: '2.8 Cr',
-            marketCap: '₹245 Lakh Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: TrendingUp,
-            color: 'indigo',
-            description:
-              'Nifty 50 is the flagship index of NSE, representing the weighted average of 50 of the largest Indian companies listed on the exchange.',
-            constituents: 50,
-          },
-          {
-            id: 'niftymidcap',
-            name: 'Nifty Midcap 100',
-            shortName: 'MIDCAP 100',
-            value: 42315.78,
-            change: 156.34,
-            changePercent: 0.37,
-            high: 42487.65,
-            low: 42089.23,
-            open: 42159.44,
-            previousClose: 42159.44,
-            volume: '1.5 Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: BarChart3,
-            color: 'purple',
-            description:
-              "The Nifty Midcap 100 index tracks the performance of the top 100 mid-cap companies, offering exposure to India's emerging corporate sector.",
-            constituents: 100,
-          },
-          {
-            id: 'commodity',
-            name: 'MCX Commodity Index',
-            shortName: 'MCX iCOMDEX',
-            value: 6789.45,
-            change: 45.67,
-            changePercent: 0.68,
-            high: 6812.34,
-            low: 6743.78,
-            open: 6743.78,
-            previousClose: 6743.78,
-            volume: '890 Units',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Coins,
-            color: 'amber',
-            description:
-              "MCX iCOMDEX is India's first commodity index, tracking the performance of major commodities traded on the Multi Commodity Exchange.",
-            constituents: 6,
-          },
-          {
-            id: 'niftybank',
-            name: 'Nifty Bank',
-            shortName: 'NIFTY BANK',
-            value: 47823.45,
-            change: 234.56,
-            changePercent: 0.49,
-            high: 48012.34,
-            low: 47654.23,
-            open: 47654.23,
-            previousClose: 47588.89,
-            volume: '890 Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Building2,
-            color: 'blue',
-            description:
-              'Nifty Bank index represents the 12 most liquid and large capitalized Indian banking stocks.',
-            constituents: 12,
-          },
-          {
-            id: 'niftyit',
-            name: 'Nifty IT',
-            shortName: 'NIFTY IT',
-            value: 34567.89,
-            change: -123.45,
-            changePercent: -0.36,
-            high: 34789.12,
-            low: 34456.78,
-            open: 34691.34,
-            previousClose: 34691.34,
-            volume: '345 Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Activity,
-            color: 'cyan',
-            description:
-              'Nifty IT index tracks the performance of the top IT companies listed on NSE.',
-            constituents: 10,
-          },
-          {
-            id: 'niftypharma',
-            name: 'Nifty Pharma',
-            shortName: 'NIFTY PHARMA',
-            value: 19876.54,
-            change: 87.32,
-            changePercent: 0.44,
-            high: 19923.45,
-            low: 19789.12,
-            open: 19789.22,
-            previousClose: 19789.22,
-            volume: '234 Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Activity,
-            color: 'teal',
-            description:
-              'Nifty Pharma index represents the pharmaceutical sector companies.',
-            constituents: 10,
-          },
-          {
-            id: 'niftyauto',
-            name: 'Nifty Auto',
-            shortName: 'NIFTY AUTO',
-            value: 21234.56,
-            change: 156.78,
-            changePercent: 0.74,
-            high: 21345.67,
-            low: 21098.45,
-            open: 21077.78,
-            previousClose: 21077.78,
-            volume: '456 Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Activity,
-            color: 'orange',
-            description:
-              'Nifty Auto index tracks the performance of the automobile sector.',
-            constituents: 15,
-          },
-          {
-            id: 'niftymetal',
-            name: 'Nifty Metal',
-            shortName: 'NIFTY METAL',
-            value: 8765.43,
-            change: -45.67,
-            changePercent: -0.52,
-            high: 8823.45,
-            low: 8734.56,
-            open: 8811.1,
-            previousClose: 8811.1,
-            volume: '567 Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Coins,
-            color: 'gray',
-            description:
-              'Nifty Metal index represents the metal and mining sector companies.',
-            constituents: 15,
-          },
-          {
-            id: 'niftyfmcg',
-            name: 'Nifty FMCG',
-            shortName: 'NIFTY FMCG',
-            value: 54321.98,
-            change: 234.12,
-            changePercent: 0.43,
-            high: 54456.78,
-            low: 54123.45,
-            open: 54087.86,
-            previousClose: 54087.86,
-            volume: '123 Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Activity,
-            color: 'pink',
-            description:
-              'Nifty FMCG index tracks the performance of fast-moving consumer goods companies.',
-            constituents: 15,
-          },
-          {
-            id: 'giftnifty',
-            name: 'Gift Nifty',
-            shortName: 'GIFT NIFTY',
-            value: 19589.5,
-            change: 58.62,
-            changePercent: 0.3,
-            high: 19612.75,
-            low: 19530.88,
-            open: 19530.88,
-            previousClose: 19530.88,
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Globe,
-            color: 'green',
-            description:
-              'Gift Nifty is the derivative contract of Nifty 50 traded at GIFT City, providing early market signals and enabling global participation.',
-            constituents: 50,
-          },
-        ];
-
-        setIndices(mockData);
-        setLoading(false);
+      if (!response.ok) {
+        throw new Error('Failed to fetch market data');
       }
-    };
-  }; // ✅ Close the function
+
+      const apiData = await response.json();
+
+      if (!apiData.success || !apiData.data) {
+        throw new Error('Invalid API response');
+      }
+
+      // Backend returns structured data: { indian: [...], global: [...] }
+      // For now, we'll use only Indian indices
+      const indianIndices = apiData.data.indian || apiData.data || [];
+
+      // Map API data to our MarketIndex interface
+      const realIndices: MarketIndex[] = indianIndices.map((index: any) => {
+        // Icon mapping - match backend index IDs
+        const iconMap: Record<string, any> = {
+          NIFTY_50: BarChart3,
+          nifty_50: BarChart3,
+          nifty50: BarChart3,
+          SENSEX: Building2,
+          sensex: Building2,
+          NIFTY_MIDCAP_100: Activity,
+          nifty_midcap_100: Activity,
+          NIFTY_BANK: Coins,
+          BANK_NIFTY: Coins,
+          bank_nifty: Coins,
+          GIFT_NIFTY: Globe,
+        };
+
+        // Color mapping
+        const colorMap: Record<string, string> = {
+          NIFTY_50: 'from-blue-500 to-blue-600',
+          nifty_50: 'from-blue-500 to-blue-600',
+          SENSEX: 'from-purple-500 to-purple-600',
+          sensex: 'from-purple-500 to-purple-600',
+          NIFTY_MIDCAP_100: 'from-green-500 to-green-600',
+          nifty_midcap_100: 'from-green-500 to-green-600',
+          NIFTY_BANK: 'from-red-500 to-red-600',
+          BANK_NIFTY: 'from-red-500 to-red-600',
+          bank_nifty: 'from-red-500 to-red-600',
+          GIFT_NIFTY: 'from-orange-500 to-orange-600',
+        };
+
+        const indexKey = index.indexId || index.symbol || index.id;
+
+        return {
+          id: indexKey.toLowerCase(),
+          name: index.name,
+          shortName: index.symbol || index.indexId,
+          value: index.currentValue || index.value,
+          change: index.change,
+          changePercent: index.changePercent,
+          high: index.high || index.currentValue || index.value,
+          low: index.low || index.currentValue || index.value,
+          open: index.open || index.currentValue - index.change,
+          previousClose:
+            index.previousClose || index.currentValue - index.change,
+          lastUpdated: index.lastUpdated,
+          icon: iconMap[indexKey] || Activity,
+          color: colorMap[indexKey] || 'from-gray-500 to-gray-600',
+          description: `${index.name} index`,
+          constituents: index.constituents,
+        };
+      });
+
+      if (realIndices.length > 0) {
+        setIndices(realIndices);
+      } else {
+        throw new Error('No market data received from API');
+      }
+      setLoading(false);
+    } catch (error) {
+      // Silently use fallback data - no console error needed for expected behavior
+      if (error instanceof Error && error.name !== 'AbortError') {
+        console.debug('Market API unavailable, using mock data');
+      }
+
+      // Fallback to mock data if API fails
+      const mockData: MarketIndex[] = [
+        {
+          id: 'sensex',
+          name: 'S&P BSE Sensex',
+          shortName: 'SENSEX',
+          value: 65432.18,
+          change: 234.56,
+          changePercent: 0.36,
+          high: 65789.32,
+          low: 65123.45,
+          open: 65198.76,
+          previousClose: 65197.62,
+          volume: '3.2 Cr',
+          marketCap: '₹280 Lakh Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Building2,
+          color: 'blue',
+          description:
+            "The S&P BSE Sensex is India's most tracked bellwether index, comprising 30 of the largest and most actively traded stocks on the BSE.",
+          constituents: 30,
+        },
+        {
+          id: 'nifty50',
+          name: 'Nifty 50',
+          shortName: 'NIFTY 50',
+          value: 19543.65,
+          change: -87.23,
+          changePercent: -0.44,
+          high: 19632.18,
+          low: 19498.43,
+          open: 19610.88,
+          previousClose: 19630.88,
+          volume: '2.8 Cr',
+          marketCap: '₹245 Lakh Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: TrendingUp,
+          color: 'indigo',
+          description:
+            'Nifty 50 is the flagship index of NSE, representing the weighted average of 50 of the largest Indian companies listed on the exchange.',
+          constituents: 50,
+        },
+        {
+          id: 'niftymidcap',
+          name: 'Nifty Midcap 100',
+          shortName: 'MIDCAP 100',
+          value: 42315.78,
+          change: 156.34,
+          changePercent: 0.37,
+          high: 42487.65,
+          low: 42089.23,
+          open: 42159.44,
+          previousClose: 42159.44,
+          volume: '1.5 Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: BarChart3,
+          color: 'purple',
+          description:
+            "The Nifty Midcap 100 index tracks the performance of the top 100 mid-cap companies, offering exposure to India's emerging corporate sector.",
+          constituents: 100,
+        },
+        {
+          id: 'commodity',
+          name: 'MCX Commodity Index',
+          shortName: 'MCX iCOMDEX',
+          value: 6789.45,
+          change: 45.67,
+          changePercent: 0.68,
+          high: 6812.34,
+          low: 6743.78,
+          open: 6743.78,
+          previousClose: 6743.78,
+          volume: '890 Units',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Coins,
+          color: 'amber',
+          description:
+            "MCX iCOMDEX is India's first commodity index, tracking the performance of major commodities traded on the Multi Commodity Exchange.",
+          constituents: 6,
+        },
+        {
+          id: 'niftybank',
+          name: 'Nifty Bank',
+          shortName: 'NIFTY BANK',
+          value: 47823.45,
+          change: 234.56,
+          changePercent: 0.49,
+          high: 48012.34,
+          low: 47654.23,
+          open: 47654.23,
+          previousClose: 47588.89,
+          volume: '890 Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Building2,
+          color: 'blue',
+          description:
+            'Nifty Bank index represents the 12 most liquid and large capitalized Indian banking stocks.',
+          constituents: 12,
+        },
+        {
+          id: 'niftyit',
+          name: 'Nifty IT',
+          shortName: 'NIFTY IT',
+          value: 34567.89,
+          change: -123.45,
+          changePercent: -0.36,
+          high: 34789.12,
+          low: 34456.78,
+          open: 34691.34,
+          previousClose: 34691.34,
+          volume: '345 Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Activity,
+          color: 'cyan',
+          description:
+            'Nifty IT index tracks the performance of the top IT companies listed on NSE.',
+          constituents: 10,
+        },
+        {
+          id: 'niftypharma',
+          name: 'Nifty Pharma',
+          shortName: 'NIFTY PHARMA',
+          value: 19876.54,
+          change: 87.32,
+          changePercent: 0.44,
+          high: 19923.45,
+          low: 19789.12,
+          open: 19789.22,
+          previousClose: 19789.22,
+          volume: '234 Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Activity,
+          color: 'teal',
+          description:
+            'Nifty Pharma index represents the pharmaceutical sector companies.',
+          constituents: 10,
+        },
+        {
+          id: 'niftyauto',
+          name: 'Nifty Auto',
+          shortName: 'NIFTY AUTO',
+          value: 21234.56,
+          change: 156.78,
+          changePercent: 0.74,
+          high: 21345.67,
+          low: 21098.45,
+          open: 21077.78,
+          previousClose: 21077.78,
+          volume: '456 Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Activity,
+          color: 'orange',
+          description:
+            'Nifty Auto index tracks the performance of the automobile sector.',
+          constituents: 15,
+        },
+        {
+          id: 'niftymetal',
+          name: 'Nifty Metal',
+          shortName: 'NIFTY METAL',
+          value: 8765.43,
+          change: -45.67,
+          changePercent: -0.52,
+          high: 8823.45,
+          low: 8734.56,
+          open: 8811.1,
+          previousClose: 8811.1,
+          volume: '567 Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Coins,
+          color: 'gray',
+          description:
+            'Nifty Metal index represents the metal and mining sector companies.',
+          constituents: 15,
+        },
+        {
+          id: 'niftyfmcg',
+          name: 'Nifty FMCG',
+          shortName: 'NIFTY FMCG',
+          value: 54321.98,
+          change: 234.12,
+          changePercent: 0.43,
+          high: 54456.78,
+          low: 54123.45,
+          open: 54087.86,
+          previousClose: 54087.86,
+          volume: '123 Cr',
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Activity,
+          color: 'pink',
+          description:
+            'Nifty FMCG index tracks the performance of fast-moving consumer goods companies.',
+          constituents: 15,
+        },
+        {
+          id: 'giftnifty',
+          name: 'Gift Nifty',
+          shortName: 'GIFT NIFTY',
+          value: 19589.5,
+          change: 58.62,
+          changePercent: 0.3,
+          high: 19612.75,
+          low: 19530.88,
+          open: 19530.88,
+          previousClose: 19530.88,
+          lastUpdated: new Date().toLocaleTimeString('en-IN'),
+          icon: Globe,
+          color: 'green',
+          description:
+            'Gift Nifty is the derivative contract of Nifty 50 traded at GIFT City, providing early market signals and enabling global participation.',
+          constituents: 50,
+        },
+      ];
+
+      setIndices(mockData);
+      setLoading(false);
+    }
+  }; // Close the fetchRealMarketData function
 
   if (loading) {
     return (

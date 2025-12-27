@@ -152,8 +152,16 @@ class ApiClient {
     let page = 1;
     const limit = 200;
 
+    console.log(
+      `📚 [getFundsMultiPage] Starting multi-page fetch for ${targetCount} funds`
+    );
+    console.log(`📚 [getFundsMultiPage] Using limit: ${limit} per page`);
+
     try {
       while (all.length < targetCount) {
+        console.log(
+          `📖 [getFundsMultiPage] Fetching page ${page} (have ${all.length} so far)...`
+        );
         const res = await this.getFunds(page, limit, filters);
 
         if (!res.data || !Array.isArray(res.data)) {
@@ -161,15 +169,33 @@ class ApiClient {
           break;
         }
 
+        console.log(
+          `✅ [getFundsMultiPage] Page ${page} returned ${res.data.length} funds`
+        );
+        console.log(`📊 [getFundsMultiPage] Pagination:`, res.pagination);
+
         all.push(...res.data);
 
+        // Check if there are more pages
         if (!res.pagination?.hasNext) {
-          console.log(`✅ Fetched all ${all.length} funds`);
+          console.log(
+            `✅ [getFundsMultiPage] No more pages. Fetched all ${all.length} funds`
+          );
+          break;
+        }
+
+        // Safety check: don't fetch more than 50 pages (10,000 funds)
+        if (page >= 50) {
+          console.warn(
+            `⚠️ [getFundsMultiPage] Reached page limit of 50. Stopping at ${all.length} funds`
+          );
           break;
         }
 
         page++;
       }
+
+      console.log(`✅ [getFundsMultiPage] Total funds fetched: ${all.length}`);
 
       return {
         success: true,
