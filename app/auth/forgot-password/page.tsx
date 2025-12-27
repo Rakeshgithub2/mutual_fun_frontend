@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -63,7 +64,8 @@ export default function ForgotPasswordPage() {
       }, 2000);
     } catch (err: any) {
       console.error('❌ Forgot password error:', err);
-      const errorMessage = err.message || 'Failed to send OTP. Please try again.';
+      const errorMessage =
+        err.message || 'Failed to send OTP. Please try again.';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -93,7 +95,8 @@ export default function ForgotPasswordPage() {
               Forgot Password?
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              No worries! Enter your email and we'll send you an OTP to reset your password.
+              No worries! Enter your email and we'll send you an OTP to reset
+              your password.
             </p>
           </div>
 
@@ -123,7 +126,10 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Email Field */}
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Email Address
                 </Label>
                 <div className="relative">
@@ -144,7 +150,9 @@ export default function ForgotPasswordPage() {
               {/* Error Message */}
               {error && (
                 <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  <p className="text-sm text-red-600 dark:text-red-400">
+                    {error}
+                  </p>
                 </div>
               )}
 
@@ -188,76 +196,6 @@ export default function ForgotPasswordPage() {
             The verification code will expire in 10 minutes
           </p>
         </div>
-      </div>
-    </div>
-  );
-}
-            </div>
-          )}
-
-          {/* Success Message */}
-          {success && (
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-green-800 dark:text-green-300 text-sm">
-                ✓ OTP sent to your email! Redirecting...
-              </p>
-            </div>
-          )}
-
-          {/* Forgot Password Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <Label
-                htmlFor="email"
-                className="text-gray-700 dark:text-gray-300 font-medium"
-              >
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="mt-1.5 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                disabled={loading || success}
-                required
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading || success}
-              className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-medium py-2.5 rounded-lg transition-all shadow-lg hover:shadow-xl"
-            >
-              {loading ? 'Sending OTP...' : success ? 'OTP Sent!' : 'Send OTP'}
-            </Button>
-          </form>
-
-          {/* Login Link */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-600 dark:text-gray-400">
-              Remember your password?{' '}
-              <Link
-                href="/auth/login"
-                className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium"
-              >
-                Back to login
-              </Link>
-            </p>
-          </div>
-        </div>
-
-        {/* Footer */}
-        <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-8">
-          Need help? Contact our{' '}
-          <Link
-            href="/contact"
-            className="text-indigo-600 dark:text-indigo-400 hover:underline"
-          >
-            support team
-          </Link>
-        </p>
       </div>
     </div>
   );
