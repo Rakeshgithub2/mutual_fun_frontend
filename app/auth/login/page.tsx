@@ -18,12 +18,12 @@ export default function LoginPage() {
   const router = useRouter();
   const { loginWithEmail, googleSignIn } = useAuth();
 
+  // Email/Password login handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
-    // Validation
     if (!email || !password) {
       setError('Please fill in all fields');
       setLoading(false);
@@ -39,11 +39,8 @@ export default function LoginPage() {
     try {
       await loginWithEmail(email, password);
 
-      // Check for stored redirect path
       const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
       sessionStorage.removeItem('redirectAfterLogin');
-
-      // Redirect to intended page or home on successful login
       window.location.href = redirectPath;
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.');
@@ -51,6 +48,7 @@ export default function LoginPage() {
     }
   };
 
+  // Google login success handler
   const handleGoogleSuccess = async (
     credentialResponse: CredentialResponse
   ) => {
@@ -59,14 +57,12 @@ export default function LoginPage() {
 
     try {
       if (credentialResponse.credential) {
+        // Send credential token to backend
         await googleSignIn(credentialResponse.credential);
 
-        // Check for stored redirect path
         const redirectPath =
           sessionStorage.getItem('redirectAfterLogin') || '/';
         sessionStorage.removeItem('redirectAfterLogin');
-
-        // Redirect to intended page or home on successful Google sign-in
         window.location.href = redirectPath;
       } else {
         setError('Google sign-in failed. Please try again.');
@@ -79,8 +75,10 @@ export default function LoginPage() {
     }
   };
 
+  // Google login error handler
   const handleGoogleError = () => {
     setError('Google sign-in failed. Please try again.');
+    setLoading(false);
   };
 
   return (
@@ -156,7 +154,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Forgot Password Link */}
             <div className="text-right">
               <Link
                 href="/auth/forgot-password"

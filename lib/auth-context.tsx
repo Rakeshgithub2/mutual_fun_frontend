@@ -16,10 +16,17 @@ interface User {
   kyc?: any;
 }
 
+interface AuthError {
+  message: string;
+  code?: string;
+  details?: any;
+}
+
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  error: AuthError | null;
   login: (idToken: string) => Promise<void>;
   loginWithEmail: (email: string, password: string) => Promise<void>;
   register: (
@@ -32,6 +39,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   refreshAccessToken: () => Promise<string | null>;
   updateUser: (updates: Partial<User>) => void;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,20 +49,30 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<AuthError | null>(null);
   const router = useRouter();
 
   // Load user from localStorage on mount
   useEffect(() => {
     const loadUser = async () => {
       try {
+        console.log('[Auth Context] Loading user from localStorage...');
         const storedUser = localStorage.getItem('user');
         const accessToken = localStorage.getItem('accessToken');
 
         if (storedUser && accessToken) {
-          setUser(JSON.parse(storedUser));
+          const parsedUser = JSON.parse(storedUser);
+          console.log('[Auth Context] User loaded:', parsedUser.email);
+          setUser(parsedUser);
+        } else {
+          console.log('[Auth Context] No stored user found');
         }
       } catch (error) {
-        console.error('Failed to load user:', error);
+        console.error('[Auth Context] Failed to load user:', error);
+        setError({
+          message: 'Failed to restore session',
+          details: error,
+        });
         localStorage.removeItem('user');
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
@@ -88,6 +106,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (idToken: string) => {
     try {
+      console.log('[Auth Context] Login with Google token initiated...');
+      setIsLoading(true);
+      setError(null);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
         method: 'POST',
         headers: {
@@ -100,8 +122,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+        const errorMessage = data.error || 'Authentication failed';
+        console.error('[Auth Context] Login failed:', errorMessage);
+        throw new Error(errorMessage);
       }
+
+      console.log('[Auth Context] Login successful:', data.data.user.email);
 
       // Store tokens
       localStorage.setItem('accessToken', data.data.tokens.accessToken);
@@ -110,15 +136,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(data.data.user);
 
+      // Handle redirect if sessionStorage has a redirect path
+      handlePostLoginRedirect();
+
       return data;
-    } catch (error) {
-      console.error('Login error:', error);
+    } catch (error: any) {
+      console.error('[Auth Context] Login error:', error);
+      setError({
+        message: error.message || 'Failed to login',
+        details: error,
+      });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const loginWithEmail = async (email: string, password: string) => {
     try {
+      console.log('[Auth Context] Email login initiated for:', email);
+      setIsLoading(true);
+      setError(null);
+
       const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -131,8 +170,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Invalid email or password');
+        const errorMessage = data.error || 'Invalid email or password';
+        console.error('[Auth Context] Email login failed:', errorMessage);
+        throw new Error(errorMessage);
       }
+
+      console.log(
+        '[Auth Context] Email login successful:',
+        data.data.user.email
+      );
 
       // Store tokens
       localStorage.setItem('accessToken', data.data.tokens.accessToken);
@@ -140,9 +186,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user', JSON.stringify(data.data.user));
 
       setUser(data.data.user);
-    } catch (error) {
-      console.error('Email login error:', error);
+
+      // Handle redirect if sessionStorage has a redirect path
+      handlePostLoginRedirect();
+    } catch (error: any) {
+      console.error('[Auth Context] Email login error:', error);
+      setError({
+        message: error.message || 'Failed to login with email',
+        details: error,
+      });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -153,6 +208,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     age?: number
   ) => {
     try {
+      console.log('[Auth Context] Registration initiated for:', email);
+      setIsLoading(true);
+      setError(null);
+
       const requestBody: any = { name, email, password };
       if (age) {
         requestBody.age = age;
@@ -170,8 +229,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
+        const errorMessage = data.error || 'Registration failed';
+        console.error('[Auth Context] Registration failed:', errorMessage);
+        throw new Error(errorMessage);
       }
+
+      console.log(
+        '[Auth Context] Registration successful:',
+        data.data.user.email
+      );
 
       // Store tokens
       localStorage.setItem('accessToken', data.data.tokens.accessToken);
@@ -179,18 +245,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('user', JSON.stringify(data.data.user));
 
       setUser(data.data.user);
-    } catch (error) {
-      console.error('Registration error:', error);
+
+      // Handle redirect if sessionStorage has a redirect path
+      handlePostLoginRedirect();
+    } catch (error: any) {
+      console.error('[Auth Context] Registration error:', error);
+      setError({
+        message: error.message || 'Failed to register',
+        details: error,
+      });
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const googleSignIn = async (idToken: string) => {
+    console.log('[Auth Context] Google Sign-In initiated');
     return login(idToken);
   };
 
   const logout = async () => {
     try {
+      console.log('[Auth Context] Logout initiated');
       const refreshToken = localStorage.getItem('refreshToken');
       const accessToken = localStorage.getItem('accessToken');
 
@@ -203,24 +280,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         credentials: 'include',
         body: JSON.stringify({ refreshToken }),
-      }).catch(() => {
-        // Ignore errors, we're logging out anyway
+      }).catch((err) => {
+        console.log('[Auth Context] Logout API call failed (ignoring):', err);
       });
+
+      console.log('[Auth Context] Logout successful');
     } finally {
       // Clear local state regardless of API response
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
+      setError(null);
       router.push('/');
     }
   };
 
   const refreshAccessToken = async (): Promise<string | null> => {
     try {
+      console.log('[Auth Context] Token refresh initiated');
       const refreshToken = localStorage.getItem('refreshToken');
 
       if (!refreshToken) {
+        console.error('[Auth Context] No refresh token available');
         throw new Error('No refresh token available');
       }
 
@@ -236,15 +318,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Token refresh failed');
+        const errorMessage = data.error || 'Token refresh failed';
+        console.error('[Auth Context] Token refresh failed:', errorMessage);
+        throw new Error(errorMessage);
       }
 
       // Update access token
       localStorage.setItem('accessToken', data.data.accessToken);
+      console.log('[Auth Context] Token refresh successful');
 
       return data.data.accessToken;
-    } catch (error) {
-      console.error('Token refresh error:', error);
+    } catch (error: any) {
+      console.error('[Auth Context] Token refresh error:', error);
+      setError({
+        message: 'Session expired. Please login again.',
+        details: error,
+      });
       // Clear tokens and logout user
       await logout();
       return null;
@@ -255,14 +344,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
 
     const updatedUser = { ...user, ...updates };
+    console.log('[Auth Context] User updated:', updates);
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
+  const clearError = () => {
+    console.log('[Auth Context] Error cleared');
+    setError(null);
+  };
+
+  // Helper function to handle post-login redirect
+  const handlePostLoginRedirect = () => {
+    try {
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        console.log('[Auth Context] Redirecting to:', redirectPath);
+        sessionStorage.removeItem('redirectAfterLogin');
+        router.push(redirectPath);
+      } else {
+        console.log('[Auth Context] No redirect path, navigating to home page');
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('[Auth Context] Redirect error:', error);
+      router.push('/');
+    }
   };
 
   const value: AuthContextType = {
     user,
     isAuthenticated: !!user,
     isLoading,
+    error,
     login,
     loginWithEmail,
     register,
@@ -270,6 +384,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     refreshAccessToken,
     updateUser,
+    clearError,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
