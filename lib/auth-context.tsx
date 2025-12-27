@@ -110,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+      const response = await fetch(`${API_BASE_URL}/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -129,9 +129,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('[Auth Context] Login successful:', data.data.user.email);
 
-      // Store tokens
-      localStorage.setItem('accessToken', data.data.tokens.accessToken);
-      localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
+      // Store tokens - Google OAuth returns 'token' field
+      localStorage.setItem('accessToken', data.data.token);
+      if (data.data.refreshToken) {
+        localStorage.setItem('refreshToken', data.data.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(data.data.user));
 
       setUser(data.data.user);
@@ -158,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,9 +182,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data.data.user.email
       );
 
-      // Store tokens
-      localStorage.setItem('accessToken', data.data.tokens.accessToken);
-      localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
+      // Store tokens - Email login returns accessToken directly
+      localStorage.setItem('accessToken', data.data.accessToken);
+      if (data.data.refreshToken) {
+        localStorage.setItem('refreshToken', data.data.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(data.data.user));
 
       setUser(data.data.user);
@@ -217,7 +221,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestBody.age = age;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -239,9 +243,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data.data.user.email
       );
 
-      // Store tokens
-      localStorage.setItem('accessToken', data.data.tokens.accessToken);
-      localStorage.setItem('refreshToken', data.data.tokens.refreshToken);
+      // Store tokens - Register returns accessToken directly
+      localStorage.setItem('accessToken', data.data.accessToken);
+      if (data.data.refreshToken) {
+        localStorage.setItem('refreshToken', data.data.refreshToken);
+      }
       localStorage.setItem('user', JSON.stringify(data.data.user));
 
       setUser(data.data.user);
@@ -272,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const accessToken = localStorage.getItem('accessToken');
 
       // Call logout endpoint
-      await fetch(`${API_BASE_URL}/api/auth/logout`, {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -306,7 +312,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No refresh token available');
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -414,7 +420,7 @@ export async function getAccessToken(): Promise<string | null> {
       const refreshToken = localStorage.getItem('refreshToken');
       if (!refreshToken) return null;
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
