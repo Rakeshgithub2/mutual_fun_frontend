@@ -74,9 +74,9 @@ Good news! These files are already using the correct endpoint and don't need cha
 
 ## 🔍 Summary of Changes
 
-| File | Line | Old | New |
-|------|------|-----|-----|
-| `lib/auth-context.tsx` | ~97 | `body: JSON.stringify({ idToken })` | `body: JSON.stringify({ token: idToken })` |
+| File                   | Line | Old                                 | New                                        |
+| ---------------------- | ---- | ----------------------------------- | ------------------------------------------ |
+| `lib/auth-context.tsx` | ~97  | `body: JSON.stringify({ idToken })` | `body: JSON.stringify({ token: idToken })` |
 
 That's it! Only **ONE line** needs to change.
 
@@ -85,6 +85,7 @@ That's it! Only **ONE line** needs to change.
 ## 🧪 Testing
 
 ### Manual Test:
+
 1. Click "Login with Google" button
 2. Open Browser DevTools → Network tab
 3. Look for: `POST https://mutualfun-backend.vercel.app/api/auth/google`
@@ -107,6 +108,7 @@ That's it! Only **ONE line** needs to change.
    ```
 
 ### Expected localStorage:
+
 - `accessToken` ✅
 - `refreshToken` ✅
 - `user` ✅
@@ -116,18 +118,22 @@ That's it! Only **ONE line** needs to change.
 ## 🐛 Troubleshooting
 
 ### Error: "Token missing"
+
 **Cause:** Backend is receiving `{ idToken: "..." }` instead of `{ token: "..." }`
 **Fix:** Update `auth-context.tsx` line 97 as shown above
 
 ### Error: "Invalid Google token"
+
 **Cause:** Google Client ID mismatch between frontend and backend
 **Fix:** Verify both are using: `336417139932-cofv6fogqqch4uub4k19krimj1mhoslc.apps.googleusercontent.com`
 
 ### Error: "404 Not Found"
+
 **Cause:** Wrong endpoint URL
 **Fix:** Ensure you're using `/api/auth/google` (with `/api`)
 
 ### CORS Error
+
 **Cause:** Backend CORS not configured
 **Fix:** Backend is already configured - restart backend if needed
 
@@ -138,11 +144,13 @@ That's it! Only **ONE line** needs to change.
 Here's the exact line to replace:
 
 ### Before (Line ~97):
+
 ```tsx
 body: JSON.stringify({ idToken }),
 ```
 
 ### After:
+
 ```tsx
 body: JSON.stringify({ token: idToken }),
 ```
@@ -164,6 +172,7 @@ body: JSON.stringify({ token: idToken }),
 ## 📞 Support
 
 If you encounter issues:
+
 1. Check Network tab in DevTools
 2. Look at Request Payload - should be `{ "token": "..." }`
 3. Check Response - should be `200 OK` with tokens

@@ -6,9 +6,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail, Loader2, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -25,12 +26,14 @@ export default function ForgotPasswordPage() {
 
     if (!email) {
       setError('Email is required');
+      toast.error('Email is required');
       setLoading(false);
       return;
     }
 
     if (!email.includes('@')) {
       setError('Please enter a valid email address');
+      toast.error('Please enter a valid email address');
       setLoading(false);
       return;
     }
@@ -52,14 +55,17 @@ export default function ForgotPasswordPage() {
 
       console.log('✅ OTP sent:', data);
       setSuccess(true);
+      toast.success('Password reset code sent to your email!');
 
-      // Redirect to verify OTP page after 2 seconds
+      // Redirect to reset password page after 2 seconds
       setTimeout(() => {
-        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
+        router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
       }, 2000);
     } catch (err: any) {
       console.error('❌ Forgot password error:', err);
-      setError(err.message || 'Failed to send OTP. Please try again.');
+      const errorMessage = err.message || 'Failed to send OTP. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -87,17 +93,105 @@ export default function ForgotPasswordPage() {
               Forgot Password?
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              No worries! Enter your email and we'll send you an OTP to reset
-              your password.
+              No worries! Enter your email and we'll send you an OTP to reset your password.
             </p>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-red-800 dark:text-red-300 text-sm">
-                ⚠️ {error}
+          {success ? (
+            /* Success Message */
+            <div className="text-center space-y-4">
+              <div className="flex justify-center">
+                <CheckCircle2 className="w-16 h-16 text-green-500" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                  Check Your Email
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">
+                  We've sent a 6-digit verification code to:
+                </p>
+                <p className="text-indigo-600 dark:text-indigo-400 font-medium">
+                  {email}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                  Redirecting you to reset password page...
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* Form */
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Email Address
+                </Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10 h-12 border-gray-300 dark:border-gray-700 focus:ring-2 focus:ring-indigo-500 dark:bg-gray-800"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                </div>
+              )}
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full h-12 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Sending code...
+                  </span>
+                ) : (
+                  'Send Reset Code'
+                )}
+              </Button>
+            </form>
+          )}
+
+          {/* Back to Login */}
+          {!success && (
+            <div className="mt-6 text-center">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Remember your password?{' '}
+                <Link
+                  href="/auth/login"
+                  className="text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 font-semibold transition-colors"
+                >
+                  Sign in
+                </Link>
               </p>
+            </div>
+          )}
+        </div>
+
+        {/* Additional Info */}
+        <div className="mt-6 text-center">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            The verification code will expire in 10 minutes
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
             </div>
           )}
 

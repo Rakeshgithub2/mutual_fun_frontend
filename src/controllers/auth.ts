@@ -12,6 +12,13 @@ import {
   verifyRefreshToken,
 } from '../utils/auth';
 import { formatResponse } from '../utils/response';
+import {
+  sendPasswordResetEmail,
+  sendVerificationEmail,
+  sendWelcomeEmail,
+  generateOTP,
+  generateToken,
+} from '../utils/email';
 
 const registerSchema = z.object({
   email: z.string().email(),
@@ -28,6 +35,21 @@ const loginSchema = z.object({
 
 const refreshTokenSchema = z.object({
   refreshToken: z.string(),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const verifyOTPSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
+});
+
+const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().length(6),
+  newPassword: z.string().min(8),
 });
 
 export const register = async (req: Request, res: Response): Promise<void> => {
@@ -60,6 +82,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       role: 'USER',
       isVerified: false,
       kycStatus: 'PENDING',
+      provider: 'local',
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -67,11 +90,39 @@ export const register = async (req: Request, res: Response): Promise<void> => {
     const result = await usersCollection.insertOne(newUser);
     const userId = result.insertedId.toString();
 
+    // Generate OTP for email verification
+    const otp = generateOTP();
+    const token = generateToken();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store verification token
+    const verificationTokensCollection = mongodb.getCollection(
+      'email_verification_tokens'
+    );
+    await verificationTokensCollection.insertOne({
+      email: validatedData.email,
+      token,
+      otp,
+      expiresAt,
+      verified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(validatedData.email, otp);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      // Continue with registration even if email fails
+    }
+
     const user = {
       id: userId,
       email: newUser.email,
       name: newUser.name,
       role: newUser.role,
+      isVerified: newUser.isVerified,
       createdAt: newUser.createdAt,
     };
 
@@ -94,14 +145,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       createdAt: new Date(),
     });
 
-    // TODO: Send verification email job to queue
-    // This would typically integrate with a job queue like Bull or BullMQ
-    console.log('Verification email job payload:', {
-      userId: userId,
-      email: user.email,
-      name: user.name,
-    });
-
     res.status(201).json(
       formatResponse(
         {
@@ -110,22 +153,22 @@ export const register = async (req: Request, res: Response): Promise<void> => {
             accessToken,
             refreshToken,
           },
+          message: 'Registration successful. Please verify your email.',
         },
-        'User registered successfully',
-        201
+        'User registered successfully'
       )
     );
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({
-        error: 'Validation error',
-        details: error.errors,
-      });
-      return;
-    }
-
     console.error('Registration error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json(formatResponse(null, 'Validation failed', error.errors));
+    } else {
+      res
+        .status(500)
+        .json(formatResponse(null, 'An error occurred during registration'));
+    }
   }
 };
 
@@ -283,5 +326,334 @@ export const refreshTokens = async (
 
     console.error('Token refresh error:', error);
     return res.status(401).json({ error: 'Invalid refresh token' });
+  }
+};
+
+export const forgotPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email } = forgotPasswordSchema.parse(req.body);
+
+    // Check if user exists
+    const usersCollection = mongodb.getCollection<User>('users');
+    const user = await usersCollection.findOne({ email });
+
+    // Always return success to prevent email enumeration
+    if (!user) {
+      res.json(
+        formatResponse(
+          { message: 'If the email exists, a reset code has been sent' },
+          'Password reset initiated'
+        )
+      );
+      return;
+    }
+
+    // Generate OTP and token
+    const otp = generateOTP();
+    const token = generateToken();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Store reset token
+    const resetTokensCollection = mongodb.getCollection(
+      'password_reset_tokens'
+    );
+
+    // Delete any existing reset tokens for this email
+    await resetTokensCollection.deleteMany({ email });
+
+    await resetTokensCollection.insertOne({
+      email,
+      token,
+      otp,
+      expiresAt,
+      used: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // Send reset email
+    try {
+      const resetLink = `${process.env.NEXT_PUBLIC_FRONTEND_URL || 'http://localhost:5001'}/auth/reset-password?email=${encodeURIComponent(email)}&token=${token}`;
+      await sendPasswordResetEmail(email, otp, resetLink);
+    } catch (emailError) {
+      console.error('Failed to send password reset email:', emailError);
+      res.status(500).json(formatResponse(null, 'Failed to send reset email'));
+      return;
+    }
+
+    res.json(
+      formatResponse(
+        { message: 'Password reset code sent to your email' },
+        'Password reset initiated'
+      )
+    );
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json(formatResponse(null, 'Validation failed', error.errors));
+    } else {
+      res.status(500).json(formatResponse(null, 'An error occurred'));
+    }
+  }
+};
+
+export const verifyResetOTP = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email, otp } = verifyOTPSchema.parse(req.body);
+
+    const resetTokensCollection = mongodb.getCollection(
+      'password_reset_tokens'
+    );
+
+    const resetToken = await resetTokensCollection.findOne({
+      email,
+      otp,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!resetToken) {
+      res.status(400).json(formatResponse(null, 'Invalid or expired OTP'));
+      return;
+    }
+
+    res.json(
+      formatResponse(
+        { token: resetToken.token, message: 'OTP verified successfully' },
+        'OTP verified'
+      )
+    );
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json(formatResponse(null, 'Validation failed', error.errors));
+    } else {
+      res.status(500).json(formatResponse(null, 'An error occurred'));
+    }
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email, otp, newPassword } = resetPasswordSchema.parse(req.body);
+
+    const resetTokensCollection = mongodb.getCollection(
+      'password_reset_tokens'
+    );
+
+    const resetToken = await resetTokensCollection.findOne({
+      email,
+      otp,
+      used: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!resetToken) {
+      res.status(400).json(formatResponse(null, 'Invalid or expired OTP'));
+      return;
+    }
+
+    // Hash new password
+    const hashedPassword = await hashPassword(newPassword);
+
+    // Update user password
+    const usersCollection = mongodb.getCollection<User>('users');
+    await usersCollection.updateOne(
+      { email },
+      {
+        $set: {
+          password: hashedPassword,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    // Mark token as used
+    await resetTokensCollection.updateOne(
+      { _id: resetToken._id },
+      { $set: { used: true, updatedAt: new Date() } }
+    );
+
+    // Invalidate all refresh tokens for this user
+    const user = await usersCollection.findOne({ email });
+    if (user) {
+      const refreshTokensCollection =
+        mongodb.getCollection<RefreshToken>('refresh_tokens');
+      await refreshTokensCollection.deleteMany({ userId: user._id });
+    }
+
+    res.json(
+      formatResponse(
+        { message: 'Password reset successfully' },
+        'Password reset successful'
+      )
+    );
+  } catch (error) {
+    console.error('Reset password error:', error);
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json(formatResponse(null, 'Validation failed', error.errors));
+    } else {
+      res.status(500).json(formatResponse(null, 'An error occurred'));
+    }
+  }
+};
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email, otp } = verifyOTPSchema.parse(req.body);
+
+    const verificationTokensCollection = mongodb.getCollection(
+      'email_verification_tokens'
+    );
+
+    const verificationToken = await verificationTokensCollection.findOne({
+      email,
+      otp,
+      verified: false,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (!verificationToken) {
+      res
+        .status(400)
+        .json(formatResponse(null, 'Invalid or expired verification code'));
+      return;
+    }
+
+    // Update user verification status
+    const usersCollection = mongodb.getCollection<User>('users');
+    await usersCollection.updateOne(
+      { email },
+      {
+        $set: {
+          isVerified: true,
+          updatedAt: new Date(),
+        },
+      }
+    );
+
+    // Mark token as verified
+    await verificationTokensCollection.updateOne(
+      { _id: verificationToken._id },
+      { $set: { verified: true, updatedAt: new Date() } }
+    );
+
+    // Get updated user
+    const user = await usersCollection.findOne({ email });
+
+    if (user) {
+      // Send welcome email
+      try {
+        await sendWelcomeEmail(email, user.name);
+      } catch (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+      }
+    }
+
+    res.json(
+      formatResponse(
+        { message: 'Email verified successfully', isVerified: true },
+        'Email verification successful'
+      )
+    );
+  } catch (error) {
+    console.error('Verify email error:', error);
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json(formatResponse(null, 'Validation failed', error.errors));
+    } else {
+      res.status(500).json(formatResponse(null, 'An error occurred'));
+    }
+  }
+};
+
+export const resendVerificationEmail = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+
+    const usersCollection = mongodb.getCollection<User>('users');
+    const user = await usersCollection.findOne({ email });
+
+    if (!user) {
+      res.status(404).json(formatResponse(null, 'User not found'));
+      return;
+    }
+
+    if (user.isVerified) {
+      res.status(400).json(formatResponse(null, 'Email already verified'));
+      return;
+    }
+
+    // Generate new OTP
+    const otp = generateOTP();
+    const token = generateToken();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    const verificationTokensCollection = mongodb.getCollection(
+      'email_verification_tokens'
+    );
+
+    // Delete old tokens
+    await verificationTokensCollection.deleteMany({ email });
+
+    // Create new token
+    await verificationTokensCollection.insertOne({
+      email,
+      token,
+      otp,
+      expiresAt,
+      verified: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    // Send verification email
+    try {
+      await sendVerificationEmail(email, otp);
+    } catch (emailError) {
+      console.error('Failed to send verification email:', emailError);
+      res
+        .status(500)
+        .json(formatResponse(null, 'Failed to send verification email'));
+      return;
+    }
+
+    res.json(
+      formatResponse(
+        { message: 'Verification email sent' },
+        'Verification email sent successfully'
+      )
+    );
+  } catch (error) {
+    console.error('Resend verification email error:', error);
+    if (error instanceof z.ZodError) {
+      res
+        .status(400)
+        .json(formatResponse(null, 'Validation failed', error.errors));
+    } else {
+      res.status(500).json(formatResponse(null, 'An error occurred'));
+    }
   }
 };

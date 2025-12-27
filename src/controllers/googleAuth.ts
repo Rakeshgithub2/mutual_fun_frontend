@@ -113,44 +113,51 @@ export const handleGoogleCallback = async (
       return res.status(400).json({ error: 'Google profile missing email' });
     }
 
-    // UPSERT USER: Find or create, preserving existing watchlist
+    // UPSERT USER: Find or create, preserving existing data
     console.log('🔄 Upserting user:', payload.email);
     const usersCollection = mongodb.getCollection<User>('users');
 
-    // Build the update object - only set fields we want to update
-    const updateFields: any = {
-      googleId: payload.sub, // Google user ID
-      email: payload.email,
-      name: payload.name || payload.email.split('@')[0],
-      profilePicture: payload.picture || undefined,
-      provider: 'google',
-      isVerified: true, // Google emails are verified
-      updatedAt: new Date(),
-    };
+    // Check if user exists
+    let user = await usersCollection.findOne({
+      $or: [{ googleId: payload.sub }, { email: payload.email }],
+    });
 
-    // For new users, also set these fields
-    const setOnInsert: Partial<User> = {
-      password: await hashPassword(crypto.randomBytes(20).toString('hex')), // Random password for OAuth users
-      role: 'USER',
-      kycStatus: 'PENDING',
-      createdAt: new Date(),
-    };
-
-    // Upsert with googleId as the filter - preserves watchlist
-    const filter = payload.sub
-      ? { googleId: payload.sub }
-      : { email: payload.email };
-    const user = await usersCollection.findOneAndUpdate(
-      filter,
-      {
-        $set: updateFields,
-        $setOnInsert: setOnInsert,
-      },
-      {
-        upsert: true,
-        returnDocument: 'after',
-      }
-    );
+    if (user) {
+      // Update existing user
+      console.log('✅ User exists, updating Google info...');
+      await usersCollection.updateOne(
+        { _id: user._id },
+        {
+          $set: {
+            googleId: payload.sub,
+            profilePicture: payload.picture || user.profilePicture,
+            name: payload.name || user.name,
+            provider: 'google',
+            isVerified: true,
+            updatedAt: new Date(),
+          },
+        }
+      );
+      user = await usersCollection.findOne({ _id: user._id });
+    } else {
+      // Create new user
+      console.log('✅ Creating new Google user...');
+      const newUser: User = {
+        googleId: payload.sub,
+        email: payload.email,
+        name: payload.name || payload.email.split('@')[0],
+        profilePicture: payload.picture,
+        password: await hashPassword(crypto.randomBytes(20).toString('hex')),
+        role: 'USER',
+        provider: 'google',
+        isVerified: true,
+        kycStatus: 'PENDING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const result = await usersCollection.insertOne(newUser);
+      user = await usersCollection.findOne({ _id: result.insertedId });
+    }
 
     if (!user) {
       console.error('❌ Failed to upsert user');
@@ -270,32 +277,48 @@ export const verifyGoogleToken = async (
     console.log('🔄 Checking if user exists in database...');
     const usersCollection = mongodb.getCollection<User>('users');
 
-    // Find or create user
-    const user = await usersCollection.findOneAndUpdate(
-      { email },
-      {
-        $set: {
-          name,
-          email,
-          profilePicture,
-          googleId,
-          updatedAt: new Date(),
-        },
-        $setOnInsert: {
-          password: await hashPassword(crypto.randomBytes(32).toString('hex')), // Random password for OAuth users
-          role: 'user',
-          emailVerified: true, // Google emails are verified
-          createdAt: new Date(),
-        },
-      },
-      {
-        upsert: true,
-        returnDocument: 'after',
-      }
-    );
+    // Check if user exists
+    let user = await usersCollection.findOne({ email });
+
+    if (user) {
+      // Update existing user
+      console.log('✅ User exists, updating...');
+      await usersCollection.updateOne(
+        { email },
+        {
+          $set: {
+            name,
+            profilePicture,
+            googleId,
+            provider: 'google',
+            isVerified: true,
+            updatedAt: new Date(),
+          },
+        }
+      );
+      user = await usersCollection.findOne({ email });
+    } else {
+      // Create new user
+      console.log('✅ Creating new user...');
+      const newUser: User = {
+        email,
+        name,
+        profilePicture,
+        googleId,
+        password: await hashPassword(crypto.randomBytes(32).toString('hex')),
+        role: 'USER',
+        provider: 'google',
+        isVerified: true,
+        kycStatus: 'PENDING',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      const result = await usersCollection.insertOne(newUser);
+      user = await usersCollection.findOne({ _id: result.insertedId });
+    }
 
     if (!user) {
-      console.error('❌ Failed to upsert user');
+      console.error('❌ Failed to create/update user');
       return res.status(500).json({
         error: 'Failed to create/update user',
         success: false,
