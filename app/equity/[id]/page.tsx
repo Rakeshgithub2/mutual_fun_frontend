@@ -132,17 +132,18 @@ export default function FundDetailEnhanced({
         const data = await response.json();
         console.log('Fund data fetched:', data);
 
-        // Backend returns {statusCode, message, data, timestamp} format
-        const fundData = data.data || data;
-
-        if (fundData && fundData.id) {
-          console.log('✅ Fund loaded successfully:', fundData.name);
+        // Backend returns {success: true, data: {...fund data...}}
+        if (data.success && data.data) {
+          const fundData = data.data;
+          console.log(
+            '✅ Fund loaded successfully:',
+            fundData.name || fundData.fundId
+          );
           console.log('📊 Fund data structure:', {
+            fundManager: fundData.fundManager,
             returns: fundData.returns,
-            topHoldings: fundData.topHoldings?.length || 0,
-            holdingsCount: fundData.holdingsCount,
+            holdings: fundData.holdings?.length || 0,
             sectorAllocation: fundData.sectorAllocation?.length || 0,
-            sectorAllocationCount: fundData.sectorAllocationCount,
           });
           setFund(fundData);
         } else {

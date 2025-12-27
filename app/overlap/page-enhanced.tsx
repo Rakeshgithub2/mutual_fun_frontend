@@ -96,10 +96,10 @@ export default function OverlapEnhancedPage() {
 
       const responses = await Promise.all(fundPromises);
       const funds = responses.map((response) => ({
-        fundId: response.data.data.fundId,
-        name: response.data.data.name,
-        fundHouse: response.data.data.fundHouse,
-        holdings: response.data.data.holdings || [],
+        fundId: response.data.fundId,
+        name: response.data.name,
+        fundHouse: response.data.fundHouse,
+        holdings: response.data.holdings || [],
       }));
 
       // Calculate common holdings
@@ -353,8 +353,8 @@ export default function OverlapEnhancedPage() {
                           overlapData.overlapPercentage > 70
                             ? 'border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20'
                             : overlapData.overlapPercentage > 40
-                            ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-900/20'
-                            : 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-900/20'
+                              ? 'border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-900/20'
+                              : 'border-green-200 bg-green-50 dark:border-green-900/50 dark:bg-green-900/20'
                         }`}
                       >
                         {overlapData.overlapPercentage > 70 ? (

@@ -86,7 +86,7 @@ export function SearchBar({
         `/suggest?q=${encodeURIComponent(searchQuery)}`
       );
 
-      const data = response.data.data || {};
+      const data = response.data || {};
       const fundSuggestions = data.suggestions || [];
 
       console.log('✅ Found suggestions:', fundSuggestions.length);

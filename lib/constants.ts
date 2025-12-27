@@ -190,7 +190,9 @@ export const API_ENDPOINTS = {
   FUND_NAV_HISTORY: (id: string) => `/api/funds/${id}/navs`,
 
   // Market
-  MARKET_INDICES: '/api/market-indices',
+  MARKET_INDICES: '/api/market/indices',
+  MARKET_SUMMARY: '/api/market/summary',
+  MARKET_STATUS: '/api/market/status',
 
   // Search
   SEARCH_FUNDS: '/api/funds/search',

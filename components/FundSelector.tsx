@@ -59,7 +59,7 @@ export function FundSelector({
         const response = await api.get(
           `/suggest?q=${encodeURIComponent(searchQuery)}`
         );
-        const data = response.data.data || {};
+        const data = response.data || [];
         let fundSuggestions = data.suggestions || [];
 
         // Apply category filter
@@ -118,7 +118,7 @@ export function FundSelector({
 
           try {
             const response = await api.get(`/funds/${fundId}`);
-            const fundData = response.data.data;
+            const fundData = response.data;
             if (fundData) {
               newDetails.set(fundId, fundData);
             }

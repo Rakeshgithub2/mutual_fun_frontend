@@ -68,7 +68,7 @@ export function MarketIndices() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-        const response = await fetch(`${API_BASE_URL}/api/market-indices`, {
+        const response = await fetch(`${API_BASE_URL}/api/market/summary`, {
           signal: controller.signal,
         });
 
@@ -84,130 +84,47 @@ export function MarketIndices() {
           throw new Error('Invalid API response');
         }
 
-        const { sensex, nifty50, niftyMidcap, giftNifty } = apiData.data;
+        // Backend returns array of indices: [{symbol, name, value, change, changePercent, lastUpdated}]
+        const indicesData = apiData.data;
 
-        // Construct indices array with real data from backend
-        const realIndices: MarketIndex[] = [];
+        // Map API data to our MarketIndex interface
+        const realIndices: MarketIndex[] = indicesData.map((index: any) => {
+          // Icon mapping
+          const iconMap: Record<string, any> = {
+            'NIFTY50': BarChart3,
+            'SENSEX': Building2,
+            'NIFTY_MIDCAP': Activity,
+            'GIFT_NIFTY': Globe,
+            'NIFTY_BANK': Coins,
+          };
 
-        // Add Sensex if available
-        if (sensex && sensex.value) {
-          realIndices.push({
-            id: 'sensex',
-            name: 'S&P BSE Sensex',
-            shortName: 'SENSEX',
-            value: sensex.value,
-            change: sensex.change,
-            changePercent: sensex.changePercent,
-            high: sensex.high,
-            low: sensex.low,
-            open: sensex.open,
-            previousClose: sensex.previousClose,
-            volume: sensex.volume
-              ? `${(sensex.volume / 10000000).toFixed(1)} Cr`
-              : 'N/A',
-            marketCap: '₹280 Lakh Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Building2,
-            color: 'blue',
-            description:
-              "The S&P BSE Sensex is India's most tracked bellwether index, comprising 30 of the largest and most actively traded stocks on the BSE.",
-            constituents: 30,
-          });
-        }
+          // Color mapping
+          const colorMap: Record<string, string> = {
+            'NIFTY50': 'from-blue-500 to-blue-600',
+            'SENSEX': 'from-purple-500 to-purple-600',
+            'NIFTY_MIDCAP': 'from-green-500 to-green-600',
+            'GIFT_NIFTY': 'from-orange-500 to-orange-600',
+            'NIFTY_BANK': 'from-red-500 to-red-600',
+          };
 
-        // Add Nifty 50 if available
-        if (nifty50 && nifty50.value) {
-          realIndices.push({
-            id: 'nifty50',
-            name: 'Nifty 50',
-            shortName: 'NIFTY 50',
-            value: nifty50.value,
-            change: nifty50.change,
-            changePercent: nifty50.changePercent,
-            high: nifty50.high,
-            low: nifty50.low,
-            open: nifty50.open,
-            previousClose: nifty50.previousClose,
-            volume: nifty50.volume
-              ? `${(nifty50.volume / 10000000).toFixed(1)} Cr`
-              : 'N/A',
-            marketCap: '₹245 Lakh Cr',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: TrendingUp,
-            color: 'indigo',
-            description:
-              'Nifty 50 is the flagship index of NSE, representing the weighted average of 50 of the largest Indian companies listed on the exchange.',
-            constituents: 50,
-          });
-        }
-
-        // Add Nifty Midcap if available
-        if (niftyMidcap && niftyMidcap.value) {
-          realIndices.push({
-            id: 'niftymidcap',
-            name: 'Nifty Midcap 100',
-            shortName: 'MIDCAP 100',
-            value: niftyMidcap.value,
-            change: niftyMidcap.change,
-            changePercent: niftyMidcap.changePercent,
-            high: niftyMidcap.high,
-            low: niftyMidcap.low,
-            open: niftyMidcap.open,
-            previousClose: niftyMidcap.previousClose,
-            volume: niftyMidcap.volume
-              ? `${(niftyMidcap.volume / 10000000).toFixed(1)} Cr`
-              : 'N/A',
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: BarChart3,
-            color: 'purple',
-            description:
-              "The Nifty Midcap 100 index tracks the performance of the top 100 mid-cap companies, offering exposure to India's emerging corporate sector.",
-            constituents: 100,
-          });
-        }
-
-        // Add Commodity (placeholder - real API integration needed)
-        realIndices.push({
-          id: 'commodity',
-          name: 'MCX Commodity Index',
-          shortName: 'MCX iCOMDEX',
-          value: 6789.45,
-          change: 45.67,
-          changePercent: 0.68,
-          high: 6812.34,
-          low: 6743.78,
-          open: 6743.78,
-          previousClose: 6743.78,
-          volume: '890 Units',
-          lastUpdated: new Date().toLocaleTimeString('en-IN'),
-          icon: Coins,
-          color: 'amber',
-          description:
-            "MCX iCOMDEX is India's first commodity index, tracking the performance of major commodities traded on the Multi Commodity Exchange.",
-          constituents: 6,
+          return {
+            id: index.symbol.toLowerCase(),
+            name: index.name,
+            shortName: index.symbol,
+            value: index.value,
+            change: index.change,
+            changePercent: index.changePercent,
+            high: index.value, // Using current value as high
+            low: index.value,  // Using current value as low
+            open: index.value - index.change, // Calculate open from change
+            previousClose: index.value - index.change,
+            lastUpdated: index.lastUpdated,
+            icon: iconMap[index.symbol] || Activity,
+            color: colorMap[index.symbol] || 'from-gray-500 to-gray-600',
+            description: `${index.name} index`,
+            constituents: index.symbol === 'NIFTY50' ? 50 : index.symbol === 'SENSEX' ? 30 : undefined,
+          };
         });
-
-        // Add Gift Nifty if available
-        if (giftNifty && giftNifty.value) {
-          realIndices.push({
-            id: 'giftnifty',
-            name: 'Gift Nifty',
-            shortName: 'GIFT NIFTY',
-            value: giftNifty.value,
-            change: giftNifty.change,
-            changePercent: giftNifty.changePercent,
-            high: giftNifty.high,
-            low: giftNifty.low,
-            open: giftNifty.open,
-            previousClose: giftNifty.previousClose,
-            lastUpdated: new Date().toLocaleTimeString('en-IN'),
-            icon: Globe,
-            color: 'green',
-            description:
-              'Gift Nifty is the derivative contract of Nifty 50 traded at GIFT City, providing early market signals and enabling global participation.',
-            constituents: 50,
-          });
-        }
 
         if (realIndices.length > 0) {
           setIndices(realIndices);

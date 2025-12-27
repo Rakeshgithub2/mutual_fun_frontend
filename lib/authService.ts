@@ -111,7 +111,7 @@ class AuthService {
   ): Promise<{ success: boolean; error?: string }> {
     try {
       const response = await axios.post<AuthResponse>(
-        `${API_URL}/auth/google`,
+        `${API_URL}/api/auth/google`,
         {
           idToken,
         }

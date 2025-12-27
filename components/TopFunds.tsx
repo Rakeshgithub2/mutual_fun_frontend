@@ -64,7 +64,7 @@ export function TopFunds() {
         `/funds?top=${topFilter}&sortBy=returns.oneYear&order=desc`
       );
 
-      const data = response.data.data || [];
+      const data = response.data || [];
       setFunds(data);
 
       console.log(`✅ Loaded ${data.length} funds`);
