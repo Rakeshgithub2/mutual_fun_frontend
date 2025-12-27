@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { apiClient } from '@/lib/api-client';
+import { api } from '@/lib/api-client';
 
 interface Fund {
   id: string;
@@ -52,14 +52,8 @@ export function useFunds(options?: {
     try {
       console.log('🔍 Fetching funds with filters:', options);
 
-      // Use the centralized API client
-      const response = await apiClient.getFunds({
-        query: options?.query,
-        type: options?.type,
-        category: options?.category,
-        subCategory: options?.subCategory,
-        limit: options?.limit || 500, // ✅ Updated default from 100 to 500
-      });
+      // Use the centralized API client - load 1000 funds per page
+      const response = await api.getFunds(1, 1000);
 
       console.log('✅ Funds fetched successfully:', response);
 

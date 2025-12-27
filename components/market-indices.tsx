@@ -54,10 +54,10 @@ export function MarketIndices() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'indian' | 'global'>('indian'); // ✅ NEW: Tab state
 
-  // ✅ NEW: Refresh interval for real-time updates
+  // ✅ NEW: Refresh interval for real-time updates (every 2 hours)
   useEffect(() => {
     fetchRealMarketData();
-    const interval = setInterval(fetchRealMarketData, 60000); // Refresh every 60s
+    const interval = setInterval(fetchRealMarketData, 7200000); // Refresh every 2 hours
     return () => clearInterval(interval);
   }, []);
 

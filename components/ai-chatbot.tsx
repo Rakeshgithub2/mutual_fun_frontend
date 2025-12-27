@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { api } from '@/lib/api-client';
 
 interface Message {
   id: string;
@@ -84,35 +85,11 @@ export function AIChatbot() {
     setIsLoading(true);
 
     try {
-      const BASE_URL = 'https://mutualfun-backend.vercel.app';
-      const API_URL = (
-        process.env.NEXT_PUBLIC_API_URL || `${BASE_URL}/api`
-      ).replace(/\/+$/, '');
-      const response = await fetch(`${API_URL}/ai/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: userMessage.content,
-          context: {
-            conversationHistory: messages.slice(-4).map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-
-      const apiResponse = await response.json();
-      console.log('🔍 API Response:', apiResponse);
+      const response = await api.chat(userMessage.content);
+      console.log('🔍 API Response:', response);
 
       // Handle the actual API response format: { success, data: { answer, followUpQuestions } }
-      const data = apiResponse.data || apiResponse;
+      const data = response.data || response;
       console.log('📊 Extracted data:', data);
       console.log('💬 Answer:', data.answer);
 
