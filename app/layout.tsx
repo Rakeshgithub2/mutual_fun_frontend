@@ -9,6 +9,7 @@ import { Toaster } from '@/components/ui/toaster';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import AnalyticsPageTracker from '@/components/AnalyticsPageTracker';
+import DebugPanel from '@/components/DebugPanel';
 import './globals.css';
 import './mobile-responsive.css';
 
@@ -55,6 +56,8 @@ export default function RootLayout({
             <AuthProvider>
               <ProtectedRoute>{children}</ProtectedRoute>
               <Toaster />
+              {/* Debug Panel - Shows backend connectivity status in development */}
+              <DebugPanel />
             </AuthProvider>
           </TranslationProvider>
         </GoogleOAuthProvider>

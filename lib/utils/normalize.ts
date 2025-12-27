@@ -177,7 +177,9 @@ export function deduplicateFunds<T extends { name: string }>(
  * - "large cap" → "Large Cap"
  * - "DEBT" → "Debt"
  */
-export function formatCategoryDisplay(category: string | undefined | null): string {
+export function formatCategoryDisplay(
+  category: string | undefined | null
+): string {
   if (!category) return 'Other';
 
   return category

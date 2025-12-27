@@ -74,12 +74,15 @@ export function useFunds(options?: {
       console.log('✅ [useFunds] Raw API response:', {
         totalFunds: response.data?.length || 0,
         hasData: !!response.data,
-        firstFund: response.data?.[0]
+        firstFund: response.data?.[0],
       });
 
       // Validate response structure
       if (!response.data || !Array.isArray(response.data)) {
-        console.error('❌ [useFunds] Invalid API response structure:', response);
+        console.error(
+          '❌ [useFunds] Invalid API response structure:',
+          response
+        );
         throw new Error('Invalid API response: expected { data: [] }');
       }
 

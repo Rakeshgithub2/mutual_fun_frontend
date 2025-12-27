@@ -113,7 +113,9 @@ function FundsPageContent() {
       );
 
       // Count equity funds using normalization
-      const equityCount = allFunds.filter((f) => isEquityFund(f.category)).length;
+      const equityCount = allFunds.filter((f) =>
+        isEquityFund(f.category)
+      ).length;
       console.log('💼 [Equity Page] Equity funds detected:', equityCount);
     }
   }, [allFunds]);
