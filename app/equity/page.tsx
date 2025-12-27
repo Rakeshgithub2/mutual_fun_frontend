@@ -9,6 +9,13 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Search, X, ArrowLeft } from 'lucide-react';
+import {
+  isEquityFund,
+  matchesSubcategory,
+  deduplicateFunds,
+  calculateFundQuality,
+  normalizeCategory,
+} from '@/lib/utils/normalize';
 
 function FundsPageContent() {
   const searchParams = useSearchParams();
@@ -95,17 +102,7 @@ function FundsPageContent() {
   useEffect(() => {
     console.log('🔍 [Equity Page] Raw funds fetched:', allFunds.length);
     if (allFunds.length > 0) {
-      console.log(
-        '� [Equity Page] First 3 funds with NAV:',
-        allFunds.slice(0, 3).map((f) => ({
-          name: f.name,
-          category: f.category,
-          currentNav: f.currentNav,
-          returns: f.returns,
-          aum: f.aum,
-          expenseRatio: f.expenseRatio,
-        }))
-      );
+      console.log('📦 [Equity Page] First 3 funds:', allFunds.slice(0, 3));
       console.log(
         '📊 [Equity Page] Categories distribution:',
         allFunds.reduce((acc: any, fund) => {
@@ -115,16 +112,9 @@ function FundsPageContent() {
         }, {})
       );
 
-      // Count funds with valid NAV
-      const fundsWithNav = allFunds.filter(
-        (f) => f.currentNav && f.currentNav > 0
-      ).length;
-      console.log(
-        '💰 [Equity Page] Funds with NAV > 0:',
-        fundsWithNav,
-        'of',
-        allFunds.length
-      );
+      // Count equity funds using normalization
+      const equityCount = allFunds.filter((f) => isEquityFund(f.category)).length;
+      console.log('💼 [Equity Page] Equity funds detected:', equityCount);
     }
   }, [allFunds]);
 
@@ -135,54 +125,18 @@ function FundsPageContent() {
       name: fund.name,
       fundHouse: fund.fundHouse,
       category: fund.category,
-      nav: fund.currentNav || 0,
-      returns1Y: fund.returns?.oneYear || 0,
-      returns3Y: fund.returns?.threeYear || 0,
-      returns5Y: fund.returns?.fiveYear || 0,
+      nav: fund.nav || 0,
+      returns1Y: fund.returns1Y || 0,
+      returns3Y: fund.returns3Y || 0,
+      returns5Y: fund.returns5Y || 0,
       aum: fund.aum || 0,
       expenseRatio: fund.expenseRatio || 0,
       rating: fund.rating || 0,
     }));
 
-    // ✅ DEDUPLICATE: Remove duplicate funds (same name, keep best performing one)
-    const uniqueFundsMap = new Map<string, (typeof mapped)[0]>();
+    // ✅ DEDUPLICATE: Remove duplicate funds using utility
+    const deduplicated = deduplicateFunds(mapped, calculateFundQuality);
 
-    mapped.forEach((fund) => {
-      // Create a normalized name (remove plan details like "Direct", "Regular", "Growth", etc.)
-      const normalizedName = fund.name
-        .toLowerCase()
-        .replace(
-          /\s*-\s*(direct|regular|growth|dividend|idcw|weekly|daily|monthly|quarterly|annual).*$/i,
-          ''
-        )
-        .replace(
-          /\s*\((direct|regular|growth|dividend|idcw|weekly|daily|monthly|quarterly|annual).*\)$/i,
-          ''
-        )
-        .trim();
-
-      const existing = uniqueFundsMap.get(normalizedName);
-
-      if (!existing) {
-        // First occurrence, add it
-        uniqueFundsMap.set(normalizedName, fund);
-      } else {
-        // Duplicate found - keep the one with better data quality
-        // Prefer: higher returns1Y, then higher AUM, then higher rating
-        const shouldReplace =
-          fund.returns1Y > existing.returns1Y ||
-          (fund.returns1Y === existing.returns1Y && fund.aum > existing.aum) ||
-          (fund.returns1Y === existing.returns1Y &&
-            fund.aum === existing.aum &&
-            fund.rating > existing.rating);
-
-        if (shouldReplace) {
-          uniqueFundsMap.set(normalizedName, fund);
-        }
-      }
-    });
-
-    const deduplicated = Array.from(uniqueFundsMap.values());
     console.log(
       '🔄 [Deduplication] Before:',
       mapped.length,
@@ -195,15 +149,9 @@ function FundsPageContent() {
 
   // Filter and limit funds based on user selection
   const filteredFunds = useMemo(() => {
-    // Step 1: Filter for equity funds only - simplified check
+    // Step 1: Filter for equity funds only - using normalization
     let filtered = transformedFunds.filter((fund) => {
-      const fundCategory = fund.category?.toLowerCase() || '';
-
-      // Simply check if category is Equity
-      const isEquityFund =
-        fundCategory === 'equity' || fundCategory.includes('equity');
-
-      return isEquityFund;
+      return isEquityFund(fund.category);
     });
 
     console.log('🔍 [Equity Page] Total equity funds found:', filtered.length);
@@ -222,18 +170,13 @@ function FundsPageContent() {
       filtered.length
     );
 
-    // Step 2: Apply category filter based on keywords
+    // Step 2: Apply category filter using normalization
     if (category) {
       const selectedCategory = categories.find((c) => c.value === category);
       if (selectedCategory && selectedCategory.keywords.length > 0) {
         filtered = filtered.filter((fund) => {
-          const name = fund.name.toLowerCase();
-          const categoryText = fund.category?.toLowerCase() || '';
-          const searchText = `${name} ${categoryText}`;
-
-          // Check if any keyword matches
           return selectedCategory.keywords.some((keyword) =>
-            searchText.includes(keyword.toLowerCase())
+            matchesSubcategory(fund.name, fund.category, keyword)
           );
         });
 

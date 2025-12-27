@@ -51,7 +51,10 @@ export function useFunds(options?: {
 
     try {
       console.log('🔍 Fetching funds with filters:', options);
-      console.log('🌐 [useFunds] API Base URL:', process.env.NEXT_PUBLIC_API_URL);
+      console.log(
+        '🌐 [useFunds] API Base URL:',
+        process.env.NEXT_PUBLIC_API_URL
+      );
 
       // Determine the limit - use multi-page fetch for large requests
       const requestedLimit = options?.limit || 4000;
@@ -59,14 +62,26 @@ export function useFunds(options?: {
 
       let response;
       if (isLargeRequest) {
-        console.log('📚 [useFunds] Large request detected, using multi-page fetch');
+        console.log(
+          '📚 [useFunds] Large request detected, using multi-page fetch'
+        );
         response = await api.getFundsMultiPage(requestedLimit);
       } else {
         // Use single page for smaller requests
         response = await api.getFunds(1, requestedLimit);
       }
 
-      console.log('✅ Funds fetched successfully:', response);
+      console.log('✅ [useFunds] Raw API response:', {
+        totalFunds: response.data?.length || 0,
+        hasData: !!response.data,
+        firstFund: response.data?.[0]
+      });
+
+      // Validate response structure
+      if (!response.data || !Array.isArray(response.data)) {
+        console.error('❌ [useFunds] Invalid API response structure:', response);
+        throw new Error('Invalid API response: expected { data: [] }');
+      }
 
       // Transform API response to match frontend interface
       const transformedFunds = (response.data || []).map((fund: any) => {
