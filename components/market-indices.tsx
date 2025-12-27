@@ -68,7 +68,7 @@ export function MarketIndices() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      const response = await fetch(`${API_BASE_URL}/api/market-indices`, {
+      const response = await fetch(`${API_BASE_URL}/api/market/summary`, {
         signal: controller.signal,
       });
 
@@ -84,12 +84,24 @@ export function MarketIndices() {
         throw new Error('Invalid API response');
       }
 
-      // Backend returns structured data: { indian: [...], global: [...] }
-      // For now, we'll use only Indian indices
-      const indianIndices = apiData.data.indian || apiData.data || [];
+      // Backend may return array or structured object
+      let indicesArray = [];
+
+      if (Array.isArray(apiData.data)) {
+        // Direct array format
+        indicesArray = apiData.data;
+      } else if (apiData.data.indian) {
+        // Structured format: { indian: [...], global: [...] }
+        indicesArray = apiData.data.indian;
+      }
+
+      // If no data received, throw error to use fallback
+      if (!indicesArray || indicesArray.length === 0) {
+        throw new Error('No market data available from backend');
+      }
 
       // Map API data to our MarketIndex interface
-      const realIndices: MarketIndex[] = indianIndices.map((index: any) => {
+      const realIndices: MarketIndex[] = indicesArray.map((index: any) => {
         // Icon mapping - match backend index IDs
         const iconMap: Record<string, any> = {
           NIFTY_50: BarChart3,
