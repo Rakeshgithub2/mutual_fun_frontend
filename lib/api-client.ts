@@ -1,7 +1,18 @@
-// ✅ FIXED: Proper API base URL handling
-// Backend is guaranteed to be on port 3002 with 4,459 active funds
-const RAW = process.env.NEXT_PUBLIC_API_URL!;
-const API_BASE = RAW.replace(/\/api\/?$/, '').replace(/\/$/, '');
+// ✅ PRODUCTION-READY: API Configuration for 4000+ Funds Backend
+// Backend runs on port 3002 with full REST API
+// Total funds available: 4,485+ active mutual funds
+const RAW_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+const API_BASE = RAW_URL.replace(/\/api\/?$/, '').replace(/\/$/, '');
+const API_URL = `${API_BASE}/api`;
+
+// Configuration
+const CONFIG = {
+  DEFAULT_PAGE_SIZE: parseInt(process.env.NEXT_PUBLIC_DEFAULT_PAGE_SIZE || '50'),
+  MAX_PAGE_SIZE: parseInt(process.env.NEXT_PUBLIC_MAX_PAGE_SIZE || '500'),
+  TIMEOUT_MS: 30000, // 30 seconds for large requests
+  RETRY_ATTEMPTS: 3,
+  RETRY_DELAY_MS: 1000,
+};
 
 interface ApiResponse<T = any> {
   success: boolean;
@@ -44,14 +55,52 @@ class ApiClient {
     console.error('❌ API Error:', endpoint, error);
   }
 
+  private async fetchWithTimeout(
+    url: string,
+    options?: RequestInit,
+    timeout = CONFIG.TIMEOUT_MS
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
+  }
+
+  private async retryRequest<T>(
+    fn: () => Promise<T>,
+    attempts = CONFIG.RETRY_ATTEMPTS,
+    delay = CONFIG.RETRY_DELAY_MS
+  ): Promise<T> {
+    try {
+      return await fn();
+    } catch (error) {
+      if (attempts <= 1) throw error;
+      
+      console.warn(`⚠️ Request failed, retrying... (${CONFIG.RETRY_ATTEMPTS - attempts + 1}/${CONFIG.RETRY_ATTEMPTS})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return this.retryRequest(fn, attempts - 1, delay * 2);
+    }
+  }
+
   async request<T = any>(
     endpoint: string,
     options?: RequestInit
   ): Promise<ApiResponse<T>> {
     this.logRequest(endpoint, options);
 
-    try {
-      const res = await fetch(`${API_BASE}${endpoint}`, {
+    return this.retryRequest(async () => {
+      const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
+      const res = await this.fetchWithTimeout(fullUrl, {
         ...options,
         headers: { 'Content-Type': 'application/json', ...options?.headers },
       });
@@ -103,10 +152,10 @@ class ApiClient {
     }
   }
 
-  // ✅ FIXED: Proper response handling
+  // ✅ PRODUCTION: Enhanced getFunds with validation and defaults
   async getFunds(
     page = 1,
-    limit = 20,
+    limit = CONFIG.DEFAULT_PAGE_SIZE,
     filters?: {
       category?: string;
       subCategory?: string;
@@ -116,9 +165,13 @@ class ApiClient {
       sortOrder?: 'asc' | 'desc';
     }
   ) {
+    // Validate and cap limit
+    const safeLimit = Math.min(Math.max(1, limit), CONFIG.MAX_PAGE_SIZE);
+    const safePage = Math.max(1, page);
+
     const params = new URLSearchParams();
-    params.append('page', page.toString());
-    params.append('limit', limit.toString());
+    params.append('page', safePage.toString());
+    params.append('limit', safeLimit.toString());
 
     if (filters?.category) {
       // ✅ Ensure lowercase for category
@@ -144,89 +197,156 @@ class ApiClient {
     return this.request(`/api/funds?${params.toString()}`);
   }
 
+  /**
+   * Fetch all funds across multiple pages
+   * Optimized for 4000+ funds with progress tracking
+   * @param targetCount - Target number of funds to fetch (default: all available)
+   * @param filters - Optional filters to apply
+   * @param onProgress - Optional callback for progress updates
+   */
   async getFundsMultiPage(
-    targetCount = 4000,
-    filters?: Parameters<typeof this.getFunds>[2]
+    targetCount?: number,
+    filters?: Parameters<typeof this.getFunds>[2],
+    onProgress?: (loaded: number, total: number) => void
   ) {
-    let all: any[] = [];
+    const all: any[] = [];
     let page = 1;
-    const limit = 200;
+    const limit = CONFIG.MAX_PAGE_SIZE; // Use max for efficiency
+    let totalAvailable = 0;
 
-    console.log(
-      `📚 [getFundsMultiPage] Starting multi-page fetch for ${targetCount} funds`
-    );
-    console.log(`📚 [getFundsMultiPage] Using limit: ${limit} per page`);
+    console.log('🚀 [Multi-Page Fetch] Starting comprehensive fund fetch');
+    console.log(`📦 [Multi-Page Fetch] Page size: ${limit}`);
+    if (targetCount) {
+      console.log(`🎯 [Multi-Page Fetch] Target: ${targetCount} funds`);
+    }
 
     try {
-      while (all.length < targetCount) {
-        console.log(
-          `📖 [getFundsMultiPage] Fetching page ${page} (have ${all.length} so far)...`
-        );
-        const res = await this.getFunds(page, limit, filters);
-
-        if (!res.data || !Array.isArray(res.data)) {
-          console.error('❌ Invalid response structure:', res);
-          break;
-        }
-
-        console.log(
-          `✅ [getFundsMultiPage] Page ${page} returned ${res.data.length} funds`
-        );
-        console.log(`📊 [getFundsMultiPage] Pagination:`, res.pagination);
-
-        all.push(...res.data);
-
-        // Check if there are more pages
-        if (!res.pagination?.hasNext) {
-          console.log(
-            `✅ [getFundsMultiPage] No more pages. Fetched all ${all.length} funds`
-          );
-          break;
-        }
-
-        // Safety check: don't fetch more than 50 pages (10,000 funds)
-        if (page >= 50) {
-          console.warn(
-            `⚠️ [getFundsMultiPage] Reached page limit of 50. Stopping at ${all.length} funds`
-          );
-          break;
-        }
-
-        page++;
+      // First request to get total count
+      const firstRes = await this.getFunds(page, limit, filters);
+      
+      if (!firstRes.success || !firstRes.data || !Array.isArray(firstRes.data)) {
+        throw new Error('Invalid response structure from API');
       }
 
-      console.log(`✅ [getFundsMultiPage] Total funds fetched: ${all.length}`);
+      totalAvailable = firstRes.pagination?.total || firstRes.data.length;
+      all.push(...firstRes.data);
+
+      console.log(`📊 [Multi-Page Fetch] Total available: ${totalAvailable} funds`);
+      console.log(`✅ [Multi-Page Fetch] Page 1: ${firstRes.data.length} funds loaded`);
+
+      // Report progress
+      if (onProgress) {
+        onProgress(all.length, totalAvailable);
+      }
+
+      // Determine actual target
+      const actualTarget = targetCount 
+        ? Math.min(targetCount, totalAvailable) 
+        : totalAvailable;
+
+      // Continue fetching remaining pages
+      while (all.length < actualTarget && firstRes.pagination?.hasNext) {
+        page++;
+        
+        // Safety: max 100 pages (50,000 funds)
+        if (page > 100) {
+          console.warn(`⚠️ [Multi-Page Fetch] Reached safety limit of 100 pages`);
+          break;
+        }
+
+        console.log(
+          `⏳ [Multi-Page Fetch] Page ${page}/${Math.ceil(actualTarget / limit)}...`
+        );
+
+        const res = await this.getFunds(page, limit, filters);
+
+        if (!res.success || !res.data || !Array.isArray(res.data)) {
+          console.warn(`⚠️ [Multi-Page Fetch] Invalid response on page ${page}`);
+          break;
+        }
+
+        all.push(...res.data);
+        console.log(`✅ [Multi-Page Fetch] Page ${page}: ${res.data.length} funds (total: ${all.length}/${actualTarget})`);
+
+        // Report progress
+        if (onProgress) {
+          onProgress(all.length, actualTarget);
+        }
+
+        // Check if we should continue
+        if (!res.pagination?.hasNext) {
+          console.log('🏁 [Multi-Page Fetch] No more pages available');
+          break;
+        }
+      }
+
+      // Remove duplicates by fundId
+      const uniqueFunds = Array.from(
+        new Map(all.map(fund => [fund.fundId || fund._id || fund.id, fund])).values()
+      );
+
+      if (uniqueFunds.length !== all.length) {
+        console.log(
+          `🔄 [Multi-Page Fetch] Removed ${all.length - uniqueFunds.length} duplicate funds`
+        );
+      }
+
+      console.log(`✅ [Multi-Page Fetch] Complete: ${uniqueFunds.length} unique funds loaded`);
 
       return {
         success: true,
-        data: all,
+        data: uniqueFunds,
         pagination: {
           page: 1,
-          limit: all.length,
-          total: all.length,
+          limit: uniqueFunds.length,
+          total: uniqueFunds.length,
           totalPages: 1,
           hasNext: false,
           hasPrev: false,
         },
+        metadata: {
+          totalAvailable,
+          fetchedPages: page,
+          duplicatesRemoved: all.length - uniqueFunds.length,
+        },
       };
     } catch (error) {
-      console.error('❌ Error fetching multiple pages:', error);
+      console.error('❌ [Multi-Page Fetch] Error:', error);
+      
+      // Return partial data if we have some
+      if (all.length > 0) {
+        console.warn(`⚠️ [Multi-Page Fetch] Returning partial data: ${all.length} funds`);
+        return {
+          success: true,
+          data: all,
+          pagination: {
+            page: 1,
+            limit: all.length,
+            total: all.length,
+            totalPages: 1,
+            hasNext: false,
+            hasPrev: false,
+          },
+          warning: 'Partial data due to error',
+        };
+      }
+      
       throw error;
     }
   }
 
   getFund(id: string) {
-    return this.request(`/api/funds/${id}`);
+    return this.request(`/funds/${id}`);
   }
 
   // Market indices
   getIndices() {
-    return this.request('/api/market-indices');
+    return this.request('/market/summary');
   }
 
   // Compare multiple funds
   compareFunds(fundIds: string[]) {
-    return this.request('/api/comparison/funds', {
+    return this.request('/comparison/funds', {
       method: 'POST',
       body: JSON.stringify({ fundIds }),
     });
@@ -234,7 +354,7 @@ class ApiClient {
 
   // Analyze portfolio overlap
   analyzeFundOverlap(fundIds: string[]) {
-    return this.request('/api/overlap', {
+    return this.request('/overlap', {
       method: 'POST',
       body: JSON.stringify({ fundIds }),
     });
@@ -242,7 +362,7 @@ class ApiClient {
 
   // AI Chat
   chat(message: string, context?: any) {
-    return this.request('/api/chat', {
+    return this.request('/chat', {
       method: 'POST',
       body: JSON.stringify({ message, context }),
     });
@@ -254,7 +374,7 @@ class ApiClient {
     annualReturnRate: number;
     investmentPeriod: number;
   }) {
-    return this.request('/api/calculator/sip', {
+    return this.request('/calculator/sip', {
       method: 'POST',
       body: JSON.stringify(params),
     });
@@ -265,7 +385,7 @@ class ApiClient {
     annualReturnRate: number;
     investmentPeriod: number;
   }) {
-    return this.request('/api/calculator/lumpsum', {
+    return this.request('/calculator/lumpsum', {
       method: 'POST',
       body: JSON.stringify(params),
     });
@@ -277,27 +397,27 @@ class ApiClient {
     if (from) params.append('from', from);
     if (to) params.append('to', to);
     const query = params.toString() ? `?${params.toString()}` : '';
-    return this.request(`/api/funds/${fundId}/navs${query}`);
+    return this.request(`/funds/${fundId}/navs${query}`);
   }
 
   // Get fund manager details
   getFundManager(fundId: string) {
-    return this.request(`/api/funds/${fundId}/manager`);
+    return this.request(`/funds/${fundId}/manager`);
   }
 
   // Get fund holdings
   getFundHoldings(fundId: string, limit = 15) {
-    return this.request(`/api/funds/${fundId}/holdings?limit=${limit}`);
+    return this.request(`/funds/${fundId}/holdings?limit=${limit}`);
   }
 
   // Get fund sector allocation
   getFundSectors(fundId: string) {
-    return this.request(`/api/funds/${fundId}/sectors`);
+    return this.request(`/funds/${fundId}/sectors`);
   }
 
   // Get complete fund details (with holdings, sectors, manager)
   getFundDetails(fundId: string) {
-    return this.request(`/api/funds/${fundId}/details`);
+    return this.request(`/funds/${fundId}/details`);
   }
 
   // News
@@ -305,24 +425,50 @@ class ApiClient {
     const params = new URLSearchParams();
     if (category) params.append('category', category);
     params.append('limit', limit.toString());
-    return this.request(`/api/news/latest?${params.toString()}`);
+    return this.request(`/news/latest?${params.toString()}`);
   }
 
-  // ✅ NEW: Health check
-  async checkHealth(): Promise<boolean> {
+  // ✅ Health check with detailed diagnostics
+  async checkHealth(): Promise<{
+    healthy: boolean;
+    backend: string;
+    timestamp: string;
+    details?: any;
+  }> {
     try {
       const response = await fetch(`${API_BASE}/health`, {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-      return response.ok;
+      
+      if (!response.ok) {
+        return {
+          healthy: false,
+          backend: API_BASE,
+          timestamp: new Date().toISOString(),
+          details: { status: response.status, statusText: response.statusText },
+        };
+      }
+
+      const data = await response.text();
+      return {
+        healthy: true,
+        backend: API_BASE,
+        timestamp: new Date().toISOString(),
+        details: { response: data },
+      };
     } catch (error) {
       console.error('❌ Backend health check failed:', error);
-      return false;
+      return {
+        healthy: false,
+        backend: API_BASE,
+        timestamp: new Date().toISOString(),
+        details: { error: error instanceof Error ? error.message : 'Unknown error' },
+      };
     }
   }
 
-  // ✅ NEW: Search/autocomplete with external API fallback
+  // ✅ Search/autocomplete with external API fallback
   async searchFunds(query: string, useExternal: boolean = true) {
     if (!query || query.length < 2) {
       return { success: true, data: [], enhancedSearch: false };
@@ -334,7 +480,7 @@ class ApiClient {
       params.append('external', useExternal.toString());
 
       const response = await this.request(
-        `/api/funds/search?${params.toString()}`
+        `/funds/search?${params.toString()}`
       );
 
       // Log if results came from external APIs
@@ -352,6 +498,18 @@ class ApiClient {
         enhancedSearch: false,
       };
     }
+  }
+
+  /**
+   * Get API statistics and configuration
+   */
+  getApiInfo() {
+    return {
+      baseUrl: API_BASE,
+      apiUrl: API_URL,
+      config: CONFIG,
+      timestamp: new Date().toISOString(),
+    };
   }
 }
 
