@@ -1,6 +1,6 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import { Suspense, useState, useEffect, useMemo } from 'react';
+import { Suspense, useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { FundList } from '@/components/fund-list';
@@ -8,7 +8,7 @@ import { useFunds } from '@/hooks/use-funds';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, X, ArrowLeft } from 'lucide-react';
+import { Loader2, Search, X, ArrowLeft, ChevronDown } from 'lucide-react';
 import {
   isEquityFund,
   matchesSubcategory,
@@ -21,13 +21,13 @@ function FundsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [category, setCategory] = useState('');
-  const [limitFilter, setLimitFilter] = useState<
-    'top20' | 'top50' | 'top100' | 'all'
-  >('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [page, setPage] = useState(1);
-  const language = 'en'; // Default language
+  const [displayLimit, setDisplayLimit] = useState(100); // Initial display limit
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerTarget = useRef(null);
+  const language = 'en';
 
   useEffect(() => {
     const urlCategory = searchParams.get('category');
@@ -86,16 +86,14 @@ function FundsPageContent() {
     },
   ];
 
-  // Fetch all funds without strict category filter (backend doesn't accept category=Equity)
-  // We'll filter on the client side like the commodity page
-  // ✅ PRODUCTION-SAFE: Using multi-page fetch strategy for 3000 funds (30 pages × 100)
-  // After basic filtering, this should give us 2000+ equity funds with real data
+  // Fetch all funds without strict category filter
+  // ✅ PRODUCTION-SAFE: Fetch up to 5000 funds to get all equity funds
   const {
     funds: allFunds,
     loading,
     error,
   } = useFunds({
-    limit: 3000, // Fetch 3000 funds to ensure 2000+ equity funds after filtering
+    limit: 5000, // Fetch more to ensure we get all 4000+ equity funds
   });
 
   // Debug logging
@@ -149,8 +147,8 @@ function FundsPageContent() {
     return deduplicated;
   }, [allFunds]);
 
-  // Filter and limit funds based on user selection
-  const filteredFunds = useMemo(() => {
+  // Filter and limit funds based on user selection - Returns ALL filtered funds
+  const allFilteredFunds = useMemo(() => {
     // Step 1: Filter for equity funds only - using normalization
     let filtered = transformedFunds.filter((fund) => {
       return isEquityFund(fund.category);
@@ -203,18 +201,45 @@ function FundsPageContent() {
       });
     }
 
-    // Apply limit filter
-    if (limitFilter === 'top20') {
-      filtered = filtered.slice(0, 20);
-    } else if (limitFilter === 'top50') {
-      filtered = filtered.slice(0, 50);
-    } else if (limitFilter === 'top100') {
-      filtered = filtered.slice(0, 100);
-    }
-    // 'all' means no limit, return everything
-
+    // ✅ NO LIMIT - Return all filtered funds
     return filtered;
-  }, [transformedFunds, category, searchQuery, limitFilter]);
+  }, [transformedFunds, category, searchQuery]);
+
+  // ✅ Display only limited funds for performance (progressive loading)
+  const displayedFunds = useMemo(() => {
+    return allFilteredFunds.slice(0, displayLimit);
+  }, [allFilteredFunds, displayLimit]);
+
+  // ✅ Load More Handler
+  const loadMore = useCallback(() => {
+    setIsLoadingMore(true);
+    setTimeout(() => {
+      setDisplayLimit((prev) => Math.min(prev + 100, allFilteredFunds.length));
+      setIsLoadingMore(false);
+    }, 300); // Small delay for smooth UX
+  }, [allFilteredFunds.length]);
+
+  // ✅ Infinite Scroll Observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && displayLimit < allFilteredFunds.length && !isLoadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => {
+      if (observerTarget.current) {
+        observer.unobserve(observerTarget.current);
+      }
+    };
+  }, [displayLimit, allFilteredFunds.length, isLoadingMore, loadMore]);
 
   // Search suggestions - use original allFunds for raw data
   const searchSuggestions = useMemo(() => {
@@ -235,13 +260,6 @@ function FundsPageContent() {
         .join(' ') + ' Funds'
     );
   };
-
-  const limitFilters = [
-    { label: 'Top 20', value: 'top20' as const },
-    { label: 'Top 50', value: 'top50' as const },
-    { label: 'Top 100', value: 'top100' as const },
-    { label: 'All Funds', value: 'all' as const },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -350,6 +368,7 @@ function FundsPageContent() {
                       router.push('/equity');
                     }
                     setPage(1);
+                    setDisplayLimit(100); // Reset display limit on category change
                   }}
                   variant={category === cat.value ? 'default' : 'outline'}
                   size="sm"
@@ -361,33 +380,20 @@ function FundsPageContent() {
             </div>
           </div>
 
-          {/* Top 20/50/100/All Filter */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Show
-            </p>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {limitFilters.map((filter) => (
-                <Button
-                  key={filter.value}
-                  onClick={() => {
-                    setLimitFilter(filter.value);
-                    setPage(1);
-                  }}
-                  variant={limitFilter === filter.value ? 'default' : 'outline'}
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  {filter.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Results Count */}
+          {/* ✅ NEW: Results Count with Real-time Update */}
           {!loading && (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {filteredFunds.length} of {transformedFunds.length} funds
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4 flex-wrap gap-2">
+              <span className="font-medium">
+                Showing {displayedFunds.length} of {allFilteredFunds.length} funds
+                {allFilteredFunds.length < transformedFunds.length && 
+                  ` (${transformedFunds.length} total equity funds available)`
+                }
+              </span>
+              {displayedFunds.length < allFilteredFunds.length && (
+                <span className="text-blue-600 dark:text-blue-400 text-xs">
+                  ↓ Scroll down or click "Load More" for {allFilteredFunds.length - displayedFunds.length} more funds
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -411,14 +417,48 @@ function FundsPageContent() {
         {/* Funds List */}
         {!loading && !error && (
           <>
-            <FundList funds={filteredFunds} language={language} />
+            <FundList funds={displayedFunds} language={language} />
 
-            {filteredFunds.length === 0 && (
+            {displayedFunds.length === 0 && (
               <Card className="p-12 text-center">
                 <p className="text-gray-600 dark:text-gray-400">
                   No funds found matching your criteria.
                 </p>
               </Card>
+            )}
+
+            {/* ✅ Load More Button + Infinite Scroll Trigger */}
+            {displayedFunds.length < allFilteredFunds.length && (
+              <div className="mt-8 text-center space-y-4">
+                <Button
+                  onClick={loadMore}
+                  disabled={isLoadingMore}
+                  className="px-8 py-3 text-lg"
+                  size="lg"
+                >
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Loading...
+                    </>
+                  ) : (
+                    <>
+                      Load More ({allFilteredFunds.length - displayedFunds.length} remaining)
+                      <ChevronDown className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+                <div ref={observerTarget} className="h-10" /> {/* Infinite scroll trigger */}
+              </div>
+            )}
+
+            {/* ✅ All Funds Loaded Message */}
+            {displayedFunds.length === allFilteredFunds.length && allFilteredFunds.length > 0 && (
+              <div className="mt-8 text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-green-700 dark:text-green-400 font-medium">
+                  ✓ All {allFilteredFunds.length} funds loaded
+                </p>
+              </div>
             )}
           </>
         )}
