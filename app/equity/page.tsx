@@ -1,6 +1,13 @@
 'use client';
 export const dynamic = 'force-dynamic';
-import { Suspense, useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import {
+  Suspense,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
 import { FundList } from '@/components/fund-list';
@@ -223,7 +230,11 @@ function FundsPageContent() {
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting && displayLimit < allFilteredFunds.length && !isLoadingMore) {
+        if (
+          entries[0].isIntersecting &&
+          displayLimit < allFilteredFunds.length &&
+          !isLoadingMore
+        ) {
           loadMore();
         }
       },
@@ -384,14 +395,15 @@ function FundsPageContent() {
           {!loading && (
             <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4 flex-wrap gap-2">
               <span className="font-medium">
-                Showing {displayedFunds.length} of {allFilteredFunds.length} funds
-                {allFilteredFunds.length < transformedFunds.length && 
-                  ` (${transformedFunds.length} total equity funds available)`
-                }
+                Showing {displayedFunds.length} of {allFilteredFunds.length}{' '}
+                funds
+                {allFilteredFunds.length < transformedFunds.length &&
+                  ` (${transformedFunds.length} total equity funds available)`}
               </span>
               {displayedFunds.length < allFilteredFunds.length && (
                 <span className="text-blue-600 dark:text-blue-400 text-xs">
-                  ↓ Scroll down or click "Load More" for {allFilteredFunds.length - displayedFunds.length} more funds
+                  ↓ Scroll down or click "Load More" for{' '}
+                  {allFilteredFunds.length - displayedFunds.length} more funds
                 </span>
               )}
             </div>
@@ -443,23 +455,27 @@ function FundsPageContent() {
                     </>
                   ) : (
                     <>
-                      Load More ({allFilteredFunds.length - displayedFunds.length} remaining)
+                      Load More (
+                      {allFilteredFunds.length - displayedFunds.length}{' '}
+                      remaining)
                       <ChevronDown className="w-5 h-5 ml-2" />
                     </>
                   )}
                 </Button>
-                <div ref={observerTarget} className="h-10" /> {/* Infinite scroll trigger */}
+                <div ref={observerTarget} className="h-10" />{' '}
+                {/* Infinite scroll trigger */}
               </div>
             )}
 
             {/* ✅ All Funds Loaded Message */}
-            {displayedFunds.length === allFilteredFunds.length && allFilteredFunds.length > 0 && (
-              <div className="mt-8 text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                <p className="text-green-700 dark:text-green-400 font-medium">
-                  ✓ All {allFilteredFunds.length} funds loaded
-                </p>
-              </div>
-            )}
+            {displayedFunds.length === allFilteredFunds.length &&
+              allFilteredFunds.length > 0 && (
+                <div className="mt-8 text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="text-green-700 dark:text-green-400 font-medium">
+                    ✓ All {allFilteredFunds.length} funds loaded
+                  </p>
+                </div>
+              )}
           </>
         )}
       </div>

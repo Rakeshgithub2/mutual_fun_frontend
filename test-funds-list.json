@@ -1,0 +1,72 @@
+﻿{
+    "success":  true,
+    "data":  [
+                 {
+                     "_id":  "6947cb84bb1134e90d4a6628",
+                     "fundId":  "ICICI_PRUDENTIAL_MUTUAL_FUND_LARGE_CAP_1",
+                     "name":  "ICICI Prudential Bluechip Fund",
+                     "fundHouse":  "ICICI Prudential Mutual Fund",
+                     "category":  "equity",
+                     "subCategory":  "Large Cap",
+                     "fundType":  "mutual_fund",
+                     "currentNav":  89.76,
+                     "previousNav":  88.86240000000001,
+                     "navDate":  "2025-12-21T10:27:16.817Z",
+                     "launchDate":  "2022-01-01T00:00:00.000Z",
+                     "aum":  45600,
+                     "expenseRatio":  0.95,
+                     "exitLoad":  1,
+                     "minInvestment":  5000,
+                     "sipMinAmount":  500,
+                     "fundManager":  "Ihab Dalwai",
+                     "returns":  {
+                                     "day":  0.72,
+                                     "week":  2.15,
+                                     "month":  4.23,
+                                     "threeMonth":  9.87,
+                                     "sixMonth":  16.45,
+                                     "oneYear":  30.12,
+                                     "threeYear":  19.67,
+                                     "fiveYear":  16.89,
+                                     "sinceInception":  15.23
+                                 },
+                     "riskMetrics":  {
+                                         "sharpeRatio":  2.01,
+                                         "standardDeviation":  11.89,
+                                         "beta":  0.97,
+                                         "alpha":  2.87,
+                                         "rSquared":  0.95,
+                                         "sortino":  2.34
+                                     },
+                     "ratings":  {
+                                     "morningstar":  5,
+                                     "crisil":  5,
+                                     "valueResearch":  5
+                                 },
+                     "tags":  [
+                                  "large cap",
+                                  "equity",
+                                  "bluechip"
+                              ],
+                     "searchTerms":  [
+                                         "icici",
+                                         "prudential",
+                                         "bluechip",
+                                         "fund"
+                                     ],
+                     "popularity":  800,
+                     "isActive":  true,
+                     "dataSource":  "real_world",
+                     "lastUpdated":  "2025-12-21T10:27:16.817Z",
+                     "createdAt":  "2025-12-21T10:27:16.817Z"
+                 }
+             ],
+    "pagination":  {
+                       "page":  1,
+                       "limit":  1,
+                       "total":  100,
+                       "totalPages":  100,
+                       "hasNext":  true,
+                       "hasPrev":  false
+                   }
+}

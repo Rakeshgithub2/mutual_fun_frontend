@@ -554,7 +554,7 @@ export default function FundDetailEnhanced({
           className="mb-8"
         >
           <HoldingsTable
-            holdings={fund.topHoldings || []}
+            holdings={fund.holdings || []}
             holdingsCount={fund.holdingsCount}
           />
         </motion.div>
@@ -1343,7 +1343,7 @@ export default function FundDetailEnhanced({
         {/* Top Holdings Section */}
         <div className="mb-8">
           <HoldingsTable
-            holdings={fund.topHoldings || []}
+            holdings={fund.holdings || []}
             holdingsCount={fund.holdingsCount || 0}
           />
         </div>
