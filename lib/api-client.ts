@@ -322,20 +322,35 @@ class ApiClient {
     }
   }
 
-  // ✅ NEW: Search/autocomplete
-  async searchFunds(query: string) {
+  // ✅ NEW: Search/autocomplete with external API fallback
+  async searchFunds(query: string, useExternal: boolean = true) {
     if (!query || query.length < 2) {
-      return { success: true, data: [] };
+      return { success: true, data: [], enhancedSearch: false };
     }
 
     try {
+      const params = new URLSearchParams();
+      params.append('query', query);
+      params.append('external', useExternal.toString());
+
       const response = await this.request(
-        `/api/search/suggest?query=${encodeURIComponent(query)}`
+        `/api/funds/search?${params.toString()}`
       );
+
+      // Log if results came from external APIs
+      if (response.enhancedSearch && response.data?.some((f: any) => f.isNew)) {
+        console.log('🌐 Some results fetched from external APIs');
+      }
+
       return response;
     } catch (error) {
       console.error('❌ Search error:', error);
-      return { success: false, data: [], error: 'Search failed' };
+      return {
+        success: false,
+        data: [],
+        error: 'Search failed',
+        enhancedSearch: false,
+      };
     }
   }
 }

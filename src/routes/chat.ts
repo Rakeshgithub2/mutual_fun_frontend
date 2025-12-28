@@ -6,8 +6,8 @@ const router = Router();
 /**
  * POST /api/chat
  * AI chatbot endpoint for mutual fund queries
- * 
- * Note: This is a placeholder implementation. 
+ *
+ * Note: This is a placeholder implementation.
  * Full AI integration requires OpenAI API key in .env
  */
 router.post('/', async (req: Request, res: Response) => {
@@ -82,15 +82,30 @@ router.post('/', async (req: Request, res: Response) => {
     } else if (lowerMessage.includes('expense ratio')) {
       response =
         'Expense Ratio is the annual fee (as % of AUM) for fund management. Lower is better! Direct plans have 0.5-1% lower expense ratio than regular plans. Impact: On ₹10 lakh over 10 years, 1% difference = ₹1.5 lakh! SEBI limits: Equity funds 2.25%, Debt funds 2.0%. Always choose Direct plans.';
-      relatedTopics.push('Direct vs Regular', 'Fee Comparison', 'Cost Analysis');
+      relatedTopics.push(
+        'Direct vs Regular',
+        'Fee Comparison',
+        'Cost Analysis'
+      );
     } else if (lowerMessage.includes('risk')) {
       response =
         'Mutual fund risks include: 1) Market Risk (price volatility), 2) Credit Risk (defaults in debt funds), 3) Liquidity Risk, 4) Interest Rate Risk. Mitigation: Diversify across categories, maintain long investment horizon (5+ years for equity), regular portfolio review, and match funds with your risk profile.';
-      relatedTopics.push('Risk Assessment', 'Portfolio Review', 'Diversification');
-    } else if (lowerMessage.includes('return') || lowerMessage.includes('performance')) {
+      relatedTopics.push(
+        'Risk Assessment',
+        'Portfolio Review',
+        'Diversification'
+      );
+    } else if (
+      lowerMessage.includes('return') ||
+      lowerMessage.includes('performance')
+    ) {
       response =
-        'Evaluate returns over multiple periods: 1-year, 3-year, 5-year, and since inception. Don\'t chase short-term gains! Check: 1) Consistency (did fund beat benchmark?), 2) Risk-adjusted returns (Sharpe ratio), 3) Peer comparison, 4) Downside protection. Past performance doesn\'t guarantee future results.';
-      relatedTopics.push('Performance Analysis', 'Fund Comparison', 'Returns Calculator');
+        "Evaluate returns over multiple periods: 1-year, 3-year, 5-year, and since inception. Don't chase short-term gains! Check: 1) Consistency (did fund beat benchmark?), 2) Risk-adjusted returns (Sharpe ratio), 3) Peer comparison, 4) Downside protection. Past performance doesn't guarantee future results.";
+      relatedTopics.push(
+        'Performance Analysis',
+        'Fund Comparison',
+        'Returns Calculator'
+      );
     } else {
       response =
         'I can help you with mutual fund queries! Ask me about: SIP, ELSS, fund categories (large/mid/small cap), NAV, expense ratios, returns, risk analysis, portfolio building, tax benefits, or comparing funds. How can I assist you today?';

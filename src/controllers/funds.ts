@@ -395,6 +395,7 @@ export const searchFunds = async (
       Number.parseInt(req.query.limit as string) || 15,
       50
     );
+    const useExternal = req.query.external !== 'false'; // Default: true
 
     console.log(`📥 GET /funds/search request received with query: ${query}`);
 
@@ -406,6 +407,36 @@ export const searchFunds = async (
       });
     }
 
+    // Use enhanced search service if external APIs enabled
+    if (useExternal) {
+      try {
+        const { enhancedSearchService } =
+          await import('../services/enhancedSearchService');
+        const results = await enhancedSearchService.searchFunds(query, limit);
+
+        console.log(
+          `✅ Enhanced search found ${results.length} funds matching "${query}"`
+        );
+
+        return res.json({
+          success: true,
+          message: `Found ${results.length} funds`,
+          data: results,
+          enhancedSearch: true,
+          note: results.some((r) => r.isNew)
+            ? 'Some results were fetched from external APIs and saved to database'
+            : 'All results from database',
+        });
+      } catch (error) {
+        console.error(
+          '❌ Enhanced search failed, falling back to database only:',
+          error
+        );
+        // Fall through to database-only search
+      }
+    }
+
+    // Fallback: Database-only search
     const fundsCollection = mongodb.getCollection<Fund>('funds');
 
     // Build search query - case insensitive search across name, fundHouse, and amfiCode
@@ -442,6 +473,7 @@ export const searchFunds = async (
       fundId: fund.fundId || fund._id.toString(),
       ...fund,
       _id: undefined,
+      source: 'database',
     }));
 
     console.log(
@@ -452,6 +484,7 @@ export const searchFunds = async (
       success: true,
       message: `Found ${transformedFunds.length} funds`,
       data: transformedFunds,
+      enhancedSearch: false,
     });
   } catch (error) {
     console.error('❌ Search funds error:', error);
