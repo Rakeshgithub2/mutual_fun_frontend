@@ -7,7 +7,9 @@ const API_URL = `${API_BASE}/api`;
 
 // Configuration
 const CONFIG = {
-  DEFAULT_PAGE_SIZE: parseInt(process.env.NEXT_PUBLIC_DEFAULT_PAGE_SIZE || '50'),
+  DEFAULT_PAGE_SIZE: parseInt(
+    process.env.NEXT_PUBLIC_DEFAULT_PAGE_SIZE || '50'
+  ),
   MAX_PAGE_SIZE: parseInt(process.env.NEXT_PUBLIC_MAX_PAGE_SIZE || '500'),
   TIMEOUT_MS: 30000, // 30 seconds for large requests
   RETRY_ATTEMPTS: 3,
@@ -25,8 +27,14 @@ interface ApiResponse<T = any> {
     hasNext: boolean;
     hasPrev: boolean;
   };
+  metadata?: {
+    totalAvailable: number;
+    fetchedPages: number;
+    duplicatesRemoved: number;
+  };
   error?: string;
   message?: string;
+  enhancedSearch?: boolean;
 }
 
 class ApiClient {
@@ -85,9 +93,11 @@ class ApiClient {
       return await fn();
     } catch (error) {
       if (attempts <= 1) throw error;
-      
-      console.warn(`⚠️ Request failed, retrying... (${CONFIG.RETRY_ATTEMPTS - attempts + 1}/${CONFIG.RETRY_ATTEMPTS})`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+
+      console.warn(
+        `⚠️ Request failed, retrying... (${CONFIG.RETRY_ATTEMPTS - attempts + 1}/${CONFIG.RETRY_ATTEMPTS})`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
       return this.retryRequest(fn, attempts - 1, delay * 2);
     }
   }
@@ -98,48 +108,52 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     this.logRequest(endpoint, options);
 
-    return this.retryRequest(async () => {
-      const fullUrl = endpoint.startsWith('http') ? endpoint : `${API_URL}${endpoint}`;
-      const res = await this.fetchWithTimeout(fullUrl, {
-        ...options,
-        headers: { 'Content-Type': 'application/json', ...options?.headers },
-      });
+    try {
+      return await this.retryRequest(async () => {
+        const fullUrl = endpoint.startsWith('http')
+          ? endpoint
+          : `${API_URL}${endpoint}`;
+        const res = await this.fetchWithTimeout(fullUrl, {
+          ...options,
+          headers: { 'Content-Type': 'application/json', ...options?.headers },
+        });
 
-      this.logResponse(endpoint, res.status);
+        this.logResponse(endpoint, res.status);
 
-      // Handle non-OK responses
-      if (!res.ok) {
-        const errorText = await res.text();
+        // Handle non-OK responses
+        if (!res.ok) {
+          const errorText = await res.text();
 
-        if (res.status === 404) {
-          throw new Error(`API endpoint not found: ${endpoint}`);
-        } else if (res.status === 500) {
-          throw new Error('Backend server error. Check server logs.');
-        } else if (res.status === 0 || !res.status) {
+          if (res.status === 404) {
+            throw new Error(`API endpoint not found: ${endpoint}`);
+          } else if (res.status === 500) {
+            throw new Error('Backend server error. Check server logs.');
+          } else if (res.status === 0 || !res.status) {
+            throw new Error(
+              'Network error: Cannot reach backend server. Is it running on port 3002?'
+            );
+          }
+
+          throw new Error(errorText || `HTTP ${res.status}: ${res.statusText}`);
+        }
+
+        const data = await res.json();
+
+        // Validate response structure
+        if (typeof data !== 'object' || data === null) {
+          throw new Error('Invalid API response: Expected object');
+        }
+
+        // Check for success flag
+        if (data.success === false) {
           throw new Error(
-            'Network error: Cannot reach backend server. Is it running on port 3002?'
+            data.error || data.message || 'API returned success: false'
           );
         }
 
-        throw new Error(errorText || `HTTP ${res.status}: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-
-      // Validate response structure
-      if (typeof data !== 'object' || data === null) {
-        throw new Error('Invalid API response: Expected object');
-      }
-
-      // Check for success flag
-      if (data.success === false) {
-        throw new Error(
-          data.error || data.message || 'API returned success: false'
-        );
-      }
-
-      return data as ApiResponse<T>;
-    } catch (error) {
+        return data as ApiResponse<T>;
+      });
+    } catch (error: unknown) {
       this.logError(endpoint, error);
 
       if (error instanceof TypeError && error.message.includes('fetch')) {
@@ -223,16 +237,24 @@ class ApiClient {
     try {
       // First request to get total count
       const firstRes = await this.getFunds(page, limit, filters);
-      
-      if (!firstRes.success || !firstRes.data || !Array.isArray(firstRes.data)) {
+
+      if (
+        !firstRes.success ||
+        !firstRes.data ||
+        !Array.isArray(firstRes.data)
+      ) {
         throw new Error('Invalid response structure from API');
       }
 
       totalAvailable = firstRes.pagination?.total || firstRes.data.length;
       all.push(...firstRes.data);
 
-      console.log(`📊 [Multi-Page Fetch] Total available: ${totalAvailable} funds`);
-      console.log(`✅ [Multi-Page Fetch] Page 1: ${firstRes.data.length} funds loaded`);
+      console.log(
+        `📊 [Multi-Page Fetch] Total available: ${totalAvailable} funds`
+      );
+      console.log(
+        `✅ [Multi-Page Fetch] Page 1: ${firstRes.data.length} funds loaded`
+      );
 
       // Report progress
       if (onProgress) {
@@ -240,17 +262,19 @@ class ApiClient {
       }
 
       // Determine actual target
-      const actualTarget = targetCount 
-        ? Math.min(targetCount, totalAvailable) 
+      const actualTarget = targetCount
+        ? Math.min(targetCount, totalAvailable)
         : totalAvailable;
 
       // Continue fetching remaining pages
       while (all.length < actualTarget && firstRes.pagination?.hasNext) {
         page++;
-        
+
         // Safety: max 100 pages (50,000 funds)
         if (page > 100) {
-          console.warn(`⚠️ [Multi-Page Fetch] Reached safety limit of 100 pages`);
+          console.warn(
+            `⚠️ [Multi-Page Fetch] Reached safety limit of 100 pages`
+          );
           break;
         }
 
@@ -261,12 +285,16 @@ class ApiClient {
         const res = await this.getFunds(page, limit, filters);
 
         if (!res.success || !res.data || !Array.isArray(res.data)) {
-          console.warn(`⚠️ [Multi-Page Fetch] Invalid response on page ${page}`);
+          console.warn(
+            `⚠️ [Multi-Page Fetch] Invalid response on page ${page}`
+          );
           break;
         }
 
         all.push(...res.data);
-        console.log(`✅ [Multi-Page Fetch] Page ${page}: ${res.data.length} funds (total: ${all.length}/${actualTarget})`);
+        console.log(
+          `✅ [Multi-Page Fetch] Page ${page}: ${res.data.length} funds (total: ${all.length}/${actualTarget})`
+        );
 
         // Report progress
         if (onProgress) {
@@ -282,7 +310,9 @@ class ApiClient {
 
       // Remove duplicates by fundId
       const uniqueFunds = Array.from(
-        new Map(all.map(fund => [fund.fundId || fund._id || fund.id, fund])).values()
+        new Map(
+          all.map((fund) => [fund.fundId || fund._id || fund.id, fund])
+        ).values()
       );
 
       if (uniqueFunds.length !== all.length) {
@@ -291,7 +321,9 @@ class ApiClient {
         );
       }
 
-      console.log(`✅ [Multi-Page Fetch] Complete: ${uniqueFunds.length} unique funds loaded`);
+      console.log(
+        `✅ [Multi-Page Fetch] Complete: ${uniqueFunds.length} unique funds loaded`
+      );
 
       return {
         success: true,
@@ -312,10 +344,12 @@ class ApiClient {
       };
     } catch (error) {
       console.error('❌ [Multi-Page Fetch] Error:', error);
-      
+
       // Return partial data if we have some
       if (all.length > 0) {
-        console.warn(`⚠️ [Multi-Page Fetch] Returning partial data: ${all.length} funds`);
+        console.warn(
+          `⚠️ [Multi-Page Fetch] Returning partial data: ${all.length} funds`
+        );
         return {
           success: true,
           data: all,
@@ -330,7 +364,7 @@ class ApiClient {
           warning: 'Partial data due to error',
         };
       }
-      
+
       throw error;
     }
   }
@@ -440,7 +474,7 @@ class ApiClient {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-      
+
       if (!response.ok) {
         return {
           healthy: false,
@@ -463,7 +497,9 @@ class ApiClient {
         healthy: false,
         backend: API_BASE,
         timestamp: new Date().toISOString(),
-        details: { error: error instanceof Error ? error.message : 'Unknown error' },
+        details: {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
       };
     }
   }
@@ -479,9 +515,7 @@ class ApiClient {
       params.append('query', query);
       params.append('external', useExternal.toString());
 
-      const response = await this.request(
-        `/funds/search?${params.toString()}`
-      );
+      const response = await this.request(`/funds/search?${params.toString()}`);
 
       // Log if results came from external APIs
       if (response.enhancedSearch && response.data?.some((f: any) => f.isNew)) {
