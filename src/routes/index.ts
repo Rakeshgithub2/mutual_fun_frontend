@@ -14,6 +14,8 @@ import calculatorRoutes from './calculator';
 import comparisonRoutes from './comparison';
 import taxRoutes from './tax';
 import feedbackRoutes from './feedback';
+import overlapRoutes from './overlap';
+import chatRoutes from './chat';
 
 const router = Router();
 
@@ -32,5 +34,7 @@ router.use('/calculator', calculatorRoutes);
 router.use('/comparison', comparisonRoutes);
 router.use('/tax', taxRoutes);
 router.use('/feedback', feedbackRoutes);
+router.use('/overlap', overlapRoutes);
+router.use('/chat', chatRoutes);
 
 export default router;

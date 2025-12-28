@@ -219,29 +219,93 @@ class ApiClient {
     return this.request(`/api/funds/${id}`);
   }
 
+  // Market indices
   getIndices() {
-    return this.request('/api/indices');
+    return this.request('/api/market-indices');
   }
 
+  // Compare multiple funds
   compareFunds(fundIds: string[]) {
-    return this.request('/api/compare', {
+    return this.request('/api/comparison/funds', {
       method: 'POST',
       body: JSON.stringify({ fundIds }),
     });
   }
 
-  overlapFunds(fundIds: string[]) {
+  // Analyze portfolio overlap
+  analyzeFundOverlap(fundIds: string[]) {
     return this.request('/api/overlap', {
       method: 'POST',
       body: JSON.stringify({ fundIds }),
     });
   }
 
-  chat(message: string) {
+  // AI Chat
+  chat(message: string, context?: any) {
     return this.request('/api/chat', {
       method: 'POST',
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({ message, context }),
     });
+  }
+
+  // Calculators
+  calculateSIP(params: {
+    monthlyInvestment: number;
+    annualReturnRate: number;
+    investmentPeriod: number;
+  }) {
+    return this.request('/api/calculator/sip', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  calculateLumpsum(params: {
+    investmentAmount: number;
+    annualReturnRate: number;
+    investmentPeriod: number;
+  }) {
+    return this.request('/api/calculator/lumpsum', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  // Get fund NAV history
+  getFundNavs(fundId: string, from?: string, to?: string) {
+    const params = new URLSearchParams();
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    return this.request(`/api/funds/${fundId}/navs${query}`);
+  }
+
+  // Get fund manager details
+  getFundManager(fundId: string) {
+    return this.request(`/api/funds/${fundId}/manager`);
+  }
+
+  // Get fund holdings
+  getFundHoldings(fundId: string, limit = 15) {
+    return this.request(`/api/funds/${fundId}/holdings?limit=${limit}`);
+  }
+
+  // Get fund sector allocation
+  getFundSectors(fundId: string) {
+    return this.request(`/api/funds/${fundId}/sectors`);
+  }
+
+  // Get complete fund details (with holdings, sectors, manager)
+  getFundDetails(fundId: string) {
+    return this.request(`/api/funds/${fundId}/details`);
+  }
+
+  // News
+  getNews(category?: string, limit = 10) {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    params.append('limit', limit.toString());
+    return this.request(`/api/news/latest?${params.toString()}`);
   }
 
   // ✅ NEW: Health check
