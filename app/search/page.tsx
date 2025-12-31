@@ -429,7 +429,9 @@ function SearchPageContent() {
                   Backend URL:{' '}
                   {process.env.NEXT_PUBLIC_API_URL ||
                     (() => {
-                      const BASE_URL = 'https://mutualfun-backend.vercel.app';
+                      const BASE_URL =
+                        process.env.NEXT_PUBLIC_API_URL ||
+                        'http://localhost:3002';
                       return `${BASE_URL}/api`;
                     })()}
                 </p>

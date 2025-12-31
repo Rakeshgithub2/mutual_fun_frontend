@@ -54,7 +54,7 @@ export default function NewsPage() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const BASE_URL = 'https://mutualfun-backend.vercel.app';
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
   const API_URL = (
     process.env.NEXT_PUBLIC_API_URL
       ? `${process.env.NEXT_PUBLIC_API_URL}/api`

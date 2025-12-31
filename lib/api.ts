@@ -3,8 +3,7 @@
 // Usage: import { api } from '@/lib/api'
 
 // ✅ FIXED: Remove /api from base URL (routes already include /api)
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 // Token storage keys
 export const TOKEN_KEYS = {

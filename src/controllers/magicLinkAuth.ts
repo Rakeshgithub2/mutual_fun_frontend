@@ -45,7 +45,7 @@ export const sendMagicLink = async (
     });
 
     // Generate magic link URL
-    const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+    const BASE_URL = 'http://localhost:5001'; // no trailing /
     const frontendUrl = process.env.FRONTEND_URL || BASE_URL;
     const magicLinkUrl = `${frontendUrl}/auth/verify?token=${token}&email=${encodeURIComponent(
       email

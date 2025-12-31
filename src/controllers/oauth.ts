@@ -224,14 +224,14 @@ export class OAuthController {
       });
 
       // Redirect to frontend with tokens (for web flow)
-      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+      const BASE_URL = 'http://localhost:5001'; // no trailing /
       const frontendUrl = process.env.FRONTEND_URL || BASE_URL;
       const redirectUrl = `${frontendUrl}/auth/success?token=${accessToken}&refresh=${refreshToken}`;
 
       res.redirect(redirectUrl);
     } catch (error) {
       console.error('Google callback error:', error);
-      const BASE_URL = 'https://mutualfun-backend.vercel.app'; // no trailing /
+      const BASE_URL = 'http://localhost:5001'; // no trailing /
       const frontendUrl = process.env.FRONTEND_URL || BASE_URL;
       res.redirect(`${frontendUrl}/auth/error?message=Authentication failed`);
     }
