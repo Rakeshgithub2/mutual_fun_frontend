@@ -89,7 +89,13 @@ export function FundList({ funds, language }: FundListProps) {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map((fund, index) => (
           <FundCard
-            key={fund.id || fund.fundId || `fund-${index}`}
+            key={
+              fund._id ||
+              fund.id ||
+              fund.fundId ||
+              fund.schemeCode ||
+              `${fund.name}-${index}`
+            }
             {...fund}
             language={language}
           />

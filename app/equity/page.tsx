@@ -129,16 +129,16 @@ function FundsPageContent() {
               `✅ [Equity Page] Page ${page}: Fetched ${response.data.length} funds (Total: ${allEquityFunds.length})`
             );
 
-            // Continue fetching if we got a full page (2500 funds)
-            // This means there might be more data
-            if (response.data.length === 2500) {
-              page++;
-            } else if (
+            // Check pagination flags to see if there are more pages
+            if (
               response.pagination &&
-              (response.pagination.hasMore || response.pagination.hasNext)
+              (response.pagination.hasMore ||
+                response.pagination.hasNext ||
+                response.pagination.hasNextPage)
             ) {
               page++;
             } else {
+              // No more pages available
               hasMore = false;
             }
           } else {
