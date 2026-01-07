@@ -253,7 +253,9 @@ export const searchFunds = async (query: string): Promise<Fund[]> => {
       return [];
     }
 
-    const url = `${API_BASE_URL}/api/search/suggest?query=${encodeURIComponent(query)}`;
+    const url = `${API_BASE_URL}/api/search/suggest?query=${encodeURIComponent(
+      query
+    )}`;
 
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Searching funds:', url);
@@ -444,6 +446,48 @@ export const checkOverlap = async (fundIds: string[]): Promise<any> => {
     return data;
   } catch (error) {
     console.error('❌ Error checking overlap:', error);
+    throw error;
+  }
+};
+
+/**
+ * Fetch ALL funds without pagination (for category pages)
+ * Returns complete dataset - 4000-8000+ funds
+ *
+ * @param category - Fund category (equity, debt, etc.)
+ * @param subcategory - Fund subcategory (Large Cap, etc.)
+ * @returns Promise with all funds (no pagination)
+ */
+export const fetchAllFunds = async (
+  category?: string,
+  subcategory?: string
+): Promise<{ success: boolean; data: Fund[]; count: number }> => {
+  try {
+    const params = new URLSearchParams();
+
+    if (category) {
+      params.append('category', normalizeCategory(category));
+    }
+    if (subcategory) {
+      params.append('subcategory', normalizeSubCategory(subcategory));
+    }
+
+    const url = `${API_BASE_URL}/api/funds/all?${params.toString()}`;
+
+    console.log(`🔄 Fetching ALL funds (no pagination)...`);
+
+    const response = await fetch(url, { cache: 'no-store' });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    console.log(`✅ Fetched ${data.count} funds (NO LIMIT)`);
+
+    return data;
+  } catch (error) {
+    console.error('❌ Error fetching all funds:', error);
     throw error;
   }
 };
