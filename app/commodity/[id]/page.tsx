@@ -49,8 +49,6 @@ import {
   Briefcase,
   GraduationCap,
   Calendar,
-  Target,
-  TrendingUpDown,
   AlertCircle,
   CheckCircle2,
 } from 'lucide-react';
