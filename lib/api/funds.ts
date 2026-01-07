@@ -301,6 +301,8 @@ export const checkBackendHealth = async (): Promise<boolean> => {
       headers: {
         'Content-Type': 'application/json',
       },
+      // Add timeout for better error handling
+      signal: AbortSignal.timeout(5000), // 5 second timeout
     });
 
     const isHealthy = response.ok;
@@ -313,7 +315,14 @@ export const checkBackendHealth = async (): Promise<boolean> => {
 
     return isHealthy;
   } catch (error) {
-    console.error('❌ Backend health check failed:', error);
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(
+        '❌ Backend health check failed:',
+        error instanceof Error ? error.message : 'Network error'
+      );
+      console.warn(`   API URL: ${API_BASE_URL}/health`);
+      console.warn('   Make sure backend is running on port 3002');
+    }
     return false;
   }
 };

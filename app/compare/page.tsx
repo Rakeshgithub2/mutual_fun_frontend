@@ -92,7 +92,10 @@ export default function ComparePage() {
                   ...fund,
                   exitLoad: data.exitLoad || 'N/A',
                   benchmark: data.benchmark || data.category || 'N/A',
-                  fundManager: data.fundManager || 'Not Available',
+                  fundManager:
+                    typeof data.fundManager === 'object'
+                      ? data.fundManager?.name || 'Not Available'
+                      : data.fundManager || 'Not Available',
                   minInvestment: data.minInvestment || 5000,
                   minSIP: data.minSIP || 500,
                   inceptionDate: data.inceptionDate || 'N/A',

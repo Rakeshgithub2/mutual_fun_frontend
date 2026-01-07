@@ -8,16 +8,15 @@ import { useFunds } from '@/hooks/use-funds';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, X, ArrowLeft } from 'lucide-react';
+import { Loader2, Search, X, ArrowLeft, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 function DebtFundsPageContent() {
   const searchParams = useSearchParams();
   const [category, setCategory] = useState('');
-  const [limitFilter, setLimitFilter] = useState<
-    'top20' | 'top50' | 'top100' | 'all'
-  >('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [displayLimit, setDisplayLimit] = useState(500); // Start with 500 funds to show more
+  // ✅ NO LIMIT FILTERS: Show ALL funds
   const [showSuggestions, setShowSuggestions] = useState(false);
   const language = 'en'; // Default language
 
@@ -37,23 +36,25 @@ function DebtFundsPageContent() {
     {
       label: 'Liquid Funds',
       value: 'liquid',
-      keywords: ['liquid', 'overnight', 'ultra short', 'money market', 'cash'],
+      keywords: ['liquid', 'overnight', 'ultrashort', 'moneymarket', 'cash'],
     },
     {
       label: 'Short Duration',
-      value: 'short-duration',
+      value: 'shortduration',
       keywords: [
+        'shortduration',
         'short duration',
         'short term',
-        'low duration',
-        'short maturity',
+        'lowduration',
+        'shortmaturity',
         'short',
       ],
     },
     {
       label: 'Corporate Bond',
-      value: 'corporate-bond',
+      value: 'corporatebond',
       keywords: [
+        'corporatebond',
         'corporate bond',
         'corporate debt',
         'corporate',
@@ -62,20 +63,21 @@ function DebtFundsPageContent() {
     },
     {
       label: 'Banking & PSU',
-      value: 'banking-psu',
+      value: 'bankingpsu',
       keywords: [
+        'bankingpsu',
         'banking',
         'psu',
-        'banking & psu',
-        'banking and psu',
+        'banking psu',
         'public sector',
         'bank',
       ],
     },
     {
       label: 'Dynamic Bond',
-      value: 'dynamic-bond',
+      value: 'dynamicbond',
       keywords: [
+        'dynamicbond',
         'dynamic bond',
         'dynamic debt',
         'income',
@@ -87,13 +89,14 @@ function DebtFundsPageContent() {
     },
   ];
 
-  // Fetch all funds - increased limit to get 1000+
+  // Fetch all debt funds with pagination to get 200+ per subcategory
   const {
     funds: allFunds,
     loading,
     error,
   } = useFunds({
-    limit: 3000, // Fetch 3000 funds to ensure 2000+ after minimal filtering
+    category: 'debt', // Filter by debt category on the backend
+    limit: 5000, // Fetch all debt funds with multi-page strategy
   });
 
   // Log for debugging
@@ -125,21 +128,30 @@ function DebtFundsPageContent() {
   // Transform funds to match FundList expected format - NO DEDUPLICATION
   const transformedFunds = useMemo(() => {
     const mapped = allFunds.map((fund) => ({
-      id: fund.id || fund.fundId,
-      name: fund.name,
-      fundHouse: fund.fundHouse,
+      id: fund.schemeCode || fund.id || fund.fundId,
+      schemeCode: fund.schemeCode,
+      name: fund.schemeName || fund.name,
+      fundHouse: fund.amc?.name || fund.amcName || fund.fundHouse,
       category: fund.category,
       subCategory: fund.subCategory,
-      nav: fund.currentNav || 0,
-      returns1Y: fund.returns?.oneYear || 0,
-      returns3Y: fund.returns?.threeYear || 0,
-      returns5Y: fund.returns?.fiveYear || 0,
-      aum: fund.aum || 0,
-      expenseRatio: fund.expenseRatio || 0,
+      nav: fund.nav?.value || fund.currentNav || fund.nav || 0,
+      returns1Y:
+        fund.returns?.['1Y'] || fund.returns?.oneYear || fund.returns1Y || 0,
+      returns3Y:
+        fund.returns?.['3Y'] || fund.returns?.threeYear || fund.returns3Y || 0,
+      returns5Y:
+        fund.returns?.['5Y'] || fund.returns?.fiveYear || fund.returns5Y || 0,
+      aum: fund.aum?.value || fund.aum || 0,
+      expenseRatio: fund.expenseRatio?.value || fund.expenseRatio || 0,
       rating: fund.rating || 0,
     }));
 
-    console.log('✅ [Debt Page] Total transformed funds:', mapped.length);
+    // ✅ NO DEDUPLICATION: Show all plan variations
+    // Display Direct, Regular, Growth, Dividend, IDCW - all variations
+    console.log(
+      '✅ [Debt Page] Total transformed funds (all plan variations):',
+      mapped.length
+    );
 
     return mapped;
   }, [allFunds]);
@@ -205,17 +217,18 @@ function DebtFundsPageContent() {
       });
     }
 
-    // Step 4: Apply limit filter
-    if (limitFilter === 'top20') {
-      filtered = filtered.slice(0, 20);
-    } else if (limitFilter === 'top50') {
-      filtered = filtered.slice(0, 50);
-    } else if (limitFilter === 'top100') {
-      filtered = filtered.slice(0, 100);
-    }
-
+    // ✅ NO LIMITS: Show all filtered funds
+    console.log('✅ [Debt Page] Displaying ALL funds:', filtered.length);
     return filtered;
-  }, [transformedFunds, category, searchQuery, limitFilter, categories]);
+  }, [transformedFunds, category, searchQuery, categories]);
+
+  // Paginated funds to display
+  const displayedFunds = useMemo(() => {
+    return filteredFunds.slice(0, displayLimit);
+  }, [filteredFunds, displayLimit]);
+
+  const hasMoreFunds = displayLimit < filteredFunds.length;
+  const remainingFunds = filteredFunds.length - displayLimit;
 
   // Search suggestions
   const searchSuggestions = useMemo(() => {
@@ -251,12 +264,7 @@ function DebtFundsPageContent() {
     );
   };
 
-  const limitFilters = [
-    { label: 'Top 20', value: 'top20' as const },
-    { label: 'Top 50', value: 'top50' as const },
-    { label: 'Top 100', value: 'top100' as const },
-    { label: 'All Funds', value: 'all' as const },
-  ];
+  // ✅ NO LIMIT FILTERS: Removed Top 20/50/100/All - showing ALL funds
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -310,26 +318,6 @@ function DebtFundsPageContent() {
                   className="whitespace-nowrap"
                 >
                   {cat.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Top 20/50/100/All Filter */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Show
-            </p>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {limitFilters.map((filter) => (
-                <Button
-                  key={filter.value}
-                  onClick={() => setLimitFilter(filter.value)}
-                  variant={limitFilter === filter.value ? 'default' : 'outline'}
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  {filter.label}
                 </Button>
               ))}
             </div>
@@ -405,8 +393,15 @@ function DebtFundsPageContent() {
 
           {/* Results Count */}
           {!loading && (
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Showing {filteredFunds.length} of {transformedFunds.length} funds
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <span>
+                Showing {displayedFunds.length} of {filteredFunds.length} funds
+              </span>
+              {hasMoreFunds && (
+                <span className="text-green-600 dark:text-green-400 font-semibold">
+                  +{remainingFunds} more available
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -430,7 +425,7 @@ function DebtFundsPageContent() {
         {/* Funds List */}
         {!loading && !error && (
           <>
-            <FundList funds={filteredFunds} language={language} />
+            <FundList funds={displayedFunds} language={language} />
 
             {filteredFunds.length === 0 && (
               <Card className="p-12 text-center">
@@ -438,6 +433,37 @@ function DebtFundsPageContent() {
                   No debt funds found matching your criteria.
                 </p>
               </Card>
+            )}
+
+            {/* Load Next 200 Button */}
+            {hasMoreFunds && (
+              <div className="mt-8 text-center space-y-4">
+                <Button
+                  onClick={() =>
+                    setDisplayLimit((prev) =>
+                      Math.min(prev + 200, filteredFunds.length)
+                    )
+                  }
+                  size="lg"
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+                >
+                  Load Next 200 Funds
+                  <ChevronDown className="ml-2 w-5 h-5" />
+                </Button>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {displayedFunds.length} of {filteredFunds.length}{' '}
+                  funds • {remainingFunds} more available
+                </p>
+              </div>
+            )}
+
+            {/* All Funds Loaded Message */}
+            {!hasMoreFunds && filteredFunds.length > 0 && (
+              <div className="mt-8 text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-green-700 dark:text-green-400 font-medium">
+                  ✓ All {filteredFunds.length} funds loaded
+                </p>
+              </div>
             )}
           </>
         )}

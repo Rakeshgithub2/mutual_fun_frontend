@@ -23,11 +23,12 @@ export function Footer() {
   const aboutLinks = [
     { name: 'About Us', href: '/about', icon: Info },
     { name: 'How It Works', href: '/how-it-works', icon: Workflow },
-    { name: 'Data Sources', href: '/data-sources', icon: Database },
+    { name: 'Data Source', href: '/data-source', icon: Database },
   ];
 
   const supportLinks = [
     { name: 'Help / FAQs', href: '/help', icon: HelpCircle },
+    { name: 'Contact Us', href: '/contact', icon: Mail },
   ];
 
   return (
@@ -50,14 +51,25 @@ export function Footer() {
               investment decisions with powerful tools and insights.
             </p>
             {/* Contact */}
-            <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-              <Mail className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
-              <a
-                href="mailto:rakeshd01042024@gmail.com"
-                className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                rakeshd01042024@gmail.com
-              </a>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <Mail className="w-4 h-4 mt-0.5 flex-shrink-0 text-blue-600" />
+                <a
+                  href="mailto:rakeshd01042024@gmail.com"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  rakeshd01042024@gmail.com
+                </a>
+              </div>
+              <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
+                <span className="text-blue-600">📱</span>
+                <a
+                  href="tel:+919740104978"
+                  className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  +91 9740104978
+                </a>
+              </div>
             </div>
           </div>
 
@@ -118,15 +130,6 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
-              <li>
-                <Link
-                  href="/feedback"
-                  className="text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2"
-                >
-                  <Mail className="w-4 h-4" />
-                  Contact Us
-                </Link>
-              </li>
             </ul>
           </div>
         </div>

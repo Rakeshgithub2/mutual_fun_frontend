@@ -10,16 +10,15 @@ import { useFunds } from '@/hooks/use-funds';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, X, ArrowLeft } from 'lucide-react';
+import { Loader2, Search, X, ArrowLeft, ChevronDown } from 'lucide-react';
 
 function CommodityPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [subCategory, setSubCategory] = useState('');
-  const [limitFilter, setLimitFilter] = useState<
-    'top20' | 'top50' | 'top100' | 'all'
-  >('all'); // Default to 'all' to show all funds
   const [searchQuery, setSearchQuery] = useState('');
+  const [displayLimit, setDisplayLimit] = useState(500); // Start with 500 funds to show more
+  // ✅ NO LIMIT FILTERS: Show ALL funds
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [page, setPage] = useState(1);
   const language = 'en'; // Default language
@@ -45,16 +44,60 @@ function CommodityPageContent() {
     },
   ];
 
-  // Fetch all funds without category filter to find commodity funds
-  // We'll filter on the client side for commodity-related funds
-  // ✅ PRODUCTION-SAFE: Using multi-page fetch strategy
-  const {
-    funds: allFunds,
-    loading,
-    error,
-  } = useFunds({
-    limit: 3000, // Multi-page fetch: 30 pages × 100 = 3000 funds
-  });
+  // ✅ FIX: Use search API for commodity funds since they're not in a specific category
+  // Commodity funds are classified as "equity" (Gold/Silver ETFs) or "other" in the database
+  const [allFunds, setAllFunds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  // Fetch commodity funds using search keywords
+  useEffect(() => {
+    async function fetchCommodityFunds() {
+      setLoading(true);
+      setError(null);
+      try {
+        const apiUrl =
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
+
+        // Search for gold, silver, and commodity funds
+        const searchQueries = ['gold', 'silver', 'commodity'];
+        const allResults: any[] = [];
+
+        for (const query of searchQueries) {
+          const response = await fetch(
+            `${apiUrl}/api/funds/search?q=${query}&limit=2500`
+          );
+          const data = await response.json();
+          if (data.success && data.data) {
+            allResults.push(...data.data);
+          }
+        }
+
+        // Remove duplicates based on schemeCode
+        const uniqueFunds = allResults.reduce((acc: any[], fund: any) => {
+          const exists = acc.find((f) => f.schemeCode === fund.schemeCode);
+          if (!exists) {
+            acc.push(fund);
+          }
+          return acc;
+        }, []);
+
+        console.log(
+          '✅ [Commodity Page] Fetched',
+          uniqueFunds.length,
+          'unique commodity funds'
+        );
+        setAllFunds(uniqueFunds);
+      } catch (err) {
+        console.error('❌ [Commodity Page] Error:', err);
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCommodityFunds();
+  }, []);
 
   // Log error details for debugging
   useEffect(() => {
@@ -116,7 +159,7 @@ function CommodityPageContent() {
       // Combine all searchable text
       const searchText = `${name} ${category} ${subCat} ${fundType} ${schemeName}`;
 
-      // Comprehensive commodity keywords
+      // Comprehensive commodity keywords - all lowercase, no spaces
       const commodityKeywords = [
         'commodity',
         'commodities',
@@ -126,19 +169,19 @@ function CommodityPageContent() {
         'palladium',
         'metal',
         'metals',
-        'precious metal',
+        'preciousmetal',
         'bullion',
-        'etf gold',
-        'gold etf',
-        'etf silver',
-        'silver etf',
-        'gold fund',
-        'silver fund',
-        'gold savings',
-        'gold exchange',
-        'gold deposit',
-        'mcx', // Multi Commodity Exchange
-        'ncdex', // National Commodity Exchange
+        'etfgold',
+        'goldetf',
+        'etfsilver',
+        'silveretf',
+        'goldfund',
+        'silverfund',
+        'goldsavings',
+        'goldexchange',
+        'golddeposit',
+        'mcx',
+        'ncdex',
       ];
 
       // Check if any commodity keyword is present
@@ -154,6 +197,13 @@ function CommodityPageContent() {
       commodityFunds.length
     );
 
+    // ✅ NO DEDUPLICATION: Show all plan variations
+    // Display Direct, Regular, Growth, Dividend, IDCW - all variations
+    console.log(
+      '📦 [Commodity Page] Total funds (all plan variations):',
+      commodityFunds.length
+    );
+
     // Log a sample of found funds to verify
     if (commodityFunds.length > 0) {
       console.log(
@@ -164,17 +214,21 @@ function CommodityPageContent() {
 
     // API already returns commodity funds, just transform them
     return commodityFunds.map((fund) => ({
-      id: fund.id || fund.fundId,
-      name: fund.name,
-      fundHouse: fund.fundHouse,
+      id: fund.schemeCode || fund.id || fund.fundId,
+      schemeCode: fund.schemeCode,
+      name: fund.schemeName || fund.name,
+      fundHouse: fund.amc?.name || fund.amcName || fund.fundHouse,
       category: fund.category,
       subCategory: fund.subCategory,
-      nav: fund.currentNav || 0,
-      returns1Y: fund.returns?.oneYear || 0,
-      returns3Y: fund.returns?.threeYear || 0,
-      returns5Y: fund.returns?.fiveYear || 0,
-      aum: fund.aum || 0,
-      expenseRatio: fund.expenseRatio || 0,
+      nav: fund.nav?.value || fund.currentNav || fund.nav || 0,
+      returns1Y:
+        fund.returns?.['1Y'] || fund.returns?.oneYear || fund.returns1Y || 0,
+      returns3Y:
+        fund.returns?.['3Y'] || fund.returns?.threeYear || fund.returns3Y || 0,
+      returns5Y:
+        fund.returns?.['5Y'] || fund.returns?.fiveYear || fund.returns5Y || 0,
+      aum: fund.aum?.value || fund.aum || 0,
+      expenseRatio: fund.expenseRatio?.value || fund.expenseRatio || 0,
       rating: fund.rating || 0,
     }));
   }, [allFunds]);
@@ -188,7 +242,6 @@ function CommodityPageContent() {
       filtered.length
     );
     console.log('🎯 [Commodity Page] SubCategory filter:', subCategory);
-    console.log('🎯 [Commodity Page] Limit filter:', limitFilter);
 
     // Filter by subcategory (Gold, Silver, Multi Commodity)
     if (subCategory) {
@@ -255,19 +308,18 @@ function CommodityPageContent() {
       return returnB - returnA;
     });
 
-    // Apply limit filter after sorting
-    if (limitFilter === 'top20') {
-      filtered = filtered.slice(0, 20);
-    } else if (limitFilter === 'top50') {
-      filtered = filtered.slice(0, 50);
-    } else if (limitFilter === 'top100') {
-      filtered = filtered.slice(0, 100);
-    }
-    // 'all' means no limit
-
-    console.log('✅ [Commodity Page] Final filtered count:', filtered.length);
+    // ✅ NO LIMITS: Show all filtered funds (sorted by performance)
+    console.log('✅ [Commodity Page] Displaying ALL funds:', filtered.length);
     return filtered;
-  }, [transformedFunds, searchQuery, limitFilter, subCategory]);
+  }, [transformedFunds, searchQuery, subCategory]);
+
+  // Paginated funds to display
+  const displayedFunds = useMemo(() => {
+    return filteredFunds.slice(0, displayLimit);
+  }, [filteredFunds, displayLimit]);
+
+  const hasMoreFunds = displayLimit < filteredFunds.length;
+  const remainingFunds = filteredFunds.length - displayLimit;
 
   // Search suggestions
   const searchSuggestions = useMemo(() => {
@@ -287,12 +339,7 @@ function CommodityPageContent() {
     );
   };
 
-  const limitFilters = [
-    { label: 'Top 20', value: 'top20' as const },
-    { label: 'Top 50', value: 'top50' as const },
-    { label: 'Top 100', value: 'top100' as const },
-    { label: 'All Funds', value: 'all' as const },
-  ];
+  // ✅ NO LIMIT FILTERS: Removed Top 20/50/100/All - showing ALL funds
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
@@ -412,33 +459,17 @@ function CommodityPageContent() {
             </div>
           </div>
 
-          {/* Top 20/50/100/All Filter */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-              Show
-            </p>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {limitFilters.map((filter) => (
-                <Button
-                  key={filter.value}
-                  onClick={() => {
-                    setLimitFilter(filter.value);
-                    setPage(1);
-                  }}
-                  variant={limitFilter === filter.value ? 'default' : 'outline'}
-                  size="sm"
-                  className="whitespace-nowrap"
-                >
-                  {filter.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
           {/* Results Count */}
           {!loading && (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              Showing {filteredFunds.length} of {transformedFunds.length} funds
+            <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <span>
+                Showing {displayedFunds.length} of {filteredFunds.length} funds
+              </span>
+              {hasMoreFunds && (
+                <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                  +{remainingFunds} more available
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -483,7 +514,7 @@ function CommodityPageContent() {
         {/* Funds List */}
         {!loading && !error && (
           <>
-            <FundList funds={filteredFunds} language={language} />
+            <FundList funds={displayedFunds} language={language} />
 
             {filteredFunds.length === 0 && (
               <Card className="p-12 text-center">
@@ -491,6 +522,37 @@ function CommodityPageContent() {
                   No commodity funds found matching your criteria.
                 </p>
               </Card>
+            )}
+
+            {/* Load Next 200 Button */}
+            {hasMoreFunds && (
+              <div className="mt-8 text-center space-y-4">
+                <Button
+                  onClick={() =>
+                    setDisplayLimit((prev) =>
+                      Math.min(prev + 200, filteredFunds.length)
+                    )
+                  }
+                  size="lg"
+                  className="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700 text-white font-bold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+                >
+                  Load Next 200 Funds
+                  <ChevronDown className="ml-2 w-5 h-5" />
+                </Button>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {displayedFunds.length} of {filteredFunds.length}{' '}
+                  funds • {remainingFunds} more available
+                </p>
+              </div>
+            )}
+
+            {/* All Funds Loaded Message */}
+            {!hasMoreFunds && filteredFunds.length > 0 && (
+              <div className="mt-8 text-center p-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
+                <p className="text-amber-700 dark:text-amber-400 font-medium">
+                  ✓ All {filteredFunds.length} funds loaded
+                </p>
+              </div>
             )}
           </>
         )}

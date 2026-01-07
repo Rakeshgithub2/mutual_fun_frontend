@@ -3,7 +3,7 @@
  *
  * Backend uses:
  * - Categories: lowercase (equity, debt, hybrid, etc.)
- * - SubCategories: Title Case with spaces (Large Cap, Mid Cap, etc.)
+ * - SubCategories: lowercase without spaces (largecap, midcap, smallcap, etc.)
  *
  * This utility ensures frontend sends data in the correct format.
  */
@@ -25,129 +25,77 @@ export const normalizeCategory = (category: string): string => {
 };
 
 /**
- * Normalize subcategory to backend format (Title Case with spaces)
+ * Normalize subcategory to backend format (lowercase without spaces)
  *
  * @param subCategory - SubCategory string in any format
- * @returns Title Case subcategory with proper spacing
+ * @returns Lowercase subcategory without spaces
  *
  * @example
- * normalizeSubCategory('LARGE_CAP') // 'Large Cap'
- * normalizeSubCategory('LargeCap') // 'Large Cap'
- * normalizeSubCategory('large cap') // 'Large Cap'
- * normalizeSubCategory('Large Cap') // 'Large Cap' (unchanged)
+ * normalizeSubCategory('LARGE_CAP') // 'largecap'
+ * normalizeSubCategory('LargeCap') // 'largecap'
+ * normalizeSubCategory('large cap') // 'largecap'
+ * normalizeSubCategory('Large Cap') // 'largecap'
  */
 export const normalizeSubCategory = (subCategory: string): string => {
   if (!subCategory) return '';
 
-  // Backend expected subcategories - return as-is if match
+  // Backend expected subcategories - convert to lowercase no spaces
   const validSubCategories = [
-    'Large Cap',
-    'Mid Cap',
-    'Small Cap',
-    'Flexi Cap',
-    'Multi Cap',
-    'Large & Mid Cap',
-    'Sectoral/Thematic',
-    'Focused',
-    'Value',
-    'Contra',
-    'Dividend Yield',
-    'Liquid',
-    'Overnight',
-    'Ultra Short Duration',
-    'Low Duration',
-    'Money Market',
-    'Short Duration',
-    'Medium Duration',
-    'Medium to Long Duration',
-    'Long Duration',
-    'Dynamic Bond',
-    'Corporate Bond',
-    'Credit Risk',
-    'Banking & PSU',
-    'Gilt',
-    'Floater',
-    'Conservative Hybrid',
-    'Balanced Hybrid',
-    'Aggressive Hybrid',
-    'Dynamic Asset Allocation',
-    'Multi Asset Allocation',
-    'Arbitrage',
-    'Equity Savings',
-    'Gold',
-    'Silver',
-    'Fund of Funds - Domestic',
-    'Fund of Funds - Overseas',
-    'Index',
-    'Tax Saving',
-    'Retirement',
+    'largecap',
+    'midcap',
+    'smallcap',
+    'flexicap',
+    'multicap',
+    'largeandmidcap',
+    'sectoralthematic',
+    'focused',
+    'value',
+    'contra',
+    'dividendyield',
+    'liquid',
+    'overnight',
+    'ultrashortduration',
+    'lowduration',
+    'moneymarket',
+    'shortduration',
+    'mediumduration',
+    'mediumtolongduration',
+    'longduration',
+    'dynamicbond',
+    'corporatebond',
+    'creditrisk',
+    'bankingandpsu',
+    'gilt',
+    'floater',
+    'conservativehybrid',
+    'balancedhybrid',
+    'aggressivehybrid',
+    'dynamicassetallocation',
+    'multiassetallocation',
+    'arbitrage',
+    'equitysavings',
+    'gold',
+    'silver',
+    'fundoffundsdomestic',
+    'fundoffundsoverseas',
+    'index',
+    'taxsaving',
+    'retirement',
   ];
 
-  // Check if already in valid format
-  if (validSubCategories.includes(subCategory)) {
-    return subCategory;
-  }
-
-  // Handle special cases first
-  const specialCases: Record<string, string> = {
-    large_cap: 'Large Cap',
-    mid_cap: 'Mid Cap',
-    small_cap: 'Small Cap',
-    flexi_cap: 'Flexi Cap',
-    multi_cap: 'Multi Cap',
-    large_and_mid_cap: 'Large & Mid Cap',
-    'large_&_mid_cap': 'Large & Mid Cap',
-    sectoral_thematic: 'Sectoral/Thematic',
-    'sectoral/thematic': 'Sectoral/Thematic',
-    dividend_yield: 'Dividend Yield',
-    ultra_short_duration: 'Ultra Short Duration',
-    low_duration: 'Low Duration',
-    money_market: 'Money Market',
-    short_duration: 'Short Duration',
-    medium_duration: 'Medium Duration',
-    medium_to_long_duration: 'Medium to Long Duration',
-    long_duration: 'Long Duration',
-    dynamic_bond: 'Dynamic Bond',
-    corporate_bond: 'Corporate Bond',
-    credit_risk: 'Credit Risk',
-    'banking_&_psu': 'Banking & PSU',
-    banking_and_psu: 'Banking & PSU',
-    conservative_hybrid: 'Conservative Hybrid',
-    balanced_hybrid: 'Balanced Hybrid',
-    aggressive_hybrid: 'Aggressive Hybrid',
-    dynamic_asset_allocation: 'Dynamic Asset Allocation',
-    multi_asset_allocation: 'Multi Asset Allocation',
-    equity_savings: 'Equity Savings',
-    fund_of_funds_domestic: 'Fund of Funds - Domestic',
-    fund_of_funds_overseas: 'Fund of Funds - Overseas',
-    tax_saving: 'Tax Saving',
-  };
-
-  const lowerKey = subCategory.toLowerCase().replace(/\s+/g, '_');
-  if (specialCases[lowerKey]) {
-    return specialCases[lowerKey];
-  }
-
-  // Generic transformation
-  // LARGE_CAP -> Large Cap
-  // LargeCap -> Large Cap
-  // large cap -> Large Cap
-  return subCategory
-    .replace(/_/g, ' ') // LARGE_CAP -> LARGE CAP
-    .replace(/([A-Z])/g, ' $1') // LargeCap -> Large Cap
-    .trim()
-    .split(/\s+/)
-    .map((word) => {
-      // Handle special lowercase words
-      if (['and', 'of', 'to'].includes(word.toLowerCase()) && word.length > 2) {
-        return word.toLowerCase();
-      }
-      // Capitalize first letter
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-    })
-    .join(' ')
-    .replace(/\s+/g, ' ') // Normalize spaces
+  // Normalize: lowercase and remove all spaces/underscores
+  const normalized = subCategory
+    .toLowerCase()
+    .replace(/[\s_\-&\/]/g, '')
     .trim();
+
+  // Check if it matches a valid subcategory
+  if (validSubCategories.includes(normalized)) {
+    return normalized;
+  }
+
+  // Return normalized version anyway
+  return normalized;
 };
 
 /**
@@ -226,56 +174,116 @@ export const getAllCategories = () => {
  * Get subcategories for a specific category
  *
  * @param category - Category to get subcategories for
- * @returns Array of valid subcategories
+ * @returns Array of valid subcategories in lowercase format
  */
 export const getSubCategoriesForCategory = (category: string): string[] => {
   const subCategoriesByCategory: Record<string, string[]> = {
     equity: [
-      'Large Cap',
-      'Mid Cap',
-      'Small Cap',
-      'Flexi Cap',
-      'Multi Cap',
-      'Large & Mid Cap',
-      'Sectoral/Thematic',
-      'Focused',
-      'Value',
-      'Contra',
-      'Dividend Yield',
+      'largecap',
+      'midcap',
+      'smallcap',
+      'flexicap',
+      'multicap',
+      'largeandmidcap',
+      'sectoralthematic',
+      'focused',
+      'value',
+      'contra',
+      'dividendyield',
     ],
     debt: [
-      'Liquid',
-      'Overnight',
-      'Ultra Short Duration',
-      'Low Duration',
-      'Money Market',
-      'Short Duration',
-      'Medium Duration',
-      'Medium to Long Duration',
-      'Long Duration',
-      'Dynamic Bond',
-      'Corporate Bond',
-      'Credit Risk',
-      'Banking & PSU',
-      'Gilt',
-      'Floater',
+      'liquid',
+      'overnight',
+      'ultrashortduration',
+      'lowduration',
+      'moneymarket',
+      'shortduration',
+      'mediumduration',
+      'mediumtolongduration',
+      'longduration',
+      'dynamicbond',
+      'corporatebond',
+      'creditrisk',
+      'bankingandpsu',
+      'gilt',
+      'floater',
     ],
     hybrid: [
-      'Conservative Hybrid',
-      'Balanced Hybrid',
-      'Aggressive Hybrid',
-      'Dynamic Asset Allocation',
-      'Multi Asset Allocation',
-      'Arbitrage',
-      'Equity Savings',
+      'conservativehybrid',
+      'balancedhybrid',
+      'aggressivehybrid',
+      'dynamicassetallocation',
+      'multiassetallocation',
+      'arbitrage',
+      'equitysavings',
     ],
-    commodity: ['Gold', 'Silver'],
-    etf: ['Index'],
-    index: ['Index'],
-    elss: ['Tax Saving'],
-    solution_oriented: ['Retirement'],
-    international: ['Fund of Funds - Overseas'],
+    commodity: ['gold', 'silver'],
+    etf: ['index'],
+    index: ['index'],
+    elss: ['taxsaving'],
+    solution_oriented: ['retirement'],
+    international: ['fundoffundsoverseas'],
   };
 
   return subCategoriesByCategory[category.toLowerCase()] || [];
+};
+
+/**
+ * Get display name for subcategory (for UI display)
+ *
+ * @param subCategory - Subcategory string
+ * @returns Display name with proper formatting
+ *
+ * @example
+ * getSubCategoryDisplayName('largecap') // 'Large Cap'
+ * getSubCategoryDisplayName('midcap') // 'Mid Cap'
+ */
+export const getSubCategoryDisplayName = (subCategory: string): string => {
+  if (!subCategory) return '';
+
+  const displayNames: Record<string, string> = {
+    largecap: 'Large Cap',
+    midcap: 'Mid Cap',
+    smallcap: 'Small Cap',
+    flexicap: 'Flexi Cap',
+    multicap: 'Multi Cap',
+    largeandmidcap: 'Large & Mid Cap',
+    sectoralthematic: 'Sectoral/Thematic',
+    focused: 'Focused',
+    value: 'Value',
+    contra: 'Contra',
+    dividendyield: 'Dividend Yield',
+    liquid: 'Liquid',
+    overnight: 'Overnight',
+    ultrashortduration: 'Ultra Short Duration',
+    lowduration: 'Low Duration',
+    moneymarket: 'Money Market',
+    shortduration: 'Short Duration',
+    mediumduration: 'Medium Duration',
+    mediumtolongduration: 'Medium to Long Duration',
+    longduration: 'Long Duration',
+    dynamicbond: 'Dynamic Bond',
+    corporatebond: 'Corporate Bond',
+    creditrisk: 'Credit Risk',
+    bankingandpsu: 'Banking & PSU',
+    gilt: 'Gilt',
+    floater: 'Floater',
+    conservativehybrid: 'Conservative Hybrid',
+    balancedhybrid: 'Balanced Hybrid',
+    aggressivehybrid: 'Aggressive Hybrid',
+    dynamicassetallocation: 'Dynamic Asset Allocation',
+    multiassetallocation: 'Multi Asset Allocation',
+    arbitrage: 'Arbitrage',
+    equitysavings: 'Equity Savings',
+    gold: 'Gold',
+    silver: 'Silver',
+    index: 'Index',
+    taxsaving: 'Tax Saving',
+    retirement: 'Retirement',
+    fundoffundsoverseas: 'Fund of Funds - Overseas',
+    fundoffundsdomestic: 'Fund of Funds - Domestic',
+  };
+
+  const normalized = subCategory.toLowerCase().replace(/[\s_\-&\/]/g, '');
+  return displayNames[normalized] || subCategory;
 };

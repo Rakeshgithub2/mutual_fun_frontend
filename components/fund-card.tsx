@@ -13,6 +13,7 @@ import { Bookmark, TrendingUp, TrendingDown, GitCompare } from 'lucide-react';
 
 interface FundCardProps {
   id: string;
+  schemeCode?: string;
   name: string;
   fundHouse: string;
   category: string;
@@ -28,6 +29,7 @@ interface FundCardProps {
 
 export function FundCard({
   id,
+  schemeCode,
   name,
   fundHouse,
   category,
@@ -243,7 +245,7 @@ export function FundCard({
         {/* Actions - Enhanced */}
         <div className="space-y-2">
           <Link
-            href={`/${category.toLowerCase()}/${id}`}
+            href={`/${category.toLowerCase()}/${schemeCode || id}`}
             className="block w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-3 text-center text-sm font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
           >
             {t('fund.viewDetails')}

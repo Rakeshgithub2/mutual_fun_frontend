@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
@@ -70,14 +71,18 @@ export default function ResetPasswordPage() {
 
       console.log('✅ Password reset successful:', data);
       setSuccess(true);
+      toast.success('Password updated successfully! Redirecting...');
 
-      // Redirect to login page after 2 seconds
+      // Redirect to home page after 3 seconds
       setTimeout(() => {
-        router.push('/auth/login');
-      }, 2000);
+        router.push('/');
+      }, 3000);
     } catch (err: any) {
       console.error('❌ Reset password error:', err);
-      setError(err.message || 'Failed to reset password. Please try again.');
+      const errorMessage =
+        err.message || 'Failed to reset password. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -129,9 +134,17 @@ export default function ResetPasswordPage() {
 
           {/* Success Message */}
           {success && (
-            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <p className="text-green-800 dark:text-green-300 text-sm">
-                ✓ Password reset successful! Redirecting to login...
+            <div className="mb-6 p-6 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-800 rounded-xl text-center">
+              <div className="flex justify-center mb-3">
+                <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
+                  <span className="text-2xl">✓</span>
+                </div>
+              </div>
+              <p className="text-green-800 dark:text-green-300 font-bold text-lg mb-2">
+                Password Updated Successfully!
+              </p>
+              <p className="text-green-700 dark:text-green-400 text-sm">
+                Redirecting to home page...
               </p>
             </div>
           )}
@@ -214,8 +227,8 @@ export default function ResetPasswordPage() {
               {loading
                 ? 'Resetting...'
                 : success
-                  ? 'Success!'
-                  : 'Reset Password'}
+                ? 'Success!'
+                : 'Reset Password'}
             </Button>
           </form>
 

@@ -88,18 +88,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return;
 
-    const refreshInterval = setInterval(
-      async () => {
-        try {
-          await refreshAccessToken();
-        } catch (error) {
-          console.error('Auto token refresh failed:', error);
-          // If refresh fails, logout user
-          await logout();
-        }
-      },
-      14 * 60 * 1000
-    ); // Refresh every 14 minutes (access token expires in 15 minutes)
+    const refreshInterval = setInterval(async () => {
+      try {
+        await refreshAccessToken();
+      } catch (error) {
+        console.error('Auto token refresh failed:', error);
+        // If refresh fails, logout user
+        await logout();
+      }
+    }, 14 * 60 * 1000); // Refresh every 14 minutes (access token expires in 15 minutes)
 
     return () => clearInterval(refreshInterval);
   }, [user]);
@@ -107,19 +104,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (idToken: string) => {
     try {
       console.log('[Auth Context] Login with Google token initiated...');
+      console.log('[Auth Context] API_BASE_URL:', API_BASE_URL);
+      console.log('[Auth Context] Token length:', idToken?.length);
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/auth/google`, {
+      const url = `${API_BASE_URL}/api/auth/google`;
+      console.log('[Auth Context] Fetching:', url);
+
+      const response = await fetch(url, {
         method: 'POST',
+
         headers: {
           'Content-Type': 'application/json',
+          Accept: 'application/json',
         },
-        credentials: 'include', // Include cookies for refresh token
+        credentials: 'include',
         body: JSON.stringify({ token: idToken }),
       });
 
+      console.log('[Auth Context] Response status:', response.status);
+      console.log(
+        '[Auth Context] Response headers:',
+        Object.fromEntries(response.headers.entries())
+      );
+
+      // Check if response is actually JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error(
+          '[Auth Context] Non-JSON response received:',
+          text.substring(0, 500)
+        );
+        throw new Error('Invalid response from server. Please try again.');
+      }
+
       const data = await response.json();
+      console.log('[Auth Context] Response data:', data);
 
       if (!response.ok) {
         const errorMessage = data.error || 'Authentication failed';
@@ -129,8 +151,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       console.log('[Auth Context] Login successful:', data.data.user.email);
 
-      // Store tokens - Google OAuth returns 'token' field
-      localStorage.setItem('accessToken', data.data.token);
+      // Store tokens - Google OAuth and manual login both return 'accessToken'
+      localStorage.setItem('accessToken', data.data.accessToken);
       if (data.data.refreshToken) {
         localStorage.setItem('refreshToken', data.data.refreshToken);
       }
@@ -138,8 +160,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(data.data.user);
 
-      // Handle redirect if sessionStorage has a redirect path
-      handlePostLoginRedirect();
+      // Redirect to home page after successful login
+      router.push('/');
 
       return data;
     } catch (error: any) {
@@ -160,7 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         data.data.user.email
       );
 
-      // Store tokens - Email login returns accessToken directly
+      // Store tokens - Login/Register returns accessToken directly
       localStorage.setItem('accessToken', data.data.accessToken);
       if (data.data.refreshToken) {
         localStorage.setItem('refreshToken', data.data.refreshToken);
@@ -191,8 +213,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(data.data.user);
 
-      // Handle redirect if sessionStorage has a redirect path
-      handlePostLoginRedirect();
+      // Redirect to home page after successful login
+      router.push('/');
     } catch (error: any) {
       console.error('[Auth Context] Email login error:', error);
       setError({
@@ -221,7 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         requestBody.age = age;
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -252,8 +274,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(data.data.user);
 
-      // Handle redirect if sessionStorage has a redirect path
-      handlePostLoginRedirect();
+      // Redirect to home page after successful registration
+      router.push('/');
     } catch (error: any) {
       console.error('[Auth Context] Registration error:', error);
       setError({
@@ -278,7 +300,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const accessToken = localStorage.getItem('accessToken');
 
       // Call logout endpoint
-      await fetch(`${API_BASE_URL}/auth/logout`, {
+      await fetch(`${API_BASE_URL}/api/auth/logout`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -298,7 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('user');
       setUser(null);
       setError(null);
-      router.push('/');
+      router.push('/auth/login');
     }
   };
 
@@ -312,7 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error('No refresh token available');
       }
 
-      const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

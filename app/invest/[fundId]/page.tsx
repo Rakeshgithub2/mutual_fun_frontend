@@ -54,7 +54,7 @@ export default function InvestPage({
   const [investing, setInvesting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const BASE_URL = 'https://mutualfun-backend.vercel.app';
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
   const API_URL = (
     process.env.NEXT_PUBLIC_API_URL
       ? `${process.env.NEXT_PUBLIC_API_URL}/api`
@@ -192,7 +192,7 @@ export default function InvestPage({
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Back Button */}
-        <div className="mb-6">
+        <div className="mb-6 mt-2 hidden md:block">
           <BackButton />
         </div>
 

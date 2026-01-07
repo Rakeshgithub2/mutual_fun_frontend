@@ -267,7 +267,7 @@ export function ModernFundCard({ fund, language = 'en' }: ModernFundCardProps) {
         {/* Actions */}
         <div className="space-y-2">
           <Link
-            href={`/${fund.category}/${fund._id}`}
+            href={`/equity/${fund.schemeCode || fund._id}`}
             className="block w-full rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-3 text-center text-sm font-bold text-white shadow-lg hover:shadow-xl transition-all hover:scale-[1.02]"
           >
             View Details

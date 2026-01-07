@@ -23,6 +23,7 @@ import {
   calculateFundQuality,
   normalizeCategory,
 } from '@/lib/utils/normalize';
+import { apiClient } from '@/lib/api-client';
 
 function FundsPageContent() {
   const searchParams = useSearchParams();
@@ -31,22 +32,20 @@ function FundsPageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [page, setPage] = useState(1);
-  const [displayLimit, setDisplayLimit] = useState(100); // Initial display limit
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const observerTarget = useRef(null);
+  const [displayLimit, setDisplayLimit] = useState(500); // Start with 500 funds to show more initially
   const language = 'en';
 
   useEffect(() => {
     const urlCategory = searchParams.get('category');
 
     // Redirect commodity to its own page
-    if (urlCategory === 'commodity') {
+    if (urlCategory && urlCategory.toLowerCase() === 'commodity') {
       router.push('/commodity');
       return;
     }
 
     // Redirect debt to its own page
-    if (urlCategory === 'debt') {
+    if (urlCategory && urlCategory.toLowerCase() === 'debt') {
       router.push('/debt');
       return;
     }
@@ -63,46 +62,104 @@ function FundsPageContent() {
     { label: 'All Funds', value: '', keywords: [] },
     {
       label: 'Large Cap',
-      value: 'large-cap',
+      value: 'largecap',
       keywords: ['large cap', 'largecap', 'large-cap'],
     },
     {
       label: 'Mid Cap',
-      value: 'mid-cap',
+      value: 'midcap',
       keywords: ['mid cap', 'midcap', 'mid-cap'],
     },
     {
       label: 'Small Cap',
-      value: 'small-cap',
+      value: 'smallcap',
       keywords: ['small cap', 'smallcap', 'small-cap'],
     },
     {
       label: 'Multi Cap',
-      value: 'multi-cap',
+      value: 'multicap',
       keywords: ['multi cap', 'multicap', 'multi-cap'],
     },
     {
       label: 'Flexi Cap',
-      value: 'flexi-cap',
+      value: 'flexicap',
       keywords: ['flexi cap', 'flexicap', 'flexi-cap', 'flexible cap'],
     },
     {
       label: 'Index Funds',
-      value: 'index',
-      keywords: ['index fund', 'index', 'nifty', 'sensex', 'bse', 'nse'],
+      value: 'indexfund',
+      keywords: [
+        'index fund',
+        'index',
+        'nifty',
+        'sensex',
+        'bse',
+        'nse',
+        'indexfund',
+      ],
     },
   ];
 
-  // Fetch all funds without strict category filter
-  // ✅ PRODUCTION-SAFE: Fetch up to 5000 funds to get all equity funds
-  const {
-    funds: allFunds,
-    loading,
-    error,
-  } = useFunds({
-    limit: 5000, // Fetch more to ensure we get all 4000+ equity funds
-  });
+  // ✅ FIX: Use search API when subcategory is selected, otherwise fetch all equity
+  const [allFunds, setAllFunds] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
 
+  useEffect(() => {
+    async function fetchFunds() {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch ALL equity funds with pagination to bypass 2500 limit
+        console.log('🔍 [Equity Page] Fetching all equity funds...');
+        let allEquityFunds: any[] = [];
+        let page = 1;
+        let hasMore = true;
+
+        while (hasMore) {
+          const response = await apiClient.getFunds(
+            page,
+            2500, // backend max per page
+            { category: 'equity' }
+          );
+
+          if (response.success && response.data && response.data.length > 0) {
+            allEquityFunds = [...allEquityFunds, ...response.data];
+            console.log(
+              `✅ [Equity Page] Page ${page}: Fetched ${response.data.length} funds (Total: ${allEquityFunds.length})`
+            );
+
+            // Continue fetching if we got a full page (2500 funds)
+            // This means there might be more data
+            if (response.data.length === 2500) {
+              page++;
+            } else if (
+              response.pagination &&
+              (response.pagination.hasMore || response.pagination.hasNext)
+            ) {
+              page++;
+            } else {
+              hasMore = false;
+            }
+          } else {
+            hasMore = false;
+          }
+        }
+
+        console.log(
+          `✅ [Equity Page] Total equity funds fetched: ${allEquityFunds.length}`
+        );
+        setAllFunds(allEquityFunds);
+      } catch (err) {
+        console.error('❌ [Equity Page] Error:', err);
+        setError(err as Error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchFunds();
+  }, []); // Fetch once on mount, not when category changes
   // Debug logging
   useEffect(() => {
     console.log('🔍 [Equity Page] Raw funds fetched:', allFunds.length);
@@ -127,130 +184,110 @@ function FundsPageContent() {
 
   // Transform funds to match FundList expected format
   const transformedFunds = useMemo(() => {
+    console.log('🔄 [Equity Page] Transforming funds...', allFunds.length);
+
     const mapped = allFunds.map((fund) => ({
-      id: fund.id || fund.fundId,
-      name: fund.name,
-      fundHouse: fund.fundHouse,
+      id: fund.schemeCode || fund.id || fund.fundId,
+      schemeCode: fund.schemeCode,
+      name: fund.schemeName || fund.name,
+      fundHouse: fund.amc?.name || fund.amcName || fund.fundHouse,
       category: fund.category,
-      nav: fund.nav || 0,
-      returns1Y: fund.returns1Y || 0,
-      returns3Y: fund.returns3Y || 0,
-      returns5Y: fund.returns5Y || 0,
-      aum: fund.aum || 0,
-      expenseRatio: fund.expenseRatio || 0,
+      subCategory: fund.subCategory,
+      nav: fund.nav?.value || fund.nav || 0,
+      returns1Y: fund.returns?.['1Y'] || fund.returns1Y || 0,
+      returns3Y: fund.returns?.['3Y'] || fund.returns3Y || 0,
+      returns5Y: fund.returns?.['5Y'] || fund.returns5Y || 0,
+      aum: fund.aum?.value || fund.aum || 0,
+      expenseRatio: fund.expenseRatio?.value || fund.expenseRatio || 0,
       rating: fund.rating || 0,
     }));
 
-    // ✅ DEDUPLICATE: Remove duplicate funds using utility
-    const deduplicated = deduplicateFunds(mapped, calculateFundQuality);
+    console.log('📦 [Equity Page] Mapped funds:', mapped.length);
+    if (mapped.length > 0) {
+      console.log('📋 [Equity Page] Sample mapped fund:', {
+        name: mapped[0].name,
+        fundHouse: mapped[0].fundHouse,
+        category: mapped[0].category,
+        nav: mapped[0].nav,
+        returns1Y: mapped[0].returns1Y,
+      });
+    }
 
-    console.log(
-      '🔄 [Deduplication] Before:',
-      mapped.length,
-      'After:',
-      deduplicated.length
-    );
+    // ✅ NO DEDUPLICATION: Show all plans to users
+    // Users can choose between Direct/Regular, Growth/Dividend plans
+    console.log('📦 [Equity Page] Total funds (all plans):', mapped.length);
 
-    return deduplicated;
+    return mapped;
   }, [allFunds]);
 
   // Filter and limit funds based on user selection - Returns ALL filtered funds
   const allFilteredFunds = useMemo(() => {
-    // Step 1: Filter for equity funds only - using normalization
-    let filtered = transformedFunds.filter((fund) => {
-      return isEquityFund(fund.category);
+    console.log('🎯 [Equity Page] Starting filter...', {
+      totalFunds: transformedFunds.length,
+      hasSearchQuery: !!searchQuery.trim(),
+      selectedCategory: category,
     });
 
-    console.log('🔍 [Equity Page] Total equity funds found:', filtered.length);
-
-    // Step 1.5: Basic quality filter - minimal filtering to show more funds
-    filtered = filtered.filter((fund) => {
-      // Only require name and fundHouse - very minimal filter
+    // Quality check - RELAXED to show more funds
+    let filtered = transformedFunds.filter((fund) => {
       const hasName = fund.name && fund.name.trim().length > 0;
-      const hasFundHouse = fund.fundHouse && fund.fundHouse.trim().length > 0;
-
-      return hasName && hasFundHouse;
+      // Only require name, not fundHouse, to show more funds
+      return hasName;
     });
 
     console.log(
-      '✅ [Equity Page] Valid equity funds (with some data):',
+      '✅ [Equity Page] Valid funds after quality check:',
       filtered.length
     );
 
-    // Step 2: Apply category filter using normalization
-    if (category) {
-      const selectedCategory = categories.find((c) => c.value === category);
-      if (selectedCategory && selectedCategory.keywords.length > 0) {
-        filtered = filtered.filter((fund) => {
-          return selectedCategory.keywords.some((keyword) =>
-            matchesSubcategory(fund.name, fund.category, keyword)
-          );
-        });
-
-        console.log(
-          `🎯 [Equity Page] ${selectedCategory.label} funds:`,
-          filtered.length
-        );
-      }
-    }
-
-    // Step 3: Apply search filter with improved matching
+    // If user is searching, show ALL matching funds regardless of subcategory
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim().replace(/\s+/g, ' ');
       const searchTerms = query.split(' ');
 
       filtered = filtered.filter((fund) => {
         const fundName = fund.name.toLowerCase();
-        const searchText = fundName;
-
-        // Match if all search terms are found in the fund name
-        return searchTerms.every((term) => searchText.includes(term));
+        return searchTerms.every((term) => fundName.includes(term));
       });
+
+      console.log(
+        `🔍 [Equity Page] Search results for "${searchQuery}": ${filtered.length} funds`
+      );
+    } else if (category) {
+      // Filter by subCategory field from database
+      console.log(`🔎 [Equity Page] Filtering for subCategory: ${category}`);
+      const beforeFilter = filtered.length;
+
+      filtered = filtered.filter((fund) => {
+        const fundSubCategory = (fund.subCategory || '').toLowerCase().trim();
+        const matches = fundSubCategory === category.toLowerCase();
+
+        if (matches) {
+          console.log(
+            `✓ Match: ${fund.name} (subCategory: ${fundSubCategory})`
+          );
+        }
+        return matches;
+      });
+
+      console.log(
+        `🎯 [Equity Page] Found ${filtered.length} funds with subCategory=${category} (from ${beforeFilter} total)`
+      );
+    } else {
+      console.log('📊 [Equity Page] Showing all equity funds');
     }
 
-    // ✅ NO LIMIT - Return all filtered funds
+    console.log('📊 [Equity Page] Final filtered funds:', filtered.length);
     return filtered;
-  }, [transformedFunds, category, searchQuery]);
+  }, [transformedFunds, searchQuery, category]);
 
-  // ✅ Display only limited funds for performance (progressive loading)
+  // Paginated funds to display
   const displayedFunds = useMemo(() => {
     return allFilteredFunds.slice(0, displayLimit);
   }, [allFilteredFunds, displayLimit]);
 
-  // ✅ Load More Handler
-  const loadMore = useCallback(() => {
-    setIsLoadingMore(true);
-    setTimeout(() => {
-      setDisplayLimit((prev) => Math.min(prev + 100, allFilteredFunds.length));
-      setIsLoadingMore(false);
-    }, 300); // Small delay for smooth UX
-  }, [allFilteredFunds.length]);
-
-  // ✅ Infinite Scroll Observer
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (
-          entries[0].isIntersecting &&
-          displayLimit < allFilteredFunds.length &&
-          !isLoadingMore
-        ) {
-          loadMore();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
-    }
-
-    return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
-      }
-    };
-  }, [displayLimit, allFilteredFunds.length, isLoadingMore, loadMore]);
+  const hasMoreFunds = displayLimit < allFilteredFunds.length;
+  const remainingFunds = allFilteredFunds.length - displayLimit;
 
   // Search suggestions - use original allFunds for raw data
   const searchSuggestions = useMemo(() => {
@@ -276,10 +313,10 @@ function FundsPageContent() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Header />
 
-      {/* Fixed Back Button - Always Visible */}
+      {/* Fixed Back Button - Always Visible - Positioned Lower */}
       <button
         onClick={() => router.push('/')}
-        className="fixed top-20 left-6 z-50 flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
+        className="fixed top-24 left-6 z-50 flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors font-medium"
         title="Back to Home"
       >
         <ArrowLeft className="w-5 h-5" />
@@ -379,7 +416,6 @@ function FundsPageContent() {
                       router.push('/equity');
                     }
                     setPage(1);
-                    setDisplayLimit(100); // Reset display limit on category change
                   }}
                   variant={category === cat.value ? 'default' : 'outline'}
                   size="sm"
@@ -391,19 +427,18 @@ function FundsPageContent() {
             </div>
           </div>
 
-          {/* ✅ NEW: Results Count with Real-time Update */}
+          {/* Results Count with Pagination Info */}
           {!loading && (
             <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 mb-4 flex-wrap gap-2">
               <span className="font-medium">
-                Showing {displayedFunds.length} of {allFilteredFunds.length}{' '}
+                Displaying {displayedFunds.length} of {allFilteredFunds.length}{' '}
                 funds
                 {allFilteredFunds.length < transformedFunds.length &&
-                  ` (${transformedFunds.length} total equity funds available)`}
+                  ` (filtered from ${transformedFunds.length} total equity funds)`}
               </span>
-              {displayedFunds.length < allFilteredFunds.length && (
-                <span className="text-blue-600 dark:text-blue-400 text-xs">
-                  ↓ Scroll down or click "Load More" for{' '}
-                  {allFilteredFunds.length - displayedFunds.length} more funds
+              {hasMoreFunds && (
+                <span className="text-blue-600 dark:text-blue-400 font-semibold">
+                  +{remainingFunds} more available
                 </span>
               )}
             </div>
@@ -431,7 +466,7 @@ function FundsPageContent() {
           <>
             <FundList funds={displayedFunds} language={language} />
 
-            {displayedFunds.length === 0 && (
+            {allFilteredFunds.length === 0 && (
               <Card className="p-12 text-center">
                 <p className="text-gray-600 dark:text-gray-400">
                   No funds found matching your criteria.
@@ -439,43 +474,36 @@ function FundsPageContent() {
               </Card>
             )}
 
-            {/* ✅ Load More Button + Infinite Scroll Trigger */}
-            {displayedFunds.length < allFilteredFunds.length && (
+            {/* Load Next 200 Button */}
+            {hasMoreFunds && (
               <div className="mt-8 text-center space-y-4">
                 <Button
-                  onClick={loadMore}
-                  disabled={isLoadingMore}
-                  className="px-8 py-3 text-lg"
+                  onClick={() =>
+                    setDisplayLimit((prev) =>
+                      Math.min(prev + 200, allFilteredFunds.length)
+                    )
+                  }
                   size="lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
                 >
-                  {isLoadingMore ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    <>
-                      Load More (
-                      {allFilteredFunds.length - displayedFunds.length}{' '}
-                      remaining)
-                      <ChevronDown className="w-5 h-5 ml-2" />
-                    </>
-                  )}
+                  Load Next 200 Funds
+                  <ChevronDown className="ml-2 w-5 h-5" />
                 </Button>
-                <div ref={observerTarget} className="h-10" />{' '}
-                {/* Infinite scroll trigger */}
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing {displayedFunds.length} of {allFilteredFunds.length}{' '}
+                  funds • {remainingFunds} more available
+                </p>
               </div>
             )}
 
-            {/* ✅ All Funds Loaded Message */}
-            {displayedFunds.length === allFilteredFunds.length &&
-              allFilteredFunds.length > 0 && (
-                <div className="mt-8 text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-                  <p className="text-green-700 dark:text-green-400 font-medium">
-                    ✓ All {allFilteredFunds.length} funds loaded
-                  </p>
-                </div>
-              )}
+            {/* All Funds Loaded Message */}
+            {!hasMoreFunds && allFilteredFunds.length > 0 && (
+              <div className="mt-8 text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <p className="text-green-700 dark:text-green-400 font-medium">
+                  ✓ All {allFilteredFunds.length} funds loaded
+                </p>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -55,9 +55,9 @@ const categoryConfigs: CategoryConfig[] = [
       'Growth-oriented equity mutual funds across market capitalizations',
     subCategories: [
       {
-        id: 'large-cap',
+        id: 'largecap',
         label: 'Large Cap',
-        apiValue: 'Large Cap',
+        apiValue: 'largecap',
         icon: Crown,
         color: 'blue',
         description:
@@ -65,27 +65,27 @@ const categoryConfigs: CategoryConfig[] = [
         expectedCount: 30,
       },
       {
-        id: 'mid-cap',
+        id: 'midcap',
         label: 'Mid Cap',
-        apiValue: 'Mid Cap',
+        apiValue: 'midcap',
         icon: Target,
         color: 'indigo',
         description: 'Medium-sized companies with high growth potential',
         expectedCount: 25,
       },
       {
-        id: 'small-cap',
+        id: 'smallcap',
         label: 'Small Cap',
-        apiValue: 'Small Cap',
+        apiValue: 'smallcap',
         icon: Zap,
         color: 'purple',
         description: 'Small companies with explosive growth opportunities',
         expectedCount: 20,
       },
       {
-        id: 'multi-cap',
+        id: 'multicap',
         label: 'Multi Cap',
-        apiValue: 'Multi Cap',
+        apiValue: 'multicap',
         icon: Layers,
         color: 'pink',
         description: 'Diversified across large, mid, and small-cap stocks',
@@ -148,28 +148,28 @@ export function FundCategories({
 
   // Create API hooks for all subcategories
   const { funds: largeCapFunds, loading: largeCapLoading } = useFunds({
-    category: 'Equity',
-    subCategory: 'Large Cap',
-    limit: 500,
+    category: 'equity',
+    subCategory: 'largecap',
+    limit: 10000,
   });
   const { funds: midCapFunds, loading: midCapLoading } = useFunds({
-    category: 'Equity',
-    subCategory: 'Mid Cap',
-    limit: 500,
+    category: 'equity',
+    subCategory: 'midcap',
+    limit: 10000,
   });
   const { funds: smallCapFunds, loading: smallCapLoading } = useFunds({
-    category: 'Equity',
-    subCategory: 'Small Cap',
-    limit: 500,
+    category: 'equity',
+    subCategory: 'smallcap',
+    limit: 10000,
   });
   const { funds: multiCapFunds, loading: multiCapLoading } = useFunds({
-    category: 'Equity',
-    subCategory: 'Multi Cap',
-    limit: 500,
+    category: 'equity',
+    subCategory: 'multicap',
+    limit: 10000,
   });
   // Backend doesn't support Commodity category, fetch all and filter client-side
   const { funds: allFundsForGold, loading: goldLoading } = useFunds({
-    limit: 500,
+    limit: 10000,
   });
   const goldFunds = allFundsForGold.filter(
     (fund) =>
@@ -177,7 +177,7 @@ export function FundCategories({
       fund.name?.toLowerCase().includes('gold')
   );
   const { funds: allFundsForSilver, loading: silverLoading } = useFunds({
-    limit: 500,
+    limit: 10000,
   });
   const silverFunds = allFundsForSilver.filter(
     (fund) =>
@@ -187,12 +187,12 @@ export function FundCategories({
 
   // Get all funds for the active category
   const { funds: allEquityFunds, loading: allEquityLoading } = useFunds({
-    category: 'Equity',
-    limit: 500,
+    category: 'equity',
+    limit: 10000,
   });
   const { funds: allFundsForCommodity, loading: allCommodityLoading } =
     useFunds({
-      limit: 500,
+      limit: 10000,
     });
   const allCommodityFunds = allFundsForCommodity.filter(
     (fund) =>
@@ -214,13 +214,13 @@ export function FundCategories({
         return { funds: allEquityFunds, loading: allEquityLoading };
       }
       switch (currentSubCategory) {
-        case 'large-cap':
+        case 'largecap':
           return { funds: largeCapFunds, loading: largeCapLoading };
-        case 'mid-cap':
+        case 'midcap':
           return { funds: midCapFunds, loading: midCapLoading };
-        case 'small-cap':
+        case 'smallcap':
           return { funds: smallCapFunds, loading: smallCapLoading };
-        case 'multi-cap':
+        case 'multicap':
           return { funds: multiCapFunds, loading: multiCapLoading };
         default:
           return { funds: [], loading: false };
@@ -247,10 +247,10 @@ export function FundCategories({
     if (activeTab === 'equity') {
       return {
         all: allEquityFunds.length,
-        'large-cap': largeCapFunds.length,
-        'mid-cap': midCapFunds.length,
-        'small-cap': smallCapFunds.length,
-        'multi-cap': multiCapFunds.length,
+        largecap: largeCapFunds.length,
+        midcap: midCapFunds.length,
+        smallcap: smallCapFunds.length,
+        multicap: multiCapFunds.length,
       };
     } else {
       return {
@@ -522,9 +522,12 @@ export function FundCategories({
                 </Link>
               </div>
 
-              <FundList funds={currentFunds.slice(0, 12)} language={language} />
+              <FundList
+                funds={currentFunds.slice(0, 100)}
+                language={language}
+              />
 
-              {currentFunds.length > 12 && (
+              {currentFunds.length > 100 && (
                 <div className="text-center mt-8">
                   <Link
                     href={`/search?category=${activeTab}${

@@ -20,6 +20,7 @@ import {
   Coins,
   Building2,
   Star,
+  Newspaper,
 } from 'lucide-react';
 
 export function Header() {
@@ -67,6 +68,7 @@ export function Header() {
     { label: 'Commodity', icon: Coins, href: '/commodity' },
     { label: 'Debt', icon: Building2, href: '/debt' },
     { label: 'Watchlist', icon: Star, href: '/watchlist' },
+    { label: 'News', icon: Newspaper, href: '/news' },
   ];
 
   const isActiveTab = (href: string) => {
@@ -78,21 +80,26 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white dark:bg-gray-900 shadow-sm">
-      <div className="px-4 sm:px-6">
-        <div className="flex h-14 items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
-              <span className="text-base font-bold text-white">MF</span>
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-4 md:px-6">
+        <div className="flex h-14 sm:h-16 items-center justify-between">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600">
+              <span className="text-sm sm:text-base font-bold text-white">
+                MF
+              </span>
             </div>
-          </Link>
-
-          <Link href="/" className="flex-1 text-center">
-            <span className="font-semibold text-gray-900 dark:text-white text-base sm:text-lg">
+            <span className="hidden sm:inline font-semibold text-gray-900 dark:text-white text-base sm:text-lg">
               MF Analyzer
             </span>
           </Link>
 
-          <div className="flex items-center gap-2">
+          <Link href="/" className="md:hidden flex-1 text-center">
+            <span className="font-semibold text-gray-900 dark:text-white text-sm">
+              MF Analyzer
+            </span>
+          </Link>
+
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
               className="sm:hidden p-2"
@@ -169,9 +176,9 @@ export function Header() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-        <div className="px-4 sm:px-6">
+      {/* Navigation Tabs - Hidden on mobile, shown on tablet+ */}
+      <div className="hidden md:block border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <div className="max-w-screen-xl mx-auto px-3 sm:px-4 md:px-6">
           <nav className="flex gap-1 overflow-x-auto scrollbar-hide py-1">
             {navigationTabs.map((tab) => {
               const Icon = tab.icon;
@@ -180,7 +187,7 @@ export function Header() {
                 <Link
                   key={tab.href}
                   href={tab.href}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                     active
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -207,47 +214,47 @@ export function Header() {
       </div>
 
       {showMobileMenu && (
-        <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-          <div className="p-4 space-y-2">
+        <div className="md:hidden border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+          <div className="max-w-screen-xl mx-auto px-3 py-3 space-y-1">
             <Link
               href="/chat"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
               onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">🤖</span>
-              <span>AI Assistant</span>
+              <span className="text-sm sm:text-base">AI Assistant</span>
             </Link>
             <Link
               href="/calculators"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
               onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">🧮</span>
-              <span>Calculators</span>
+              <span className="text-sm sm:text-base">Calculators</span>
             </Link>
             <Link
               href="/glossary"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
               onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">📚</span>
-              <span>Glossary</span>
+              <span className="text-sm sm:text-base">Glossary</span>
             </Link>
             <Link
               href="/fund-manager"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
               onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">👨‍💼</span>
-              <span>Fund Managers</span>
+              <span className="text-sm sm:text-base">Fund Managers</span>
             </Link>
             <Link
               href="/overlap"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
               onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">🔄</span>
-              <span>Fund Overlap</span>
+              <span className="text-sm sm:text-base">Fund Overlap</span>
               {overlapMounted && overlapList.length > 0 && (
                 <span className="ml-auto bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                   {overlapList.length}
@@ -256,11 +263,11 @@ export function Header() {
             </Link>
             <Link
               href="/compare"
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors min-h-[44px]"
               onClick={() => setShowMobileMenu(false)}
             >
               <span className="text-xl">⚖️</span>
-              <span>Compare Funds</span>
+              <span className="text-sm sm:text-base">Compare Funds</span>
               {compareMounted && compareList.length > 0 && (
                 <span className="ml-auto bg-pink-500 text-white text-xs font-bold px-2 py-1 rounded-full">
                   {compareList.length}

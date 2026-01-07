@@ -14,7 +14,9 @@ export default function PrivacyPolicyPage() {
       <Header />
 
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <BackButton />
+        <div className="mb-6 mt-2 hidden md:block">
+          <BackButton />
+        </div>
 
         <div className="mt-6">
           <div className="flex items-center gap-3 mb-6">

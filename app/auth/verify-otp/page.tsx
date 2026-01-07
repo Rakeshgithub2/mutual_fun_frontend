@@ -6,7 +6,8 @@ import { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
@@ -100,16 +101,21 @@ export default function VerifyOTPPage() {
 
       console.log('✅ OTP verified:', data);
       setSuccess(true);
+      toast.success('OTP verified successfully!');
 
       // Redirect to reset password page
       setTimeout(() => {
         router.push(
-          `/auth/reset-password?email=${encodeURIComponent(email)}&otp=${otpCode}`
+          `/auth/reset-password?email=${encodeURIComponent(
+            email
+          )}&otp=${otpCode}`
         );
       }, 1500);
     } catch (err: any) {
       console.error('❌ OTP verification error:', err);
-      setError(err.message || 'Invalid OTP. Please try again.');
+      const errorMessage = err.message || 'Invalid OTP. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
       setOtp(['', '', '', '', '', '']); // Clear OTP
       inputRefs[0].current?.focus();
     } finally {
@@ -138,12 +144,11 @@ export default function VerifyOTPPage() {
       inputRefs[0].current?.focus();
 
       // Show success message
-      setError('');
-      setTimeout(() => {
-        alert('New OTP sent to your email!');
-      }, 100);
+      toast.success('New OTP sent to your email!');
     } catch (err: any) {
-      setError('Failed to resend OTP. Please try again.');
+      const errorMessage = 'Failed to resend OTP. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
@@ -223,7 +228,11 @@ export default function VerifyOTPPage() {
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
                 className={`w-12 h-12 text-center text-2xl font-bold border-2 rounded-lg outline-none transition-all
-                  ${digit ? 'border-indigo-600 dark:border-indigo-400' : 'border-gray-300 dark:border-gray-600'}
+                  ${
+                    digit
+                      ? 'border-indigo-600 dark:border-indigo-400'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }
                   ${error ? 'border-red-500' : ''}
                   dark:bg-gray-800 dark:text-white
                   focus:border-indigo-600 dark:focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-900

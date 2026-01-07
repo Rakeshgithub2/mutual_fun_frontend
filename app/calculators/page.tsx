@@ -23,6 +23,9 @@ import {
   StepForward,
   Briefcase,
   DollarSign,
+  PiggyBank,
+  Zap,
+  ArrowUpCircle,
 } from 'lucide-react';
 import { InfoButton } from '@/components/info-button';
 
@@ -178,7 +181,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app';
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
     const response = await fetch(`${BASE_URL}/api/calculator/sip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -197,7 +200,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app';
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
     const response = await fetch(`${BASE_URL}/api/calculator/lumpsum`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -216,7 +219,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app';
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
     const response = await fetch(`${BASE_URL}/api/calculator/goal`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -237,7 +240,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app';
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
     const response = await fetch(`${BASE_URL}/api/calculator/step-up-sip`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -257,7 +260,7 @@ export default function CalculatorsPage() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
-    const BASE_URL = 'https://mutualfun-backend.vercel.app';
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
     const response = await fetch(`${BASE_URL}/api/calculator/retirement`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -291,20 +294,79 @@ export default function CalculatorsPage() {
         <div className="mb-4">
           <BackButton />
         </div>
-        {/* Enhanced Header */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center gap-3 mb-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl">
-              <Calculator className="h-8 w-8 text-white" />
+
+        {/* Enhanced Header with Calculator Cards */}
+        <div className="mb-12">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center gap-3 mb-4">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl">
+                <Calculator className="h-8 w-8 text-white" />
+              </div>
             </div>
+            <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
+              Investment Calculators
+            </h1>
+            <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+              Plan your financial future with our advanced calculators.
+              Calculate returns, plan goals, and build wealth systematically.
+            </p>
           </div>
-          <h1 className="text-4xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">
-            Investment Calculators
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Plan your financial future with our advanced calculators for SIP,
-            lumpsum, goals, and retirement planning
-          </p>
+
+          {/* Quick Calculator Cards - Groww Style */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            {[
+              {
+                icon: TrendingUp,
+                label: 'SIP Calculator',
+                value: 'sip',
+                color: 'from-blue-500 to-cyan-500',
+              },
+              {
+                icon: PiggyBank,
+                label: 'Lumpsum',
+                value: 'lumpsum',
+                color: 'from-purple-500 to-pink-500',
+              },
+              {
+                icon: Target,
+                label: 'Goal Planning',
+                value: 'goal',
+                color: 'from-green-500 to-emerald-500',
+              },
+              {
+                icon: Zap,
+                label: 'Step-up SIP',
+                value: 'stepup',
+                color: 'from-orange-500 to-red-500',
+              },
+              {
+                icon: Briefcase,
+                label: 'Retirement',
+                value: 'retirement',
+                color: 'from-indigo-500 to-purple-500',
+              },
+            ].map((calc, index) => (
+              <button
+                key={calc.value}
+                onClick={() => {
+                  const element = document.querySelector(
+                    `[value="${calc.value}"]`
+                  ) as HTMLElement;
+                  element?.click();
+                }}
+                className="group p-6 rounded-2xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1"
+              >
+                <div
+                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${calc.color} flex items-center justify-center mb-3 mx-auto group-hover:scale-110 transition-transform`}
+                >
+                  <calc.icon className="h-6 w-6 text-white" />
+                </div>
+                <p className="text-sm font-bold text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400">
+                  {calc.label}
+                </p>
+              </button>
+            ))}
+          </div>
         </div>
 
         <Tabs defaultValue="sip" className="space-y-8">

@@ -75,10 +75,8 @@ export default function RegisterPage() {
         // Don't block registration if email fails
       }
 
-      // Redirect to home page on successful registration
+      // Redirect happens in auth-context
       router.push('/');
-      // Force reload to update authentication state
-      window.location.reload();
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
       setLoading(false);
@@ -114,13 +112,8 @@ export default function RegisterPage() {
           // Don't block registration if email fails
         }
 
-        // Check for stored redirect path
-        const redirectPath =
-          sessionStorage.getItem('redirectAfterLogin') || '/';
-        sessionStorage.removeItem('redirectAfterLogin');
-
-        // Redirect to intended page or home on successful Google sign-up
-        window.location.href = redirectPath;
+        // Redirect happens in auth-context
+        router.push('/');
       } else {
         setError('Google sign-in failed. Please try again.');
         setLoading(false);

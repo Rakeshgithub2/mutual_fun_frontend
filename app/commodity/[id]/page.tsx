@@ -38,6 +38,8 @@ import {
   ArrowDownRight,
   BarChart3,
   PieChart as PieChartIcon,
+  Target,
+  TrendingUpDown,
   Activity,
   Shield,
   DollarSign,
@@ -57,7 +59,7 @@ import { HoldingsTable } from '@/components/holdings-table';
 import { SectorAllocationChart } from '@/components/sector-allocation-chart';
 import { FundManagerCard } from '@/components/fund-manager-card';
 
-const BASE_URL = 'https://mutualfun-backend.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL}/api`
@@ -133,6 +135,7 @@ export default function FundDetailEnhanced({
         console.log('Fund data fetched:', data);
 
         // Backend returns {success: true, data: {...fund data...}}
+        // Handle multiple response formats
         if (data.success && data.data) {
           const fundData = data.data;
           console.log(
@@ -140,6 +143,10 @@ export default function FundDetailEnhanced({
             fundData.name || fundData.fundId
           );
           setFund(fundData);
+        } else if (data.fund) {
+          setFund(data.fund);
+        } else if (data.id || data.fundId) {
+          setFund(data);
         } else {
           console.error('Invalid response - no fund data:', data);
           throw new Error('Invalid response format');
@@ -386,7 +393,7 @@ export default function FundDetailEnhanced({
       <Header />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-4">
+        <div className="mb-6 mt-2 hidden md:block">
           <BackButton />
         </div>
         {/* Enhanced Header Section */}
@@ -1188,19 +1195,27 @@ export default function FundDetailEnhanced({
                   </div>
                   <p
                     className={`text-2xl font-bold ${
-                      ret.value !== null && ret.value !== undefined
+                      ret.value !== null &&
+                      ret.value !== undefined &&
+                      ret.value !== 0
                         ? ret.value >= 0
                           ? 'text-green-600 dark:text-green-400'
                           : 'text-red-600 dark:text-red-400'
                         : 'text-gray-400'
                     }`}
                   >
-                    {ret.value !== null && ret.value !== undefined
+                    {ret.value !== null &&
+                    ret.value !== undefined &&
+                    ret.value !== 0
                       ? `${ret.value >= 0 ? '+' : ''}${ret.value.toFixed(2)}%`
-                      : '0.00%'}
+                      : 'N/A'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {ret.period} performance
+                    {ret.value !== null &&
+                    ret.value !== undefined &&
+                    ret.value !== 0
+                      ? `${ret.period} performance`
+                      : 'Data not available'}
                   </p>
                 </motion.div>
               ))}
@@ -1416,13 +1431,13 @@ export default function FundDetailEnhanced({
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <span className="font-semibold">Assets Under Management</span>
                   <span className="font-bold text-blue-600">
-                    ₹{(fund.aum / 1000).toFixed(1)}K Cr
+                    ₹{(Number(fund.aum || 0) / 1000).toFixed(1)}K Cr
                   </span>
                 </div>
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <span className="font-semibold">Expense Ratio</span>
                   <span className="font-bold">
-                    {fund.expenseRatio?.toFixed(2)}%
+                    {Number(fund.expenseRatio || 0).toFixed(2)}%
                   </span>
                 </div>
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">

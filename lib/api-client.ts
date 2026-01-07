@@ -10,7 +10,7 @@ const CONFIG = {
   DEFAULT_PAGE_SIZE: parseInt(
     process.env.NEXT_PUBLIC_DEFAULT_PAGE_SIZE || '50'
   ),
-  MAX_PAGE_SIZE: parseInt(process.env.NEXT_PUBLIC_MAX_PAGE_SIZE || '500'),
+  MAX_PAGE_SIZE: parseInt(process.env.NEXT_PUBLIC_MAX_PAGE_SIZE || '15000'),
   TIMEOUT_MS: 30000, // 30 seconds for large requests
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY_MS: 1000,
@@ -208,7 +208,18 @@ class ApiClient {
       params.append('sortOrder', filters.sortOrder);
     }
 
-    return this.request(`/api/funds?${params.toString()}`);
+    return this.request(`/funds?${params.toString()}`);
+  }
+
+  /**
+   * Get fund by ID with fallback support
+   * @param id - Fund ID (MongoDB ObjectId)
+   */
+  async getFundById(id: string) {
+    if (!id) {
+      throw new Error('Fund ID is required');
+    }
+    return this.request(`/funds/id/${id}`);
   }
 
   /**
@@ -505,15 +516,15 @@ class ApiClient {
   }
 
   // ✅ Search/autocomplete with external API fallback
-  async searchFunds(query: string, useExternal: boolean = true) {
+  async searchFunds(query: string, limit: number = 5000) {
     if (!query || query.length < 2) {
       return { success: true, data: [], enhancedSearch: false };
     }
 
     try {
       const params = new URLSearchParams();
-      params.append('query', query);
-      params.append('external', useExternal.toString());
+      params.append('q', query); // ✅ Fixed: Backend expects 'q' not 'query'
+      params.append('limit', limit.toString()); // Add limit parameter
 
       const response = await this.request(`/funds/search?${params.toString()}`);
 

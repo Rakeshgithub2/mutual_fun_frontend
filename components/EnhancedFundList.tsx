@@ -42,7 +42,7 @@ export const EnhancedFundList: React.FC<EnhancedFundListProps> = ({
 
   const [filters, setFilters] = useState<FundFilters>({
     page: 1,
-    limit: 20,
+    limit: 100, // Increased from 20 to show more funds
     sortBy: 'aum',
     sortOrder: 'desc',
     ...initialFilters,
@@ -128,7 +128,7 @@ export const EnhancedFundList: React.FC<EnhancedFundListProps> = ({
   const handleClearFilters = () => {
     setFilters({
       page: 1,
-      limit: 20,
+      limit: 100, // Increased from 20 to match initial state
       sortBy: 'aum',
       sortOrder: 'desc',
     });

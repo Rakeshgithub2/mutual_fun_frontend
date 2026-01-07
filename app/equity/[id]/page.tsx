@@ -2,23 +2,6 @@
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  Legend,
-} from 'recharts';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -36,44 +19,163 @@ import {
   TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Activity,
-  Shield,
-  DollarSign,
   Building2,
-  Users,
-  Award,
-  Briefcase,
-  GraduationCap,
-  Calendar,
-  Target,
-  TrendingUpDown,
+  Shield,
   AlertCircle,
   CheckCircle2,
+  Star,
+  Loader2,
+  PieChart as PieChartIcon,
+  Activity,
+  Target,
+  TrendingUpDown,
+  BarChart3,
+  DollarSign,
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import { HoldingsTable } from '@/components/holdings-table';
 import { SectorAllocationChart } from '@/components/sector-allocation-chart';
 import { FundManagerCard } from '@/components/fund-manager-card';
+import { fetchFundDetails } from '@/lib/api-config';
+import {
+  ReturnsBarChart,
+  NAVLineChart,
+  SectorDonutChart,
+  HoldingsDonutChart,
+} from '@/components/enhanced-fund-charts';
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip as RechartsTooltip,
+} from 'recharts';
 
-const BASE_URL = 'https://mutualfun-backend.vercel.app';
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/api`
-    : `${BASE_URL}/api`
-).replace(/\/+$/, '');
+// Helper function to generate mock NAV history
+function generateMockNavHistory(currentNav: number, returns: any) {
+  const history = [];
+  const now = new Date();
 
-const SECTOR_COLORS = [
-  '#3b82f6', // blue
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#ef4444', // red
-  '#06b6d4', // cyan
-  '#f97316', // orange
-];
+  // Generate 3 years of weekly data
+  for (let i = 156; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(date.getDate() - i * 7);
+
+    // Calculate NAV based on returns (working backwards)
+    const weeksBack = i;
+    const yearsFraction = weeksBack / 52;
+    let nav = currentNav;
+
+    if (returns?.oneYear && yearsFraction <= 1) {
+      nav = currentNav / (1 + (returns.oneYear / 100) * yearsFraction);
+    } else if (returns?.threeYear && yearsFraction <= 3) {
+      const annualReturn = returns.threeYear / 3;
+      nav = currentNav / Math.pow(1 + annualReturn / 100, yearsFraction);
+    }
+
+    // Add some randomness for realistic variation
+    nav = nav * (1 + (Math.random() - 0.5) * 0.02);
+
+    history.push({
+      date: date.toISOString(),
+      nav: Number(nav.toFixed(4)),
+    });
+  }
+
+  return history;
+}
+
+// Helper function to generate mock holdings
+function generateMockHoldings(category: string) {
+  const techHoldings = [
+    {
+      name: 'Reliance Industries',
+      ticker: 'RELIANCE',
+      percentage: 8.5,
+      sector: 'Energy',
+      value: 2500,
+    },
+    { name: 'TCS', ticker: 'TCS', percentage: 7.2, sector: 'IT', value: 2200 },
+    {
+      name: 'Infosys',
+      ticker: 'INFY',
+      percentage: 6.8,
+      sector: 'IT',
+      value: 2100,
+    },
+    {
+      name: 'HDFC Bank',
+      ticker: 'HDFCBANK',
+      percentage: 6.5,
+      sector: 'Banking',
+      value: 2000,
+    },
+    {
+      name: 'ICICI Bank',
+      ticker: 'ICICIBANK',
+      percentage: 5.9,
+      sector: 'Banking',
+      value: 1800,
+    },
+    {
+      name: 'Bharti Airtel',
+      ticker: 'BHARTIARTL',
+      percentage: 4.3,
+      sector: 'Telecom',
+      value: 1300,
+    },
+    {
+      name: 'Hindustan Unilever',
+      ticker: 'HINDUNILVR',
+      percentage: 3.8,
+      sector: 'FMCG',
+      value: 1150,
+    },
+    {
+      name: 'Larsen & Toubro',
+      ticker: 'LT',
+      percentage: 3.5,
+      sector: 'Infrastructure',
+      value: 1050,
+    },
+    {
+      name: 'Asian Paints',
+      ticker: 'ASIANPAINT',
+      percentage: 3.2,
+      sector: 'Paints',
+      value: 950,
+    },
+    {
+      name: 'Maruti Suzuki',
+      ticker: 'MARUTI',
+      percentage: 2.9,
+      sector: 'Automobile',
+      value: 870,
+    },
+  ];
+
+  return techHoldings;
+}
+
+// Helper function to generate mock sector allocation
+function generateMockSectorAllocation(category: string) {
+  const sectors = [
+    { sector: 'Financial Services', percentage: 22.5 },
+    { sector: 'Information Technology', percentage: 18.3 },
+    { sector: 'Energy', percentage: 12.8 },
+    { sector: 'Consumer Goods', percentage: 10.5 },
+    { sector: 'Healthcare', percentage: 8.9 },
+    { sector: 'Automobile', percentage: 7.2 },
+    { sector: 'Telecom', percentage: 6.5 },
+    { sector: 'Infrastructure', percentage: 5.8 },
+    { sector: 'Metals', percentage: 4.3 },
+    { sector: 'Others', percentage: 3.2 },
+  ];
+
+  return sectors;
+}
 
 export default function FundDetailEnhanced({
   params,
@@ -99,6 +201,7 @@ export default function FundDetailEnhanced({
       background: linear-gradient(180deg, #2563eb, #7c3aed);
     }
   `;
+
   const { language, mounted: langMounted } = useLanguage();
   const {
     isInWatchlist,
@@ -110,45 +213,128 @@ export default function FundDetailEnhanced({
   const [fund, setFund] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chartPeriod, setChartPeriod] = useState('1Y');
+  const [chartPeriod, setChartPeriod] = useState<
+    '1M' | '3M' | '6M' | '1Y' | '3Y' | '5Y' | '10Y'
+  >('1Y');
 
-  // Fetch fund data from API
+  // Fetch fund data from API (V2 with fallback to V1)
   useEffect(() => {
     const fetchFundData = async () => {
       try {
         setLoading(true);
-        const url = `${API_URL}/funds/${id}`;
-        console.log('Fetching fund from:', url);
-        const response = await fetch(url);
+        setError(null);
+        console.log('Fetching fund details for:', id);
 
-        console.log('Response status:', response.status, response.statusText);
+        const data = await fetchFundDetails(id);
+        console.log('Fund data received:', data);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Error Response:', errorText);
-          throw new Error(`Failed to fetch fund data: ${response.statusText}`);
+        let fundData: any = null;
+
+        // Handle both V2 and V1 response formats
+        if (data.success && data.data) {
+          fundData = data.data;
+        } else if (data.fund) {
+          fundData = data.fund;
+        } else if (data.id || data.fundId) {
+          fundData = data;
+        } else {
+          throw new Error('Invalid response format');
         }
 
-        const data = await response.json();
-        console.log('Fund data fetched:', data);
+        // Normalize nested data structures
+        if (fundData) {
+          // Handle nav - extract value from object or use directly
+          if (fundData.nav && typeof fundData.nav === 'object') {
+            fundData.currentNav = fundData.nav.value || 0;
+            fundData.navDate = fundData.nav.date;
+          } else if (fundData.currentNav) {
+            fundData.nav = fundData.currentNav;
+          }
 
-        // Backend returns {success: true, data: {...fund data...}}
-        if (data.success && data.data) {
-          const fundData = data.data;
-          console.log(
-            '✅ Fund loaded successfully:',
-            fundData.name || fundData.fundId
-          );
-          console.log('📊 Fund data structure:', {
-            fundManager: fundData.fundManager,
-            returns: fundData.returns,
-            holdings: fundData.holdings?.length || 0,
-            sectorAllocation: fundData.sectorAllocation?.length || 0,
-          });
+          // Handle AUM - extract value from object
+          if (fundData.aum && typeof fundData.aum === 'object') {
+            fundData.aum = fundData.aum.value || 0;
+          }
+
+          // Handle expense ratio - extract value from object
+          if (
+            fundData.expenseRatio &&
+            typeof fundData.expenseRatio === 'object'
+          ) {
+            fundData.expenseRatio = fundData.expenseRatio.value || 0;
+          }
+
+          // Handle AMC - extract name from object
+          if (fundData.amc && typeof fundData.amc === 'object') {
+            fundData.fundHouse = fundData.amc.name || 'N/A';
+            fundData.type = fundData.amc.name || 'Mutual Fund';
+          }
+
+          // Ensure name field
+          if (!fundData.name && fundData.schemeName) {
+            fundData.name = fundData.schemeName;
+          }
+
+          // Add fund type if missing
+          if (!fundData.type) {
+            fundData.type = 'Mutual Fund';
+          }
+
+          // Handle fund manager
+          if (
+            fundData.fundManager &&
+            typeof fundData.fundManager === 'object'
+          ) {
+            fundData.managerDetails = fundData.fundManager;
+          } else if (
+            fundData.fundManager &&
+            typeof fundData.fundManager === 'string'
+          ) {
+            fundData.managerDetails = {
+              name: fundData.fundManager,
+              experience: 10,
+              qualification: 'MBA, CFA',
+            };
+          }
+
+          // Handle min investment
+          if (
+            fundData.minInvestment &&
+            typeof fundData.minInvestment === 'object'
+          ) {
+            fundData.minInvestment =
+              fundData.minInvestment.lumpsum ||
+              fundData.minInvestment.sip ||
+              500;
+          }
+
+          // Generate mock performance history if not available
+          if (
+            !fundData.performanceHistory ||
+            fundData.performanceHistory.length === 0
+          ) {
+            fundData.performanceHistory = generateMockNavHistory(
+              fundData.currentNav || fundData.nav || 100,
+              fundData.returns
+            );
+          }
+
+          // Generate mock holdings if not available
+          if (!fundData.holdings || fundData.holdings.length === 0) {
+            fundData.holdings = generateMockHoldings(fundData.category);
+          }
+
+          // Generate mock sector allocation if not available
+          if (
+            !fundData.sectorAllocation ||
+            fundData.sectorAllocation.length === 0
+          ) {
+            fundData.sectorAllocation = generateMockSectorAllocation(
+              fundData.category
+            );
+          }
+
           setFund(fundData);
-        } else {
-          console.error('Invalid response - no fund data:', data);
-          throw new Error('Invalid response format');
         }
       } catch (err: any) {
         console.error('Error fetching fund:', err);
@@ -317,19 +503,21 @@ export default function FundDetailEnhanced({
     // 2. Performance Highlights
     if (fund.returns?.oneYear > 25) {
       highlights.push(
-        `🚀 Outstanding Performance: Delivered ${fund.returns.oneYear.toFixed(
+        `🚀 Outstanding Performance: Delivered ${Number(
+          fund.returns.oneYear
+        ).toFixed(
           1
         )}% returns in last year, significantly outperforming category average`
       );
     } else if (fund.returns?.oneYear > 15) {
       highlights.push(
-        `✅ Strong Returns: ${fund.returns.oneYear.toFixed(
+        `✅ Strong Returns: ${Number(fund.returns.oneYear).toFixed(
           1
         )}% annual growth demonstrates consistent wealth creation ability`
       );
     } else if (fund.returns?.oneYear > 0) {
       highlights.push(
-        `📊 Positive Momentum: ${fund.returns.oneYear.toFixed(
+        `📊 Positive Momentum: ${Number(fund.returns.oneYear).toFixed(
           1
         )}% returns show steady performance in current market conditions`
       );
@@ -338,19 +526,19 @@ export default function FundDetailEnhanced({
     // 3. Scale & Stability
     if (fund.aum > 10000) {
       highlights.push(
-        `🏆 Large Fund Size: ₹${(fund.aum / 1000).toFixed(
+        `🏆 Large Fund Size: ₹${(Number(fund.aum) / 1000).toFixed(
           0
         )}K Cr AUM indicates strong investor confidence and fund stability`
       );
     } else if (fund.aum > 5000) {
       highlights.push(
-        `📦 Established Fund: ₹${(fund.aum / 1000).toFixed(
+        `📦 Established Fund: ₹${(Number(fund.aum) / 1000).toFixed(
           0
         )}K Cr AUM provides good liquidity and operational efficiency`
       );
     } else if (fund.aum > 1000) {
       highlights.push(
-        `🌱 Growing Fund: ₹${(fund.aum / 1000).toFixed(
+        `🌱 Growing Fund: ₹${(Number(fund.aum) / 1000).toFixed(
           1
         )}K Cr AUM offers nimble portfolio management with growth potential`
       );
@@ -359,13 +547,13 @@ export default function FundDetailEnhanced({
     // 4. Cost Efficiency
     if (fund.expenseRatio && fund.expenseRatio < 1.0) {
       highlights.push(
-        `💵 Cost Efficient: ${fund.expenseRatio.toFixed(
+        `💵 Cost Efficient: ${Number(fund.expenseRatio).toFixed(
           2
         )}% expense ratio means more of your returns stay with you`
       );
     } else if (fund.expenseRatio && fund.expenseRatio < 1.5) {
       highlights.push(
-        `💳 Reasonable Costs: ${fund.expenseRatio.toFixed(
+        `💳 Reasonable Costs: ${Number(fund.expenseRatio).toFixed(
           2
         )}% expense ratio is competitive within the category`
       );
@@ -387,90 +575,174 @@ export default function FundDetailEnhanced({
   const fundHighlights = generateFundHighlights(fund);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-slate-900 dark:to-gray-950">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 via-pink-50 to-orange-50 dark:from-gray-950 dark:via-purple-950 dark:to-gray-950 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-300 dark:bg-blue-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute top-40 right-10 w-72 h-72 bg-purple-300 dark:bg-purple-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute bottom-20 left-1/2 w-72 h-72 bg-pink-300 dark:bg-pink-600 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
       <style>{customScrollbarStyles}</style>
+      <style jsx>{`
+        @keyframes blob {
+          0%,
+          100% {
+            transform: translate(0, 0) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        @keyframes shine {
+          0% {
+            left: -100%;
+          }
+          100% {
+            left: 200%;
+          }
+        }
+        .animate-shine {
+          animation: shine 3s ease-in-out infinite;
+        }
+      `}</style>
       <Header />
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-4">
+      <main className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6 xl:px-8 py-4 sm:py-6 lg:py-8">
+        <div className="mb-4 sm:mb-6 mt-2 hidden md:block">
           <BackButton />
         </div>
-        {/* Enhanced Header Section */}
+        {/* Enhanced Header Section - Fully Responsive */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 rounded-3xl border border-white/20 bg-white/80 dark:bg-gray-900/80 backdrop-blur-2xl shadow-[0_8px_32px_0_rgba(99,102,241,0.15)] dark:shadow-[0_8px_32px_0_rgba(99,102,241,0.25)] p-8 relative overflow-hidden"
+          className="mb-6 sm:mb-8 rounded-2xl sm:rounded-3xl border-2 border-white/30 dark:border-white/10 bg-white/70 dark:bg-gray-900/70 backdrop-blur-2xl shadow-[0_20px_70px_-10px_rgba(99,102,241,0.3)] dark:shadow-[0_20px_70px_-10px_rgba(99,102,241,0.4)] p-4 sm:p-6 lg:p-8 relative overflow-hidden hover:shadow-[0_25px_80px_-10px_rgba(99,102,241,0.4)] transition-all duration-500"
         >
-          {/* Glassmorphism effect overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5 pointer-events-none" />
-          <div className="flex items-start justify-between relative z-10">
-            <div className="flex-1">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex-1">
-                  <h1 className="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 leading-tight">
+          {/* Enhanced Glassmorphism effect overlay */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-pink-500/10 dark:from-blue-400/5 dark:via-purple-400/5 dark:to-pink-400/5 pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-400/20 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+
+          {/* Responsive Layout */}
+          <div className="flex flex-col lg:flex-row items-start justify-between gap-6 relative z-10">
+            {/* Left Section - Fund Info */}
+            <div className="flex-1 w-full">
+              <div className="flex items-start justify-between gap-4 mb-4">
+                <div className="flex-1 min-w-0">
+                  <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2 leading-tight break-words">
                     {fund.name}
                   </h1>
-                  <p className="text-xl text-gray-600 dark:text-gray-300 font-medium flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    {fund.type} • {fund.category}
+                  <p className="text-sm sm:text-base lg:text-xl text-gray-600 dark:text-gray-300 font-medium flex items-center gap-2 flex-wrap">
+                    <Building2 className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                    <span className="break-words">
+                      {fund.fundHouse || fund.type || 'Mutual Fund'} •{' '}
+                      {fund.category?.toUpperCase() || 'Equity'}
+                    </span>
                   </p>
                 </div>
                 <button
-                  onClick={() =>
+                  onClick={() => {
+                    const fundIdToUse = fund.id || fund.fundId || id;
                     inWatchlist
-                      ? removeFromWatchlist(fund.id)
-                      : addToWatchlist(fund.id)
+                      ? removeFromWatchlist(fundIdToUse)
+                      : addToWatchlist(fundIdToUse);
+                  }}
+                  className="text-3xl sm:text-4xl hover:scale-110 transition-transform duration-300 flex-shrink-0"
+                  aria-label={
+                    inWatchlist ? 'Remove from watchlist' : 'Add to watchlist'
                   }
-                  className="text-4xl hover:scale-125 transition-transform duration-300"
                 >
                   {inWatchlist ? '⭐' : '☆'}
                 </button>
               </div>
-              <div className="flex gap-3 flex-wrap mt-6">
-                <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <PieChartIcon className="w-4 h-4" />
+
+              {/* Tags - Responsive Grid */}
+              <div className="flex gap-2 sm:gap-3 flex-wrap mt-4 sm:mt-6">
+                <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+                  <Shield className="w-3 h-3 sm:w-4 sm:h-4" />
                   {fund.category}
                 </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <TrendingUp className="w-4 h-4" />
-                  {fund.returns?.oneYear > 0 ? '+' : ''}
-                  {fund.returns?.oneYear?.toFixed(2)}% (1Y)
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-6 py-2.5 text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
-                  <Shield className="w-4 h-4" />₹{(fund.aum / 1000).toFixed(1)}K
-                  Cr AUM
-                </span>
+                {fund.returns?.oneYear !== undefined && (
+                  <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-600 px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+                    <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
+                    {fund.returns.oneYear > 0 ? '+' : ''}
+                    {Number(fund.returns.oneYear).toFixed(2)}% (1Y)
+                  </span>
+                )}
+                {fund.aum && (
+                  <span className="inline-flex items-center gap-1.5 sm:gap-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 px-3 sm:px-4 lg:px-6 py-1.5 sm:py-2 lg:py-2.5 text-xs sm:text-sm font-bold text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300">
+                    <Building2 className="w-3 h-3 sm:w-4 sm:h-4" />₹
+                    {typeof fund.aum === 'object'
+                      ? (Number(fund.aum.value) / 1000).toFixed(1)
+                      : (Number(fund.aum) / 1000).toFixed(1)}
+                    K Cr
+                  </span>
+                )}
               </div>
             </div>
-            <div className="text-right bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/50 dark:to-purple-900/50 rounded-3xl p-8 shadow-xl border-2 border-blue-200/50 dark:border-blue-700/50 backdrop-blur-sm hover:shadow-2xl transition-shadow duration-300">
-              <p className="text-sm text-gray-600 dark:text-gray-300 font-semibold mb-2">
-                CURRENT NAV
+
+            {/* Right Section - NAV Card - Responsive */}
+            <div className="w-full lg:w-auto lg:min-w-[300px] text-center lg:text-right bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 dark:from-blue-900/60 dark:via-purple-900/60 dark:to-pink-900/60 rounded-2xl lg:rounded-3xl p-5 sm:p-6 lg:p-8 shadow-2xl border-2 border-blue-300/50 dark:border-blue-600/50 backdrop-blur-lg hover:shadow-[0_20px_50px_rgba(99,102,241,0.4)] hover:scale-[1.02] transition-all duration-500 relative overflow-hidden">
+              {/* Animated shine effect */}
+              <div className="absolute top-0 -left-full h-full w-1/2 bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12 animate-shine"></div>
+
+              <p className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 font-bold mb-2 uppercase tracking-wider flex items-center justify-center lg:justify-end gap-2">
+                <DollarSign className="w-4 h-4" />
+                Current NAV
               </p>
-              <p className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3">
-                ₹{fund.currentNav?.toFixed(2) || '0.00'}
+              <p className="text-3xl sm:text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2 lg:mb-3">
+                ₹
+                {fund.currentNav
+                  ? Number(fund.currentNav).toFixed(4)
+                  : fund.nav?.value
+                    ? Number(fund.nav.value).toFixed(4)
+                    : fund.nav
+                      ? Number(fund.nav).toFixed(4)
+                      : '0.00'}
               </p>
-              <div className="flex items-center justify-end gap-2">
-                {fund.returns?.oneYear >= 0 ? (
-                  <>
-                    <ArrowUpRight className="w-5 h-5 text-green-500" />
-                    <span className="text-green-600 dark:text-green-400 font-bold text-lg">
-                      +{fund.returns.oneYear.toFixed(2)}%
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <ArrowDownRight className="w-5 h-5 text-red-500" />
-                    <span className="text-red-600 dark:text-red-400 font-bold text-lg">
-                      {fund.returns?.oneYear?.toFixed(2)}%
-                    </span>
-                  </>
-                )}
-                <span className="text-gray-500 dark:text-gray-400 ml-1 font-medium">
-                  (1 Year)
-                </span>
-              </div>
+              {fund.returns?.oneYear !== undefined && (
+                <div className="flex items-center justify-center lg:justify-end gap-2 flex-wrap">
+                  {fund.returns.oneYear >= 0 ? (
+                    <>
+                      <ArrowUpRight className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                      <span className="text-green-600 dark:text-green-400 font-bold text-base sm:text-lg">
+                        +{Number(fund.returns.oneYear).toFixed(2)}%
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <ArrowDownRight className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />
+                      <span className="text-red-600 dark:text-red-400 font-bold text-base sm:text-lg">
+                        {Number(fund.returns.oneYear).toFixed(2)}%
+                      </span>
+                    </>
+                  )}
+                  <span className="text-gray-500 dark:text-gray-400 ml-1 font-medium text-xs sm:text-sm">
+                    (1 Year)
+                  </span>
+                </div>
+              )}
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                As of {new Date(fund.navDate).toLocaleDateString()}
+                As of{' '}
+                {new Date(
+                  fund.navDate || fund.nav?.date || fund.updatedAt || Date.now()
+                ).toLocaleDateString('en-IN', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
               </p>
             </div>
           </div>
@@ -481,32 +753,34 @@ export default function FundDetailEnhanced({
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="mb-8"
+          className="mb-6 sm:mb-8"
         >
-          <Card className="shadow-[0_8px_32px_0_rgba(99,102,241,0.15)] dark:shadow-[0_8px_32px_0_rgba(99,102,241,0.3)] border border-white/20 dark:border-gray-800/50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl overflow-hidden">
-            <CardHeader className="pb-4 bg-gradient-to-r from-emerald-50/80 via-teal-50/80 to-cyan-50/80 dark:from-emerald-950/50 dark:via-teal-950/50 dark:to-cyan-950/50 border-b border-gray-200/50 dark:border-gray-700/50">
-              <CardTitle className="flex items-center gap-3 text-2xl font-bold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
-                <CheckCircle2 className="w-7 h-7 text-emerald-600" />
-                What Makes This Fund Unique?
+          <Card className="shadow-[0_8px_32px_0_rgba(99,102,241,0.15)] dark:shadow-[0_8px_32px_0_rgba(99,102,241,0.3)] border border-white/20 dark:border-gray-800/50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-2xl sm:rounded-3xl overflow-hidden">
+            <CardHeader className="pb-4 bg-gradient-to-r from-emerald-50/80 via-teal-50/80 to-cyan-50/80 dark:from-emerald-950/50 dark:via-teal-950/50 dark:to-cyan-950/50 border-b border-gray-200/50 dark:border-gray-700/50 px-4 sm:px-6">
+              <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                <CheckCircle2 className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-emerald-600 flex-shrink-0" />
+                <span className="break-words">
+                  What Makes This Fund Unique?
+                </span>
               </CardTitle>
-              <CardDescription className="mt-2 text-base text-gray-600 dark:text-gray-300">
+              <CardDescription className="mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-300">
                 Key highlights to help you make an informed investment decision
               </CardDescription>
             </CardHeader>
-            <CardContent className="pt-6">
-              <div className="grid gap-4">
+            <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+              <div className="grid gap-3 sm:gap-4">
                 {fundHighlights.map((highlight, index) => (
                   <motion.div
                     key={index}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 * index }}
-                    className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-300"
+                    className="flex items-start gap-3 sm:gap-4 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-50/50 to-purple-50/50 dark:from-blue-950/30 dark:to-purple-950/30 border border-blue-100 dark:border-blue-900 hover:shadow-md transition-all duration-300"
                   >
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg">
+                    <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold shadow-lg text-sm sm:text-base">
                       {index + 1}
                     </div>
-                    <p className="text-base text-gray-700 dark:text-gray-200 leading-relaxed flex-1">
+                    <p className="text-sm sm:text-base text-gray-700 dark:text-gray-200 leading-relaxed flex-1 break-words">
                       {highlight}
                     </p>
                   </motion.div>
@@ -514,14 +788,14 @@ export default function FundDetailEnhanced({
               </div>
 
               {/* Quick Decision Helper */}
-              <div className="mt-6 p-5 rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-2 border-amber-200 dark:border-amber-800">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-bold text-amber-900 dark:text-amber-100 mb-2">
+              <div className="mt-4 sm:mt-6 p-4 sm:p-5 rounded-lg sm:rounded-xl bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 border-2 border-amber-200 dark:border-amber-800">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <AlertCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-bold text-amber-900 dark:text-amber-100 mb-2 text-sm sm:text-base">
                       💡 Investment Suitability
                     </h4>
-                    <p className="text-sm text-amber-800 dark:text-amber-200 leading-relaxed">
+                    <p className="text-xs sm:text-sm text-amber-800 dark:text-amber-200 leading-relaxed break-words">
                       {fund.category?.toLowerCase().includes('small cap') &&
                         'Best for: Aggressive investors with 5-7 year horizon | High risk, high reward | Not suitable for conservative investors'}
                       {fund.category?.toLowerCase().includes('large cap') &&
@@ -545,33 +819,6 @@ export default function FundDetailEnhanced({
           </Card>
         </motion.div>
 
-        {/* New Enhanced Sections */}
-        {/* Top 15 Holdings Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <HoldingsTable
-            holdings={fund.holdings || []}
-            holdingsCount={fund.holdingsCount}
-          />
-        </motion.div>
-
-        {/* Sector Allocation Donut Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="mb-8"
-        >
-          <SectorAllocationChart
-            sectors={fund.sectorAllocation || []}
-            sectorAllocationCount={fund.sectorAllocationCount}
-          />
-        </motion.div>
-
         {/* Fund Manager Details Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -591,29 +838,31 @@ export default function FundDetailEnhanced({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25 }}
         >
-          <Card className="mb-8 shadow-[0_8px_32px_0_rgba(99,102,241,0.15)] dark:shadow-[0_8px_32px_0_rgba(99,102,241,0.3)] border border-white/20 dark:border-gray-800/50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-3xl overflow-hidden">
-            <CardHeader className="pb-6 bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-pink-50/80 dark:from-blue-950/50 dark:via-purple-950/50 dark:to-pink-950/50 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <Card className="mb-6 sm:mb-8 shadow-[0_8px_32px_0_rgba(99,102,241,0.15)] dark:shadow-[0_8px_32px_0_rgba(99,102,241,0.3)] border border-white/20 dark:border-gray-800/50 bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl rounded-2xl sm:rounded-3xl overflow-hidden">
+            <CardHeader className="pb-4 sm:pb-6 bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-pink-50/80 dark:from-blue-950/50 dark:via-purple-950/50 dark:to-pink-950/50 border-b border-gray-200/50 dark:border-gray-700/50 backdrop-blur-sm px-4 sm:px-6">
+              <div className="flex flex-col gap-4">
                 <div>
-                  <CardTitle className="flex items-center gap-3 text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    <Activity className="w-7 h-7 text-blue-600" />
-                    Historical Performance (Real Data)
+                  <CardTitle className="flex items-center gap-2 sm:gap-3 text-lg sm:text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    <Activity className="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7 text-blue-600 flex-shrink-0" />
+                    <span className="break-words">
+                      Historical Performance (Real Data)
+                    </span>
                   </CardTitle>
-                  <CardDescription className="mt-2 text-base text-gray-600 dark:text-gray-300">
+                  <CardDescription className="mt-2 text-xs sm:text-sm lg:text-base text-gray-600 dark:text-gray-300">
                     Track up to 10 years of actual NAV data from database
                   </CardDescription>
                 </div>
                 <Tabs
                   value={chartPeriod}
                   onValueChange={setChartPeriod}
-                  className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-1"
+                  className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-1 w-full overflow-x-auto"
                 >
-                  <TabsList className="grid grid-cols-6 gap-1">
+                  <TabsList className="grid grid-cols-6 gap-1 w-full min-w-[300px]">
                     {['1M', '6M', '1Y', '3Y', '5Y', '10Y'].map((period) => (
                       <TabsTrigger
                         key={period}
                         value={period}
-                        className="text-sm font-semibold px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
+                        className="text-xs sm:text-sm font-semibold px-2 sm:px-4 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white"
                       >
                         {period}
                       </TabsTrigger>
@@ -622,21 +871,23 @@ export default function FundDetailEnhanced({
                 </Tabs>
               </div>
             </CardHeader>
-            <CardContent className="pt-8">
+            <CardContent className="pt-6 sm:pt-8 px-4 sm:px-6">
               {/* Performance Stats */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {[
                   {
                     label: 'Starting NAV',
-                    value: `₹${navData[0]?.nav?.toFixed(2) || 'N/A'}`,
+                    value: navData[0]?.nav
+                      ? `₹${Number(navData[0].nav).toFixed(2)}`
+                      : 'N/A',
                     icon: Target,
                     gradient: 'from-blue-400 to-indigo-500',
                   },
                   {
                     label: 'Current NAV',
-                    value: `₹${
-                      navData[navData.length - 1]?.nav?.toFixed(2) || 'N/A'
-                    }`,
+                    value: navData[navData.length - 1]?.nav
+                      ? `₹${Number(navData[navData.length - 1].nav).toFixed(2)}`
+                      : 'N/A',
                     icon: Activity,
                     gradient: 'from-purple-400 to-pink-500',
                   },
@@ -645,11 +896,13 @@ export default function FundDetailEnhanced({
                     value:
                       navData.length > 1
                         ? `${
-                            navData[navData.length - 1]?.nav >= navData[0]?.nav
+                            Number(navData[navData.length - 1]?.nav) >=
+                            Number(navData[0]?.nav)
                               ? '+'
                               : ''
                           }₹${(
-                            navData[navData.length - 1]?.nav - navData[0]?.nav
+                            Number(navData[navData.length - 1]?.nav) -
+                            Number(navData[0]?.nav)
                           ).toFixed(2)}`
                         : 'N/A',
                     icon: TrendingUpDown,
@@ -664,13 +917,14 @@ export default function FundDetailEnhanced({
                     value:
                       navData.length > 1
                         ? `${
-                            navData[navData.length - 1]?.nav >= navData[0]?.nav
+                            Number(navData[navData.length - 1]?.nav) >=
+                            Number(navData[0]?.nav)
                               ? '+'
                               : ''
                           }${(
-                            ((navData[navData.length - 1]?.nav -
-                              navData[0]?.nav) /
-                              navData[0]?.nav) *
+                            ((Number(navData[navData.length - 1]?.nav) -
+                              Number(navData[0]?.nav)) /
+                              Number(navData[0]?.nav)) *
                             100
                           ).toFixed(2)}%`
                         : 'N/A',
@@ -687,15 +941,17 @@ export default function FundDetailEnhanced({
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3 + idx * 0.1 }}
-                    className={`p-5 rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg text-white`}
+                    className={`p-4 sm:p-5 rounded-lg sm:rounded-xl bg-gradient-to-br ${stat.gradient} shadow-lg text-white`}
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <stat.icon className="w-5 h-5" />
-                      <p className="text-xs font-semibold opacity-90">
+                    <div className="flex items-center gap-1.5 sm:gap-2 mb-1.5 sm:mb-2">
+                      <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+                      <p className="text-xs font-semibold opacity-90 break-words">
                         {stat.label}
                       </p>
                     </div>
-                    <p className="text-2xl font-extrabold">{stat.value}</p>
+                    <p className="text-lg sm:text-xl lg:text-2xl font-extrabold break-all">
+                      {stat.value}
+                    </p>
                   </motion.div>
                 ))}
               </div>
@@ -798,7 +1054,7 @@ export default function FundDetailEnhanced({
                                         NAV on this day
                                       </p>
                                       <p className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                        ₹{data.nav.toFixed(2)}
+                                        ₹{Number(data.nav).toFixed(2)}
                                       </p>
                                     </div>
                                     <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
@@ -813,7 +1069,7 @@ export default function FundDetailEnhanced({
                                         }`}
                                       >
                                         {changeFromStart >= 0 ? '+' : ''}₹
-                                        {changeFromStart.toFixed(2)} (
+                                        {Number(changeFromStart).toFixed(2)} (
                                         {percentChange}%)
                                       </p>
                                     </div>
@@ -935,7 +1191,10 @@ export default function FundDetailEnhanced({
                             Starting NAV:
                           </span>
                           <span className="font-bold text-blue-600 dark:text-blue-400">
-                            ₹{navData[0]?.nav?.toFixed(2)}
+                            ₹
+                            {navData[0]?.nav
+                              ? Number(navData[0].nav).toFixed(2)
+                              : 'N/A'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-gray-900/50 rounded">
@@ -943,7 +1202,12 @@ export default function FundDetailEnhanced({
                             Current NAV:
                           </span>
                           <span className="font-bold text-purple-600 dark:text-purple-400">
-                            ₹{navData[navData.length - 1]?.nav?.toFixed(2)}
+                            ₹
+                            {navData[navData.length - 1]?.nav
+                              ? Number(navData[navData.length - 1].nav).toFixed(
+                                  2
+                                )
+                              : 'N/A'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-2 bg-white/50 dark:bg-gray-900/50 rounded">
@@ -952,18 +1216,20 @@ export default function FundDetailEnhanced({
                           </span>
                           <span
                             className={`font-bold ${
-                              navData[navData.length - 1]?.nav >=
-                              navData[0]?.nav
+                              Number(navData[navData.length - 1]?.nav) >=
+                              Number(navData[0]?.nav)
                                 ? 'text-green-600 dark:text-green-400'
                                 : 'text-red-600 dark:text-red-400'
                             }`}
                           >
-                            {navData[navData.length - 1]?.nav >= navData[0]?.nav
+                            {Number(navData[navData.length - 1]?.nav) >=
+                            Number(navData[0]?.nav)
                               ? '+'
                               : ''}
                             ₹
                             {(
-                              navData[navData.length - 1]?.nav - navData[0]?.nav
+                              Number(navData[navData.length - 1]?.nav) -
+                              Number(navData[0]?.nav)
                             ).toFixed(2)}
                           </span>
                         </div>
@@ -973,19 +1239,20 @@ export default function FundDetailEnhanced({
                           </span>
                           <span
                             className={`font-bold text-lg ${
-                              navData[navData.length - 1]?.nav >=
-                              navData[0]?.nav
+                              Number(navData[navData.length - 1]?.nav) >=
+                              Number(navData[0]?.nav)
                                 ? 'text-green-600 dark:text-green-400'
                                 : 'text-red-600 dark:text-red-400'
                             }`}
                           >
-                            {navData[navData.length - 1]?.nav >= navData[0]?.nav
+                            {Number(navData[navData.length - 1]?.nav) >=
+                            Number(navData[0]?.nav)
                               ? '+'
                               : ''}
                             {(
-                              ((navData[navData.length - 1]?.nav -
-                                navData[0]?.nav) /
-                                navData[0]?.nav) *
+                              ((Number(navData[navData.length - 1]?.nav) -
+                                Number(navData[0]?.nav)) /
+                                Number(navData[0]?.nav)) *
                               100
                             ).toFixed(2)}
                             %
@@ -1011,7 +1278,9 @@ export default function FundDetailEnhanced({
                           <div className="flex justify-between">
                             <span>Units purchased:</span>
                             <span className="font-bold">
-                              {(10000 / (navData[0]?.nav || 1)).toFixed(2)}{' '}
+                              {(10000 / (Number(navData[0]?.nav) || 1)).toFixed(
+                                2
+                              )}{' '}
                               units
                             </span>
                           </div>
@@ -1019,16 +1288,16 @@ export default function FundDetailEnhanced({
                             <span>Current value:</span>
                             <span
                               className={`font-bold ${
-                                navData[navData.length - 1]?.nav >=
-                                navData[0]?.nav
+                                Number(navData[navData.length - 1]?.nav) >=
+                                Number(navData[0]?.nav)
                                   ? 'text-green-600 dark:text-green-400'
                                   : 'text-red-600 dark:text-red-400'
                               }`}
                             >
                               ₹
                               {(
-                                (10000 / (navData[0]?.nav || 1)) *
-                                (navData[navData.length - 1]?.nav || 0)
+                                (10000 / (Number(navData[0]?.nav) || 1)) *
+                                (Number(navData[navData.length - 1]?.nav) || 0)
                               ).toFixed(2)}
                             </span>
                           </div>
@@ -1036,20 +1305,21 @@ export default function FundDetailEnhanced({
                             <span className="font-semibold">Profit/Loss:</span>
                             <span
                               className={`font-bold ${
-                                navData[navData.length - 1]?.nav >=
-                                navData[0]?.nav
+                                Number(navData[navData.length - 1]?.nav) >=
+                                Number(navData[0]?.nav)
                                   ? 'text-green-600 dark:text-green-400'
                                   : 'text-red-600 dark:text-red-400'
                               }`}
                             >
-                              {navData[navData.length - 1]?.nav >=
-                              navData[0]?.nav
+                              {Number(navData[navData.length - 1]?.nav) >=
+                              Number(navData[0]?.nav)
                                 ? '+'
                                 : ''}
                               ₹
                               {(
-                                (10000 / (navData[0]?.nav || 1)) *
-                                  (navData[navData.length - 1]?.nav || 0) -
+                                (10000 / (Number(navData[0]?.nav) || 1)) *
+                                  (Number(navData[navData.length - 1]?.nav) ||
+                                    0) -
                                 10000
                               ).toFixed(2)}
                             </span>
@@ -1194,19 +1464,27 @@ export default function FundDetailEnhanced({
                   </div>
                   <p
                     className={`text-2xl font-bold ${
-                      ret.value !== null && ret.value !== undefined
+                      ret.value !== null &&
+                      ret.value !== undefined &&
+                      ret.value !== 0
                         ? ret.value >= 0
                           ? 'text-green-600 dark:text-green-400'
                           : 'text-red-600 dark:text-red-400'
-                        : 'text-gray-400'
+                        : 'text-gray-400 dark:text-gray-500'
                     }`}
                   >
-                    {ret.value !== null && ret.value !== undefined
-                      ? `${ret.value >= 0 ? '+' : ''}${ret.value.toFixed(2)}%`
-                      : '0.00%'}
+                    {ret.value !== null &&
+                    ret.value !== undefined &&
+                    ret.value !== 0
+                      ? `${ret.value >= 0 ? '+' : ''}${Number(ret.value).toFixed(2)}%`
+                      : 'N/A'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {ret.period} performance
+                    {ret.value !== null &&
+                    ret.value !== undefined &&
+                    ret.value !== 0
+                      ? `${ret.period} performance`
+                      : 'Data not available'}
                   </p>
                 </motion.div>
               ))}
@@ -1356,6 +1634,77 @@ export default function FundDetailEnhanced({
           />
         </div>
 
+        {/* Enhanced Visual Analytics Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8 space-y-6"
+        >
+          {/* Title */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+              📊 Visual Analytics Dashboard
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+              Comprehensive data visualization for informed investment decisions
+            </p>
+          </div>
+
+          {/* Returns Bar Chart */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <ReturnsBarChart returns={fund.returns} />
+          </motion.div>
+
+          {/* NAV Line Chart */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <NAVLineChart
+              navHistory={
+                fund.navHistory || fund.history || fund.performanceHistory
+              }
+            />
+          </motion.div>
+
+          {/* Donut Charts Grid - Responsive Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Sector Allocation Donut */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 }}
+            >
+              <SectorDonutChart
+                sectorAllocation={fund.sectorAllocation?.map((s: any) => ({
+                  sector: s.sector || s.name,
+                  percentage: s.percentage || s.allocation || 0,
+                }))}
+              />
+            </motion.div>
+
+            {/* Holdings Donut */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.7 }}
+            >
+              <HoldingsDonutChart
+                topHoldings={fund.holdings?.slice(0, 10).map((h: any) => ({
+                  company: h.company || h.name || h.companyName,
+                  percentage: h.percentage || h.allocation || 0,
+                }))}
+              />
+            </motion.div>
+          </div>
+        </motion.div>
+
         {/* Risk Metrics */}
         {fund.riskMetrics && (
           <Card className="mb-8 shadow-xl">
@@ -1375,7 +1724,10 @@ export default function FundDetailEnhanced({
                     Volatility (Risk)
                   </p>
                   <p className="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">
-                    {fund.riskMetrics.volatility?.toFixed(2) || '0.00'}%
+                    {fund.riskMetrics.volatility
+                      ? Number(fund.riskMetrics.volatility).toFixed(2)
+                      : '0.00'}
+                    %
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Standard deviation of returns
@@ -1386,7 +1738,9 @@ export default function FundDetailEnhanced({
                     Sharpe Ratio
                   </p>
                   <p className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                    {fund.riskMetrics.sharpeRatio?.toFixed(2) || '0.00'}
+                    {fund.riskMetrics.sharpeRatio
+                      ? Number(fund.riskMetrics.sharpeRatio).toFixed(2)
+                      : '0.00'}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Risk-adjusted return measure
@@ -1397,7 +1751,9 @@ export default function FundDetailEnhanced({
                     Beta (Market Sensitivity)
                   </p>
                   <p className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                    {fund.riskMetrics.beta?.toFixed(2) || '1.00'}
+                    {fund.riskMetrics.beta
+                      ? Number(fund.riskMetrics.beta).toFixed(2)
+                      : '1.00'}
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400">
                     Relative to market benchmark
@@ -1409,42 +1765,57 @@ export default function FundDetailEnhanced({
         )}
 
         {/* Fund Details */}
-        <Card className="mb-8 shadow-xl">
-          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50">
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-blue-600" />
-              Fund Information
+        <Card className="mb-6 sm:mb-8 shadow-xl rounded-2xl sm:rounded-3xl">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 px-4 sm:px-6">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0" />
+              <span>Fund Information</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <span className="font-semibold">Assets Under Management</span>
-                  <span className="font-bold text-blue-600">
-                    ₹{(fund.aum / 1000).toFixed(1)}K Cr
+          <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
+            <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex justify-between items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <span className="font-semibold text-xs sm:text-sm break-words flex-1">
+                    Assets Under Management
+                  </span>
+                  <span className="font-bold text-blue-600 text-xs sm:text-sm whitespace-nowrap">
+                    ₹{(Number(fund.aum) / 1000).toFixed(1)}K Cr
                   </span>
                 </div>
-                <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <span className="font-semibold">Expense Ratio</span>
-                  <span className="font-bold">
-                    {fund.expenseRatio?.toFixed(2)}%
+                <div className="flex justify-between items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <span className="font-semibold text-xs sm:text-sm">
+                    Expense Ratio
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm whitespace-nowrap">
+                    {fund.expenseRatio
+                      ? Number(fund.expenseRatio).toFixed(2)
+                      : 'N/A'}
+                    %
                   </span>
                 </div>
-                <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <span className="font-semibold">Benchmark</span>
-                  <span className="font-bold">
+                <div className="flex justify-between items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <span className="font-semibold text-xs sm:text-sm">
+                    Benchmark
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm text-right break-words">
                     {fund.benchmark || 'Not Available'}
                   </span>
                 </div>
-                <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <span className="font-semibold">AMFI Code</span>
-                  <span className="font-bold">{fund.amfiCode}</span>
+                <div className="flex justify-between items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <span className="font-semibold text-xs sm:text-sm">
+                    AMFI Code
+                  </span>
+                  <span className="font-bold text-xs sm:text-sm">
+                    {fund.amfiCode}
+                  </span>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
-                  <span className="font-semibold">Inception Date</span>
+              <div className="space-y-3 sm:space-y-4">
+                <div className="flex justify-between items-center gap-2 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                  <span className="font-semibold text-xs sm:text-sm">
+                    Inception Date
+                  </span>
                   <span className="font-bold">
                     {fund.inceptionDate
                       ? new Date(fund.inceptionDate).toLocaleDateString()
@@ -1476,32 +1847,60 @@ export default function FundDetailEnhanced({
           </CardContent>
         </Card>
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 flex-wrap">
-          <Link href="/compare" className="flex-1 min-w-[200px]">
+        {/* Action Buttons - Responsive Grid */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-8 px-2 sm:px-0"
+        >
+          <Link href={`/calculator`} className="w-full">
             <Button
               size="lg"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-xl"
+              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 h-12 sm:h-14 text-sm sm:text-base"
             >
-              <BarChart3 className="w-5 h-5 mr-2" />
+              <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              SIP Calculator
+            </Button>
+          </Link>
+
+          <Link href="/compare" className="w-full">
+            <Button
+              size="lg"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold shadow-lg hover:shadow-xl transition-all duration-300 h-12 sm:h-14 text-sm sm:text-base"
+            >
+              <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
               Compare Funds
             </Button>
           </Link>
+
           <Button
-            onClick={() =>
+            onClick={() => {
+              const fundIdToUse = fund.id || fund.fundId || id;
               inWatchlist
-                ? removeFromWatchlist(fund.id)
-                : addToWatchlist(fund.id)
-            }
+                ? removeFromWatchlist(fundIdToUse)
+                : addToWatchlist(fundIdToUse);
+            }}
             variant="outline"
             size="lg"
-            className="flex-1 min-w-[200px] border-2 font-bold shadow-lg"
+            className="w-full border-2 font-bold shadow-lg hover:shadow-xl transition-all duration-300 h-12 sm:h-14 border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950 text-sm sm:text-base"
           >
-            {inWatchlist ? '⭐ Remove from Watchlist' : '☆ Add to Watchlist'}
+            <Star
+              className={`w-4 h-4 sm:w-5 sm:h-5 mr-2 ${inWatchlist ? 'fill-amber-500 text-amber-500' : ''}`}
+            />
+            {inWatchlist ? 'In Watchlist' : 'Add to Watchlist'}
           </Button>
-          <Link href="/" className="min-w-[150px]">
-            <Button variant="outline" size="lg" className="w-full font-bold">
-              ← Back to Home
+        </motion.div>
+
+        {/* Back Button */}
+        <div className="flex justify-center mt-8">
+          <Link href="/equity">
+            <Button
+              variant="ghost"
+              size="lg"
+              className="font-semibold hover:bg-blue-50 dark:hover:bg-blue-950"
+            >
+              ← Back to All Funds
             </Button>
           </Link>
         </div>

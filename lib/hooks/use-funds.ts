@@ -112,11 +112,11 @@ export function useFunds(options?: {
         // Use real expense ratio from API
         const realExpenseRatio = fund.expenseRatio || 1.0;
 
-        // Get returns from API or use defaults
+        // Get returns from API (no fallback - show 0 if no data)
         const returns = fund.returns || {};
-        const returns1Y = returns.oneYear || 12.5;
-        const returns3Y = returns.threeYear || 15.2;
-        const returns5Y = returns.fiveYear || 13.8;
+        const returns1Y = returns.oneYear || returns['1Y'] || 0;
+        const returns3Y = returns.threeYear || returns['3Y'] || 0;
+        const returns5Y = returns.fiveYear || returns['5Y'] || 0;
 
         // Get AUM from API or use default (in crores)
         const aum = fund.aum || 10000;

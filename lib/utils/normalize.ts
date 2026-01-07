@@ -142,6 +142,11 @@ export function deduplicateFunds<T extends { name: string }>(
   const uniqueFundsMap = new Map<string, T>();
 
   funds.forEach((fund) => {
+    // Skip if fund or name is undefined
+    if (!fund || !fund.name || typeof fund.name !== 'string') {
+      return;
+    }
+
     // Create a normalized name (remove plan details)
     const normalizedName = fund.name
       .toLowerCase()

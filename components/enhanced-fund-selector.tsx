@@ -64,37 +64,33 @@ export function EnhancedFundSelector({
   const [filterAMC, setFilterAMC] = useState<string>('all');
 
   const searchRef = useRef<HTMLDivElement>(null);
-  const { funds: allFunds, loading } = useFunds({ limit: 3000 });
+  const { funds: allFunds, loading } = useFunds({ limit: 5000 }); // Increased to 5000 for comprehensive data
 
-  // Transform funds to the required format (only equity and debt)
+  // Transform funds to the required format (all categories)
   const transformedFunds = useMemo(() => {
-    return allFunds
-      .filter((fund) => {
-        const category = fund.category?.toLowerCase() || '';
-        const name = fund.name?.toLowerCase() || '';
-        // Exclude commodity funds
-        const isCommodity =
-          category.includes('commodity') ||
-          name.includes('gold') ||
-          name.includes('silver') ||
-          category.includes('gold');
-        return !isCommodity;
-      })
-      .map((fund) => ({
-        id: fund.id || fund.fundId,
-        name: fund.name,
-        fundHouse: fund.fundHouse,
-        category: fund.category,
-        subCategory: fund.subCategory,
-        nav: fund.currentNav || 0,
-        returns1Y: fund.returns?.oneYear || 0,
-        returns3Y: fund.returns?.threeYear || 0,
-        returns5Y: fund.returns?.fiveYear || 0,
-        aum: fund.aum || 0,
-        expenseRatio: fund.expenseRatio || 0,
-        rating: fund.rating || 0,
-        riskLevel: fund.riskLevel || 'Moderate',
-      }));
+    return allFunds.map((fund, index) => ({
+      id:
+        fund.id ||
+        fund.fundId ||
+        fund._id ||
+        fund.scheme_code ||
+        fund.schemeCode ||
+        `fund-${index}`,
+      _id: fund._id || fund.id || fund.fundId,
+      scheme_code: fund.scheme_code || fund.schemeCode,
+      name: fund.name || fund.schemeName || fund.fund_name || 'Unnamed Fund',
+      fundHouse: fund.fundHouse || fund.amc?.name || 'Unknown AMC',
+      category: fund.category || 'Other',
+      subCategory: fund.subCategory || fund.subcategory,
+      nav: Number(fund.currentNav || fund.nav || 0),
+      returns1Y: Number(fund.returns?.oneYear || fund.returns?.['1Y'] || 0),
+      returns3Y: Number(fund.returns?.threeYear || fund.returns?.['3Y'] || 0),
+      returns5Y: Number(fund.returns?.fiveYear || fund.returns?.['5Y'] || 0),
+      aum: Number(fund.aum || 0),
+      expenseRatio: Number(fund.expenseRatio || 0),
+      rating: Number(fund.rating || 0),
+      riskLevel: fund.riskLevel || 'Moderate',
+    }));
   }, [allFunds]);
 
   // Get unique AMCs filtered by fund type
@@ -134,28 +130,31 @@ export function EnhancedFundSelector({
     return sortedAmcs;
   }, [transformedFunds, filterType]);
 
-  // Fuzzy search function
-  const fuzzyMatch = (text: string, query: string): boolean => {
-    const cleanText = text.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanQuery = query.toLowerCase().replace(/[^a-z0-9]/g, '');
+  // Fuzzy search function (null-safe)
+  const fuzzyMatch = (text?: string, query?: string): boolean => {
+    if (!text || !query) return false;
 
-    // Direct substring match
+    const cleanText = text
+      .toString()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+    const cleanQuery = query
+      .toString()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+
+    if (!cleanText || !cleanQuery) return false;
+
     if (cleanText.includes(cleanQuery)) return true;
 
-    // Word boundary match
-    const words = text.toLowerCase().split(/\s+/);
-    if (words.some((word) => word.startsWith(cleanQuery.toLowerCase())))
-      return true;
-
-    // Initials match (e.g., "HDFC" matches "H D F C")
-    const initials = text
-      .split(/\s+/)
-      .map((word) => word[0])
-      .join('')
-      .toLowerCase();
-    if (initials.includes(cleanQuery.toLowerCase())) return true;
-
-    return false;
+    let ti = 0;
+    for (let qi = 0; qi < cleanQuery.length; qi++) {
+      ti = cleanText.indexOf(cleanQuery[qi], ti);
+      if (ti === -1) return false;
+      ti++;
+    }
+    return true;
   };
 
   // Filter and search funds
@@ -196,7 +195,8 @@ export function EnhancedFundSelector({
         return (
           fuzzyMatch(fund.name, query) ||
           fuzzyMatch(fund.fundHouse, query) ||
-          fuzzyMatch(fund.category || '', query)
+          fuzzyMatch(fund.category, query) ||
+          fuzzyMatch(fund.subCategory, query)
         );
       });
     }
@@ -267,7 +267,11 @@ export function EnhancedFundSelector({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const formatNumber = (num: number) => {
+  const formatNumber = (value: any): string => {
+    const num = Number(value);
+
+    if (isNaN(num)) return '₹0 Cr';
+
     if (num >= 10000) return `₹${(num / 1000).toFixed(1)}k Cr`;
     if (num >= 1000) return `₹${(num / 1000).toFixed(2)}k Cr`;
     return `₹${num.toFixed(0)} Cr`;
@@ -336,8 +340,8 @@ export function EnhancedFundSelector({
             className="w-full px-4 py-3 rounded-xl border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-base text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 shadow-sm"
           >
             <option value="all">All Fund Houses</option>
-            {amcs.map((amc) => (
-              <option key={amc.name} value={amc.name}>
+            {amcs.map((amc, index) => (
+              <option key={`${amc.name}-${index}`} value={amc.name}>
                 {amc.name} ({amc.count} funds)
               </option>
             ))}
@@ -401,9 +405,14 @@ export function EnhancedFundSelector({
               )}
 
               {!loading &&
-                filteredFunds.map((fund) => (
+                filteredFunds.map((fund, index) => (
                   <button
-                    key={fund.id}
+                    key={
+                      fund._id ||
+                      fund.scheme_code ||
+                      fund.id ||
+                      `fund-${fund.name}-${index}`
+                    }
                     onClick={() => handleSelectFund(fund)}
                     disabled={selectedFunds.length >= maxSelection}
                     className="w-full text-left px-4 py-3 hover:bg-blue-50 dark:hover:bg-blue-950/30 border-b border-gray-100 dark:border-gray-700 last:border-b-0 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
@@ -499,7 +508,12 @@ export function EnhancedFundSelector({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {selectedFunds.map((fund, index) => (
               <motion.div
-                key={fund.id}
+                key={
+                  fund._id ||
+                  fund.scheme_code ||
+                  fund.id ||
+                  `selected-${fund.name}-${index}`
+                }
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}

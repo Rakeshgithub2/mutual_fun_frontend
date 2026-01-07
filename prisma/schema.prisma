@@ -60,7 +60,7 @@ model Fund {
   name          String
   type          String    // EQUITY, DEBT, HYBRID, etc.
   category      String    // equity, commodity, debt, hybrid, etc.
-  subCategory   String?   // Large Cap, Mid Cap, Small Cap, Multi Cap, Gold, Silver, etc.
+  subCategory   String?   // largecap, midcap, smallcap, multicap, gold, silver, etc.
   benchmark     String?
   expenseRatio  Float?
   inceptionDate DateTime?

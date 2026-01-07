@@ -55,13 +55,16 @@ const CustomTooltip = ({ active, payload }: any) => {
         <p className="text-sm text-gray-700 dark:text-gray-300">
           <span className="font-semibold">Percentage:</span>{' '}
           <span className="font-bold text-blue-600 dark:text-blue-400">
-            {data.percentage.toFixed(2)}%
+            {(data.percentage || 0).toFixed(2)}%
           </span>
         </p>
         <p className="text-sm text-gray-700 dark:text-gray-300">
           <span className="font-semibold">Value:</span>{' '}
           <span className="font-bold text-purple-600 dark:text-purple-400">
-            ₹{data.value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}{' '}
+            ₹
+            {(data.value || 0).toLocaleString('en-IN', {
+              maximumFractionDigits: 0,
+            })}{' '}
             Cr
           </span>
         </p>
@@ -80,7 +83,7 @@ const renderCustomLabel = (props: any) => {
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
   // Only show label if percentage is > 3% to avoid clutter
-  if (percentage < 3) return null;
+  if ((percentage || 0) < 3) return null;
 
   return (
     <text
@@ -92,7 +95,7 @@ const renderCustomLabel = (props: any) => {
       className="font-bold text-sm"
       style={{ textShadow: '0 0 3px rgba(0,0,0,0.8)' }}
     >
-      {`${percentage.toFixed(1)}%`}
+      {`${(percentage || 0).toFixed(1)}%`}
     </text>
   );
 };
@@ -187,7 +190,7 @@ export function SectorAllocationChart({
                 }}
                 formatter={(value, entry: any) => {
                   const sector = sectors.find((s) => s.sector === value);
-                  return `${value} (${sector?.percentage.toFixed(1)}%)`;
+                  return `${value} (${(sector?.percentage || 0).toFixed(1)}%)`;
                 }}
               />
             </PieChart>
@@ -215,11 +218,11 @@ export function SectorAllocationChart({
               </div>
               <div className="flex flex-col items-end ml-2">
                 <span className="text-sm font-bold bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 text-transparent bg-clip-text">
-                  {sector.percentage.toFixed(2)}%
+                  {(sector.percentage || 0).toFixed(2)}%
                 </span>
                 <span className="text-xs text-gray-600 dark:text-gray-400">
                   ₹
-                  {(sector.value / 1).toLocaleString('en-IN', {
+                  {((sector.value || 0) / 1).toLocaleString('en-IN', {
                     maximumFractionDigits: 0,
                   })}
                   Cr
@@ -238,7 +241,7 @@ export function SectorAllocationChart({
             Portfolio is spread across {sectors.length} different sectors. The
             largest allocation is{' '}
             <span className="font-bold text-blue-600 dark:text-blue-400">
-              {sectors[0]?.sector} ({sectors[0]?.percentage.toFixed(2)}%)
+              {sectors[0]?.sector} ({(sectors[0]?.percentage || 0).toFixed(2)}%)
             </span>
             , helping to balance risk across industries.
           </p>

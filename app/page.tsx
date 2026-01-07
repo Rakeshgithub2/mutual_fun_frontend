@@ -79,27 +79,39 @@ const QUICK_ACTIONS = [
     href: '/chat',
     description: 'Chat with AI assistant',
   },
+  {
+    name: 'Reminders',
+    icon: '🔔',
+    href: '/reminders',
+    description: 'Set investment reminders',
+  },
+  {
+    name: 'Give Feedback',
+    icon: '💬',
+    href: '/feedback',
+    description: 'Share your thoughts',
+  },
 ];
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-20 md:pb-0">
       <Header />
 
       {/* Market Indices - Real-time data from backend */}
       <MarketIndices />
 
       {/* Main Content */}
-      <div className="px-4 py-6 space-y-6">
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
         {/* Fund Categories Section */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">
               Explore Fund Categories
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {FUND_CATEGORIES.map((category) => (
               <Link
                 key={category.name}
@@ -107,22 +119,22 @@ export default function HomePage() {
                   category.category === 'commodity'
                     ? '/commodity'
                     : category.category === 'equity'
-                      ? '/equity'
-                      : category.category === 'debt'
-                        ? '/debt'
-                        : `/equity?category=${category.category}`
+                    ? '/equity'
+                    : category.category === 'debt'
+                    ? '/debt'
+                    : `/equity?category=${category.category}`
                 }
               >
-                <Card className="p-6 hover:shadow-lg transition-all cursor-pointer border border-gray-200 dark:border-gray-800 hover:scale-105">
+                <Card className="p-4 sm:p-6 hover:shadow-lg transition-all cursor-pointer border border-gray-200 dark:border-gray-800 hover:scale-[1.02] active:scale-95">
                   <div
-                    className={`w-14 h-14 rounded-xl bg-gradient-to-br ${category.color} mb-4 flex items-center justify-center text-3xl shadow-lg`}
+                    className={`w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-gradient-to-br ${category.color} mb-3 sm:mb-4 flex items-center justify-center text-2xl sm:text-3xl shadow-lg`}
                   >
                     {category.icon}
                   </div>
-                  <h3 className="font-bold text-gray-900 dark:text-white mb-2 text-lg">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-1 sm:mb-2 text-base sm:text-lg">
                     {category.name}
                   </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3 line-clamp-2">
                     {category.description}
                   </p>
                   <div className="flex items-center justify-between">
@@ -139,18 +151,18 @@ export default function HomePage() {
 
         {/* Quick Actions Grid */}
         <section>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">
             Quick Actions
           </h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
             {QUICK_ACTIONS.map((action) => (
               <Link key={action.name} href={action.href}>
-                <Card className="p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 dark:border-gray-800 h-full">
-                  <div className="text-3xl mb-2">{action.icon}</div>
-                  <h3 className="font-medium text-gray-900 dark:text-white text-sm mb-1">
+                <Card className="p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer border border-gray-200 dark:border-gray-800 h-full min-h-[100px] sm:min-h-[120px] flex flex-col active:scale-95">
+                  <div className="text-2xl sm:text-3xl mb-2">{action.icon}</div>
+                  <h3 className="font-medium text-gray-900 dark:text-white text-xs sm:text-sm mb-1 line-clamp-2">
                     {action.name}
                   </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 line-clamp-2 flex-1">
                     {action.description}
                   </p>
                 </Card>

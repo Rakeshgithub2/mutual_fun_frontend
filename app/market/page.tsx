@@ -52,8 +52,7 @@ interface MarketIndex {
 }
 
 // ✅ FIXED: Use correct backend URL
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 // Comprehensive market indices with importance points for mutual fund investors
 const MARKET_INDICES: Omit<
@@ -68,24 +67,6 @@ const MARKET_INDICES: Omit<
   | 'volume'
   | 'lastUpdated'
 >[] = [
-  {
-    id: 'sensex',
-    name: 'S&P BSE Sensex',
-    shortName: 'SENSEX',
-    icon: Building2,
-    color: 'blue',
-    marketCap: '₹280 Lakh Cr',
-    description:
-      "India's most tracked bellwether index, comprising 30 of the largest and most actively traded stocks on the BSE.",
-    constituents: 30,
-    importance: [
-      'Benchmark for large-cap equity mutual funds',
-      'Represents the pulse of Indian stock market',
-      'Used to compare fund performance against market',
-      'Reflects the health of blue-chip companies',
-      'Key indicator for portfolio rebalancing decisions',
-    ],
-  },
   {
     id: 'nifty50',
     name: 'Nifty 50',
@@ -105,6 +86,24 @@ const MARKET_INDICES: Omit<
     ],
   },
   {
+    id: 'sensex',
+    name: 'S&P BSE Sensex',
+    shortName: 'SENSEX',
+    icon: Building2,
+    color: 'blue',
+    marketCap: '₹280 Lakh Cr',
+    description:
+      "India's most tracked bellwether index, comprising 30 of the largest and most actively traded stocks on the BSE.",
+    constituents: 30,
+    importance: [
+      'Benchmark for large-cap equity mutual funds',
+      'Represents the pulse of Indian stock market',
+      'Used to compare fund performance against market',
+      'Reflects the health of blue-chip companies',
+      'Key indicator for portfolio rebalancing decisions',
+    ],
+  },
+  {
     id: 'niftymidcap',
     name: 'Nifty Midcap 100',
     shortName: 'MIDCAP 100',
@@ -119,6 +118,24 @@ const MARKET_INDICES: Omit<
       'Balances risk and return in portfolios',
       "Captures India's emerging companies",
       'Important for diversification strategies',
+    ],
+  },
+  {
+    id: 'commodity',
+    name: 'MCX Commodity Index',
+    shortName: 'MCX iCOMDEX',
+    icon: Coins,
+    color: 'amber',
+    marketCap: 'N/A',
+    description:
+      "India's first commodity index tracking major commodities on MCX.",
+    constituents: 6,
+    importance: [
+      'Benchmark for commodity funds',
+      'Hedge against inflation',
+      'Diversification beyond equities',
+      'Reflects raw material price trends',
+      'Important for inflation-protected portfolios',
     ],
   },
   {
@@ -236,24 +253,6 @@ const MARKET_INDICES: Omit<
     ],
   },
   {
-    id: 'commodity',
-    name: 'MCX Commodity Index',
-    shortName: 'MCX iCOMDEX',
-    icon: Coins,
-    color: 'amber',
-    marketCap: 'N/A',
-    description:
-      "India's first commodity index tracking major commodities on MCX.",
-    constituents: 6,
-    importance: [
-      'Benchmark for commodity funds',
-      'Hedge against inflation',
-      'Diversification beyond equities',
-      'Reflects raw material price trends',
-      'Important for inflation-protected portfolios',
-    ],
-  },
-  {
     id: 'giftnifty',
     name: 'Gift Nifty',
     shortName: 'GIFT NIFTY',
@@ -283,7 +282,7 @@ export default function MarketPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`${API_BASE_URL}/api/market/summary`, {
+      const response = await fetch(`${API_BASE_URL}/api/indices`, {
         signal: controller.signal,
       });
 
@@ -319,11 +318,21 @@ export default function MarketPage() {
 
             // Use API data if available, otherwise use mock data
             if (apiIndex && apiIndex.value) {
+              // Handle both change formats: {change: number} and {change: {value: number, percent: number}}
+              const changeValue =
+                typeof apiIndex.change === 'object'
+                  ? apiIndex.change.value
+                  : apiIndex.change;
+              const changePercentValue =
+                typeof apiIndex.change === 'object'
+                  ? apiIndex.change.percent
+                  : apiIndex.changePercent;
+
               return {
                 ...indexConfig,
                 value: apiIndex.value,
-                change: apiIndex.change,
-                changePercent: apiIndex.changePercent,
+                change: changeValue,
+                changePercent: changePercentValue,
                 high: apiIndex.high,
                 low: apiIndex.low,
                 open: apiIndex.open,
@@ -378,6 +387,33 @@ export default function MarketPage() {
   };
 
   const findApiIndex = (apiData: any, id: string) => {
+    // Backend returns { majorIndices: [...], marketStatus: '...' }
+    const indices = apiData.majorIndices || apiData;
+
+    if (Array.isArray(indices)) {
+      // Find the index by matching symbol or name
+      return indices.find((index: any) => {
+        const symbol = (index.symbol || '').toLowerCase();
+        const name = (index.name || '').toLowerCase();
+        const searchId = id.toLowerCase();
+
+        // Match various formats
+        return (
+          symbol === searchId ||
+          symbol === searchId.replace('nifty', '') ||
+          name.includes(searchId) ||
+          (searchId === 'sensex' && symbol === 'sensex') ||
+          (searchId === 'nifty50' &&
+            (symbol === 'nifty50' || symbol === 'nifty_50')) ||
+          (searchId === 'niftymidcap' && name.includes('midcap')) ||
+          (searchId === 'niftybank' &&
+            (symbol === 'banknifty' || name.includes('bank'))) ||
+          (searchId === 'giftnifty' && name.includes('gift'))
+        );
+      });
+    }
+
+    // Legacy format support
     const { sensex, nifty50, niftyMidcap, giftNifty } = apiData;
     switch (id) {
       case 'sensex':
@@ -451,7 +487,7 @@ export default function MarketPage() {
       <Header />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
+        <div className="mb-6 mt-2 hidden md:block">
           <BackButton />
         </div>
 
@@ -502,115 +538,117 @@ export default function MarketPage() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {indices.map((index, idx) => (
-              <motion.div
-                key={index.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-              >
-                <Link href={`/market/${index.id}`}>
-                  <Card className="h-full hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer group">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <div
-                          className={`w-12 h-12 rounded-xl bg-gradient-to-br from-${index.color}-400 to-${index.color}-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
-                        >
-                          <index.icon className="w-6 h-6 text-white" />
-                        </div>
-                        <div
-                          className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
-                            index.change >= 0
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
-                              : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
-                          }`}
-                        >
-                          {index.change >= 0 ? (
-                            <ArrowUpRight className="w-4 h-4" />
-                          ) : (
-                            <ArrowDownRight className="w-4 h-4" />
-                          )}
-                          {Math.abs(index.changePercent ?? 0).toFixed(2)}%
-                        </div>
-                      </div>
-                      <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
-                        {index.shortName}
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        {index.name}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-3xl font-bold text-gray-900 dark:text-white">
-                            {index.value.toLocaleString('en-IN', {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 2,
-                            })}
-                          </p>
-                          <p
-                            className={`text-sm font-semibold ${
+            {indices.map((index, idx) => {
+              return (
+                <motion.div
+                  key={index.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                >
+                  <Link href={`/market/${index.id}`}>
+                    <Card className="h-full hover:shadow-2xl transition-all duration-300 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700 cursor-pointer group">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <div
+                            className={`w-12 h-12 rounded-xl bg-gradient-to-br from-${index.color}-400 to-${index.color}-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
+                          >
+                            <index.icon className="w-6 h-6 text-white" />
+                          </div>
+                          <div
+                            className={`flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold ${
                               index.change >= 0
-                                ? 'text-green-600 dark:text-green-400'
-                                : 'text-red-600 dark:text-red-400'
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300'
+                                : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300'
                             }`}
                           >
-                            {index.change >= 0 ? '+' : ''}
-                            {(index.change ?? 0).toFixed(2)} (
-                            {index.changePercent >= 0 ? '+' : ''}
-                            {(index.changePercent ?? 0).toFixed(2)}%)
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-gray-500 dark:text-gray-400">
-                              Open:
-                            </span>
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                              {(index.open ?? 0).toFixed(2)}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 dark:text-gray-400">
-                              High:
-                            </span>
-                            <p className="font-semibold text-green-600 dark:text-green-400">
-                              {(index.high ?? 0).toFixed(2)}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 dark:text-gray-400">
-                              Low:
-                            </span>
-                            <p className="font-semibold text-red-600 dark:text-red-400">
-                              {(index.low ?? 0).toFixed(2)}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-gray-500 dark:text-gray-400">
-                              Prev Close:
-                            </span>
-                            <p className="font-semibold text-gray-900 dark:text-white">
-                              {(index.previousClose ?? 0).toFixed(2)}
-                            </p>
+                            {index.change >= 0 ? (
+                              <ArrowUpRight className="w-4 h-4" />
+                            ) : (
+                              <ArrowDownRight className="w-4 h-4" />
+                            )}
+                            {Math.abs(index.changePercent ?? 0).toFixed(2)}%
                           </div>
                         </div>
-
-                        {index.constituents && (
-                          <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                              {index.constituents} constituents
-                            </span>
+                        <CardTitle className="text-lg font-bold text-gray-900 dark:text-white">
+                          {index.shortName}
+                        </CardTitle>
+                        <CardDescription className="text-xs">
+                          {index.name}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-3xl font-bold text-gray-900 dark:text-white">
+                              {index.value.toLocaleString('en-IN', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}
+                            </p>
+                            <p
+                              className={`text-sm font-semibold ${
+                                index.change >= 0
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : 'text-red-600 dark:text-red-400'
+                              }`}
+                            >
+                              {index.change >= 0 ? '+' : ''}
+                              {(index.change ?? 0).toFixed(2)} (
+                              {index.changePercent >= 0 ? '+' : ''}
+                              {(index.changePercent ?? 0).toFixed(2)}%)
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
+
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400">
+                                Open:
+                              </span>
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {(index.open ?? 0).toFixed(2)}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400">
+                                High:
+                              </span>
+                              <p className="font-semibold text-green-600 dark:text-green-400">
+                                {(index.high ?? 0).toFixed(2)}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400">
+                                Low:
+                              </span>
+                              <p className="font-semibold text-red-600 dark:text-red-400">
+                                {(index.low ?? 0).toFixed(2)}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-gray-500 dark:text-gray-400">
+                                Prev Close:
+                              </span>
+                              <p className="font-semibold text-gray-900 dark:text-white">
+                                {(index.previousClose ?? 0).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+
+                          {index.constituents && (
+                            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                              <span className="text-xs text-gray-500 dark:text-gray-400">
+                                {index.constituents} constituents
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
         )}
 

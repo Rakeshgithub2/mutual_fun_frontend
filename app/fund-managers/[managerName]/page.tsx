@@ -58,12 +58,11 @@ export default function FundManagerProfilePage({
       try {
         setLoading(true);
         const baseUrl =
-          process.env.NEXT_PUBLIC_API_URL ||
-          'https://mutualfun-backend.vercel.app/api';
+          process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
         // Fetch manager profile
         const managerRes = await fetch(
-          `${baseUrl}/fund-managers?name=${encodeURIComponent(decodedName)}`
+          `${baseUrl}/api/fund-managers?name=${encodeURIComponent(decodedName)}`
         );
         if (!managerRes.ok) {
           throw new Error('Manager not found');

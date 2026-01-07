@@ -2,23 +2,6 @@
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-  Area,
-  AreaChart,
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  Legend,
-} from 'recharts';
 import { Header } from '@/components/header';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -36,44 +19,30 @@ import {
   TrendingDown,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Activity,
   Shield,
-  DollarSign,
   Building2,
-  Users,
-  Award,
-  Briefcase,
-  GraduationCap,
-  Calendar,
-  Target,
-  TrendingUpDown,
   AlertCircle,
   CheckCircle2,
+  Star,
+  Loader2,
+  PieChart as PieChartIcon,
+  Activity,
+  Target,
+  TrendingUpDown,
+  BarChart3,
+  DollarSign,
 } from 'lucide-react';
 import { BackButton } from '@/components/back-button';
 import { HoldingsTable } from '@/components/holdings-table';
 import { SectorAllocationChart } from '@/components/sector-allocation-chart';
 import { FundManagerCard } from '@/components/fund-manager-card';
-
-const BASE_URL = 'https://mutualfun-backend.vercel.app';
-const API_URL = (
-  process.env.NEXT_PUBLIC_API_URL
-    ? `${process.env.NEXT_PUBLIC_API_URL}/api`
-    : `${BASE_URL}/api`
-).replace(/\/+$/, '');
-
-const SECTOR_COLORS = [
-  '#3b82f6', // blue
-  '#8b5cf6', // purple
-  '#ec4899', // pink
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#ef4444', // red
-  '#06b6d4', // cyan
-  '#f97316', // orange
-];
+import { fetchFundDetails } from '@/lib/api-config';
+import {
+  ReturnsBarChart,
+  NAVLineChart,
+  SectorDonutChart,
+  HoldingsDonutChart,
+} from '@/components/enhanced-fund-charts';
 
 export default function FundDetailEnhanced({
   params,
@@ -99,6 +68,7 @@ export default function FundDetailEnhanced({
       background: linear-gradient(180deg, #2563eb, #7c3aed);
     }
   `;
+
   const { language, mounted: langMounted } = useLanguage();
   const {
     isInWatchlist,
@@ -110,38 +80,29 @@ export default function FundDetailEnhanced({
   const [fund, setFund] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [chartPeriod, setChartPeriod] = useState('1Y');
+  const [chartPeriod, setChartPeriod] = useState<
+    '1M' | '6M' | '1Y' | '3Y' | '5Y' | '10Y'
+  >('1Y');
 
-  // Fetch fund data from API
+  // Fetch fund data from API (V2 with fallback to V1)
   useEffect(() => {
     const fetchFundData = async () => {
       try {
         setLoading(true);
-        const url = `${API_URL}/funds/${id}`;
-        console.log('Fetching fund from:', url);
-        const response = await fetch(url);
+        setError(null);
+        console.log('Fetching fund details for:', id);
 
-        console.log('Response status:', response.status, response.statusText);
+        const data = await fetchFundDetails(id);
+        console.log('Fund data received:', data);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('API Error Response:', errorText);
-          throw new Error(`Failed to fetch fund data: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('Fund data fetched:', data);
-
-        // Backend returns {success: true, data: {...fund data...}}
+        // Handle both V2 and V1 response formats
         if (data.success && data.data) {
-          const fundData = data.data;
-          console.log(
-            '✅ Fund loaded successfully:',
-            fundData.name || fundData.fundId
-          );
-          setFund(fundData);
+          setFund(data.data);
+        } else if (data.fund) {
+          setFund(data.fund);
+        } else if (data.id || data.fundId) {
+          setFund(data);
         } else {
-          console.error('Invalid response - no fund data:', data);
           throw new Error('Invalid response format');
         }
       } catch (err: any) {
@@ -386,7 +347,7 @@ export default function FundDetailEnhanced({
       <Header />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-4">
+        <div className="mb-6 mt-2 hidden md:block">
           <BackButton />
         </div>
         {/* Enhanced Header Section */}
@@ -1188,19 +1149,27 @@ export default function FundDetailEnhanced({
                   </div>
                   <p
                     className={`text-2xl font-bold ${
-                      ret.value !== null && ret.value !== undefined
+                      ret.value !== null &&
+                      ret.value !== undefined &&
+                      ret.value !== 0
                         ? ret.value >= 0
                           ? 'text-green-600 dark:text-green-400'
                           : 'text-red-600 dark:text-red-400'
                         : 'text-gray-400'
                     }`}
                   >
-                    {ret.value !== null && ret.value !== undefined
+                    {ret.value !== null &&
+                    ret.value !== undefined &&
+                    ret.value !== 0
                       ? `${ret.value >= 0 ? '+' : ''}${ret.value.toFixed(2)}%`
-                      : '0.00%'}
+                      : 'N/A'}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    {ret.period} performance
+                    {ret.value !== null &&
+                    ret.value !== undefined &&
+                    ret.value !== 0
+                      ? `${ret.period} performance`
+                      : 'Data not available'}
                   </p>
                 </motion.div>
               ))}
@@ -1422,7 +1391,10 @@ export default function FundDetailEnhanced({
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                   <span className="font-semibold">Expense Ratio</span>
                   <span className="font-bold">
-                    {fund.expenseRatio?.toFixed(2)}%
+                    {fund.expenseRatio
+                      ? Number(fund.expenseRatio).toFixed(2)
+                      : 'N/A'}
+                    %
                   </span>
                 </div>
                 <div className="flex justify-between p-3 rounded-lg bg-gray-50 dark:bg-gray-800">

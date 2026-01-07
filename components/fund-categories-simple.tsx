@@ -483,9 +483,9 @@ export function FundCategories({
                 </Link>
               </div>
 
-              <FundList funds={currentFunds.slice(0, 12)} language={language} />
+              <FundList funds={currentFunds.slice(0, 50)} language={language} />
 
-              {currentFunds.length > 12 && (
+              {currentFunds.length > 50 && (
                 <div className="text-center mt-8">
                   <Link href={`/search?category=${activeTab}`}>
                     <Button

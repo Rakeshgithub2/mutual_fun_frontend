@@ -39,9 +39,8 @@ export default function LoginPage() {
     try {
       await loginWithEmail(email, password);
 
-      const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
-      sessionStorage.removeItem('redirectAfterLogin');
-      window.location.href = redirectPath;
+      // Redirect happens in auth-context, but ensure clean navigation
+      router.push('/');
     } catch (err: any) {
       setError(err.message || 'Invalid email or password. Please try again.');
       setLoading(false);
@@ -52,24 +51,30 @@ export default function LoginPage() {
   const handleGoogleSuccess = async (
     credentialResponse: CredentialResponse
   ) => {
+    console.log('[Login Page] Google success handler called');
+    console.log('[Login Page] Credential response:', credentialResponse);
     setError('');
     setLoading(true);
 
     try {
       if (credentialResponse.credential) {
+        console.log(
+          '[Login Page] Credential token received, length:',
+          credentialResponse.credential.length
+        );
         // Send credential token to backend
         await googleSignIn(credentialResponse.credential);
 
-        const redirectPath =
-          sessionStorage.getItem('redirectAfterLogin') || '/';
-        sessionStorage.removeItem('redirectAfterLogin');
-        window.location.href = redirectPath;
+        console.log('[Login Page] Google sign-in successful, redirecting to /');
+        // Redirect happens in auth-context, but ensure clean navigation
+        router.push('/');
       } else {
+        console.error('[Login Page] No credential in response');
         setError('Google sign-in failed. Please try again.');
         setLoading(false);
       }
     } catch (err: any) {
-      console.error('Google sign-in error:', err);
+      console.error('[Login Page] Google sign-in error:', err);
       setError(err.message || 'Google sign-in failed. Please try again.');
       setLoading(false);
     }

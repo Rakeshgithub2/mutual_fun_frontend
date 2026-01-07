@@ -51,13 +51,37 @@ interface ManagerDetails {
 
 interface FundManagerCardProps {
   managerDetails: ManagerDetails | null;
-  fallbackName?: string;
+  fallbackName?: string | { name?: string; experience?: string } | any;
 }
 
 export function FundManagerCard({
   managerDetails,
   fallbackName,
 }: FundManagerCardProps) {
+  // Safely extract manager name and experience from fallbackName
+  // Handle both string and object formats
+  const extractManagerInfo = () => {
+    if (!fallbackName) {
+      return { name: null, experience: null };
+    }
+
+    if (typeof fallbackName === 'string') {
+      return { name: fallbackName, experience: null };
+    }
+
+    if (typeof fallbackName === 'object' && fallbackName !== null) {
+      return {
+        name: fallbackName.name || null,
+        experience: fallbackName.experience || null,
+      };
+    }
+
+    return { name: null, experience: null };
+  };
+
+  const { name: fallbackManagerName, experience: fallbackManagerExperience } =
+    extractManagerInfo();
+
   // Handle null/missing manager details
   if (!managerDetails) {
     return (
@@ -71,8 +95,19 @@ export function FundManagerCard({
               <CardTitle className="text-2xl font-bold bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400 text-transparent bg-clip-text">
                 Fund Manager
               </CardTitle>
-              <CardDescription className="text-sm text-gray-700 dark:text-gray-300">
-                {fallbackName || 'Information not available'}
+              <CardDescription className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
+                {fallbackManagerName ? (
+                  <>
+                    <div className="font-medium">{fallbackManagerName}</div>
+                    {fallbackManagerExperience && (
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        Experience: {fallbackManagerExperience}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  'Information not available'
+                )}
               </CardDescription>
             </div>
           </div>

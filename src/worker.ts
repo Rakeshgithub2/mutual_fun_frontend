@@ -4,7 +4,6 @@ import { JobType } from './types/jobs';
 import { amfiService } from './services/amfiService';
 import { yahooFinanceService } from './services/yahooFinanceService';
 import { newsService } from './services/newsService';
-// import { alertService } from './services/alertService'; // Service does not exist
 import { emailService } from './services/emailService';
 
 // Load environment variables
@@ -39,8 +38,9 @@ const ingestionWorker = new Worker(
         case JobType.YAHOO_INGEST:
           console.log('Starting Yahoo Finance data ingestion...');
           const symbols = job.data.symbols || ['NIFTY50', 'SENSEX'];
-          const yahooResult =
-            await yahooFinanceService.fetchBenchmarkData(symbols);
+          const yahooResult = await yahooFinanceService.fetchBenchmarkData(
+            symbols
+          );
           console.log(
             `Yahoo Finance ingestion completed. Processed: ${yahooResult.processed}, Errors: ${yahooResult.errors.length}`
           );
@@ -74,31 +74,31 @@ const ingestionWorker = new Worker(
   }
 );
 
-// Alert Worker
-const alertWorker = new Worker(
-  'alerts',
+// Reminder Worker
+const reminderWorker = new Worker(
+  'reminders',
   async (job) => {
-    console.log(`Processing alert job: ${job.name} (${job.id})`);
+    console.log(`Processing reminder job: ${job.name} (${job.id})`);
 
     try {
       switch (job.name) {
-        case JobType.ALERT_CHECK:
-          console.log('Checking user alerts...');
-          // TODO: Implement alertService or remove this functionality
-          console.log('Alert service not implemented yet');
-          return { checked: 0, triggered: 0, errors: [] };
+        case JobType.REMINDER_CHECK:
+          console.log('Checking user reminders...');
+          // Reminder service is handled by backend cron job
+          console.log('Reminder service handled by backend cron');
+          return { checked: 0, sent: 0, errors: [] };
 
         default:
-          throw new Error(`Unknown alert job type: ${job.name}`);
+          throw new Error(`Unknown reminder job type: ${job.name}`);
       }
     } catch (error) {
-      console.error(`Alert job ${job.name} failed:`, error);
+      console.error(`Reminder job ${job.name} failed:`, error);
       throw error;
     }
   },
   {
     connection: redisConnection,
-    concurrency: 3, // Process 3 alert jobs concurrently
+    concurrency: 3, // Process 3 reminder jobs concurrently
   }
 );
 
@@ -119,8 +119,8 @@ const emailWorker = new Worker(
             case 'verification':
               result = await emailService.sendVerificationEmail(to, data.token);
               break;
-            case 'alert':
-              result = await emailService.sendAlertEmail(to, data.alerts);
+            case 'reminder':
+              result = await emailService.sendReminderEmail(to, data);
               break;
             case 'digest':
               result = await emailService.sendDigestEmail(to, data);

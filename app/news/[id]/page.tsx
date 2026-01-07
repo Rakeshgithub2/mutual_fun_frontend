@@ -4,40 +4,25 @@ export const dynamic = 'force-dynamic';
 
 import { use, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 import { Header } from '@/components/header';
-import { BackButton } from '@/components/back-button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import {
-  Clock,
-  ExternalLink,
-  Share2,
-  Bookmark,
-  Sparkles,
-  TrendingUp,
-  Calendar,
-} from 'lucide-react';
+import { ArrowLeft, Calendar, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 
 interface NewsArticle {
   id: string;
   title: string;
-  summary: string;
-  fullContent: string;
+  description: string;
+  content: string;
+  image_url?: string;
+  author?: string;
   source: string;
-  category: string;
-  publishedAt: string;
-  imageUrl?: string;
+  source_name?: string;
+  category?: string;
+  published_at: string;
   url: string;
-  language: string;
-}
-
-interface RelatedArticle {
-  id: string;
-  title: string;
-  category: string;
-  publishedAt: string;
 }
 
 export default function NewsDetailPage({
@@ -46,8 +31,8 @@ export default function NewsDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const [article, setArticle] = useState<NewsArticle | null>(null);
-  const [relatedNews, setRelatedNews] = useState<RelatedArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,8 +51,7 @@ export default function NewsDetailPage({
         const data = await response.json();
 
         if (data.success) {
-          setArticle(data.data.article);
-          setRelatedNews(data.data.relatedNews || []);
+          setArticle(data.data);
         } else {
           setError('Article not found');
         }
@@ -84,36 +68,12 @@ export default function NewsDetailPage({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-IN', {
-      dateStyle: 'long',
-      timeStyle: 'short',
+    return date.toLocaleDateString('en-IN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
     });
-  };
-
-  const getCategoryColor = (category: string) => {
-    const colors: { [key: string]: string } = {
-      stocks: 'bg-blue-500',
-      'mutual-funds': 'bg-purple-500',
-      market: 'bg-green-500',
-      economy: 'bg-orange-500',
-      commodities: 'bg-yellow-500',
-      crypto: 'bg-pink-500',
-    };
-    return colors[category] || 'bg-gray-500';
-  };
-
-  const handleShare = () => {
-    if (navigator.share && article) {
-      navigator.share({
-        title: article.title,
-        text: article.summary,
-        url: window.location.href,
-      });
-    } else {
-      // Fallback: copy to clipboard
-      navigator.clipboard.writeText(window.location.href);
-      alert('Link copied to clipboard!');
-    }
   };
 
   if (loading) {
@@ -139,16 +99,20 @@ export default function NewsDetailPage({
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50 dark:from-gray-950 dark:via-blue-950/20 dark:to-purple-950/20">
         <Header />
         <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mb-4">
-            <BackButton />
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              onClick={() => router.push('/news')}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
           </div>
           <Card className="p-8 text-center">
             <p className="text-lg text-red-600 mb-4">
               {error || 'Article not found'}
             </p>
-            <Link href="/news">
-              <Button>← Back to News</Button>
-            </Link>
           </Card>
         </main>
       </div>
@@ -160,150 +124,101 @@ export default function NewsDetailPage({
       <Header />
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
-          <BackButton />
-        </div>
+        {/* Back Button */}
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="mb-6"
+        >
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/news')}
+            className="gap-2"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back
+          </Button>
+        </motion.div>
 
         {/* Article Content */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <Card className="mb-8 shadow-2xl">
+          <Card className="shadow-2xl">
             <CardContent className="p-8">
-              {/* Category & Date */}
-              <div className="flex items-center gap-3 mb-4">
-                <Badge
-                  className={`${getCategoryColor(article.category)} text-white`}
-                >
-                  {article.category.toUpperCase()}
-                </Badge>
-                <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  {formatDate(article.publishedAt)}
-                </span>
-              </div>
-
-              {/* Title */}
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 leading-tight">
-                {article.title}
-              </h1>
-
-              {/* Meta Info */}
-              <div className="flex items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {article.source}
-                  </span>
-                </div>
-                <div className="flex gap-2 ml-auto">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleShare}
-                    className="flex items-center gap-1"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </Button>
-                  {article.url && (
-                    <a
-                      href={article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="outline" size="sm">
-                        <ExternalLink className="w-4 h-4 mr-1" />
-                        Source
-                      </Button>
-                    </a>
-                  )}
-                </div>
-              </div>
-
-              {/* Featured Image */}
-              {article.imageUrl && (
-                <div className="mb-8 rounded-xl overflow-hidden">
+              {/* Article Image */}
+              {article.image_url && (
+                <div className="mb-6 rounded-lg overflow-hidden">
                   <img
-                    src={article.imageUrl}
+                    src={article.image_url}
                     alt={article.title}
-                    className="w-full h-auto"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
+                    className="w-full h-auto max-h-96 object-cover"
                   />
                 </div>
               )}
 
-              {/* Summary */}
-              <div className="mb-6 p-6 bg-blue-50 dark:bg-blue-950/30 rounded-xl border-2 border-blue-200 dark:border-blue-800">
-                <p className="text-lg text-gray-700 dark:text-gray-300 font-medium leading-relaxed">
-                  {article.summary}
-                </p>
+              {/* Headline */}
+              <h1 className="text-2xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4 leading-tight">
+                {article.title}
+              </h1>
+
+              {/* Meta Info */}
+              <div className="flex flex-wrap items-center gap-4 mb-6 pb-6 border-b border-gray-200 dark:border-gray-700">
+                {article.author && (
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">By:</span> {article.author}
+                  </div>
+                )}
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <span className="font-medium">Source:</span>{' '}
+                  {article.source_name || article.source}
+                </div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <Calendar className="w-4 h-4" />
+                  <span>{formatDate(article.published_at)}</span>
+                </div>
               </div>
 
               {/* Full Content */}
               <div className="prose prose-lg dark:prose-invert max-w-none">
-                <div
-                  className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-4"
-                  dangerouslySetInnerHTML={{ __html: article.fullContent }}
-                />
+                <div className="text-gray-700 dark:text-gray-300 leading-relaxed space-y-4">
+                  {/* Description */}
+                  <p className="text-lg font-medium">{article.description}</p>
+
+                  {/* Full Content */}
+                  {article.content &&
+                    article.content !== article.description &&
+                    !article.content.includes(
+                      'Full article content not available'
+                    ) && (
+                      <div className="mt-6 whitespace-pre-wrap">
+                        {article.content}
+                      </div>
+                    )}
+                </div>
               </div>
+
+              {/* External Link */}
+              {article.url && (
+                <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                    Read the full article at the source:
+                  </p>
+                  <a
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium transition-colors"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    {article.source_name || article.source}
+                  </a>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Related News */}
-        {relatedNews.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5" />
-                  Related News
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {relatedNews.map((related) => (
-                    <Link
-                      key={related.id}
-                      href={`/news/${related.id}`}
-                      className="block p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                            {related.title}
-                          </h4>
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              className={`${getCategoryColor(
-                                related.category
-                              )} text-white text-xs`}
-                            >
-                              {related.category}
-                            </Badge>
-                            <span className="text-xs text-gray-500">
-                              {new Date(related.publishedAt).toLocaleDateString(
-                                'en-IN'
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
       </main>
     </div>
   );

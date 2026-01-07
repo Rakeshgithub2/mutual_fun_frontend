@@ -73,7 +73,7 @@ function SearchPageContent() {
     category: category || undefined,
     subCategory: subCategory || undefined,
     page,
-    limit: 500,
+    limit: 5000, // Increased to show all search results
   });
 
   const t = (key: string) => getTranslation(language, key);
@@ -323,9 +323,9 @@ function SearchPageContent() {
                     All Equity
                   </button>
                   <button
-                    onClick={() => updateSubCategory('Large Cap')}
+                    onClick={() => updateSubCategory('largecap')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      subCategory === 'Large Cap'
+                      subCategory === 'largecap'
                         ? 'bg-green-600 text-white shadow-md'
                         : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
                     }`}
@@ -333,9 +333,9 @@ function SearchPageContent() {
                     Large Cap
                   </button>
                   <button
-                    onClick={() => updateSubCategory('Mid Cap')}
+                    onClick={() => updateSubCategory('midcap')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      subCategory === 'Mid Cap'
+                      subCategory === 'midcap'
                         ? 'bg-green-600 text-white shadow-md'
                         : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
                     }`}
@@ -343,9 +343,9 @@ function SearchPageContent() {
                     Mid Cap
                   </button>
                   <button
-                    onClick={() => updateSubCategory('Small Cap')}
+                    onClick={() => updateSubCategory('smallcap')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      subCategory === 'Small Cap'
+                      subCategory === 'smallcap'
                         ? 'bg-green-600 text-white shadow-md'
                         : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
                     }`}
@@ -353,9 +353,9 @@ function SearchPageContent() {
                     Small Cap
                   </button>
                   <button
-                    onClick={() => updateSubCategory('Multi Cap')}
+                    onClick={() => updateSubCategory('multicap')}
                     className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      subCategory === 'Multi Cap'
+                      subCategory === 'multicap'
                         ? 'bg-green-600 text-white shadow-md'
                         : 'bg-white dark:bg-gray-800 border border-green-300 dark:border-green-700 hover:bg-green-50 dark:hover:bg-green-900/30'
                     }`}

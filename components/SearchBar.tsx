@@ -83,11 +83,11 @@ export function SearchBar({
       console.log('🔍 Searching for:', searchQuery);
 
       const response = await api.get(
-        `/suggest?q=${encodeURIComponent(searchQuery)}`
+        `/api/suggest?q=${encodeURIComponent(searchQuery)}`
       );
 
       const data = response.data || {};
-      const fundSuggestions = data.suggestions || [];
+      const fundSuggestions = data.suggestions || data.data || [];
 
       console.log('✅ Found suggestions:', fundSuggestions.length);
 

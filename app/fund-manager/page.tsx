@@ -122,7 +122,7 @@ export default function FundManagerPage() {
         return false;
       })
       .map((fund) => ({
-        id: fund.id || fund.fundId,
+        id: fund.schemeCode || fund.fundId || fund.id,
         name: fund.name,
         fundHouse: fund.fundHouse,
         category: fund.category,
@@ -142,7 +142,7 @@ export default function FundManagerPage() {
       .filter((fund) => {
         return (
           fund.name.toLowerCase().includes(query) ||
-          fund.fundHouse.toLowerCase().includes(query) ||
+          (fund.fundHouse ?? '').toLowerCase().includes(query) ||
           fund.category?.toLowerCase().includes(query)
         );
       })
@@ -270,7 +270,10 @@ export default function FundManagerPage() {
 
   // Fetch manager details
   const handleShowManagerDetails = async () => {
-    if (!selectedFund) return;
+    if (!selectedFund || !selectedFund.id) {
+      console.error('No fund selected or fund ID missing');
+      return;
+    }
 
     setLoading(true);
     try {
@@ -562,9 +565,9 @@ export default function FundManagerPage() {
                           )}
 
                           {!fundsLoading &&
-                            searchResults.map((fund) => (
+                            searchResults.map((fund, index) => (
                               <button
-                                key={fund.id}
+                                key={fund.id || `fund-${index}`}
                                 onClick={() => handleFundSelect(fund)}
                                 className="w-full text-left p-4 hover:bg-purple-50 dark:hover:bg-purple-950/30 border-b border-gray-200 dark:border-gray-700 last:border-b-0 transition-colors"
                               >

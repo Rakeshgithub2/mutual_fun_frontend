@@ -9,8 +9,7 @@ import { Label } from '@/components/ui/label';
 import { ArrowLeft, Mail, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://mutualfun-backend.vercel.app';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -51,16 +50,16 @@ export default function ForgotPasswordPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to send OTP');
+        throw new Error(data.message || data.error || 'Failed to send OTP');
       }
 
       console.log('✅ OTP sent:', data);
       setSuccess(true);
-      toast.success('Password reset code sent to your email!');
+      toast.success(data.message || 'Password reset code sent to your email!');
 
-      // Redirect to reset password page after 2 seconds
+      // Redirect to OTP verification page
       setTimeout(() => {
-        router.push(`/auth/reset-password?email=${encodeURIComponent(email)}`);
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`);
       }, 2000);
     } catch (err: any) {
       console.error('❌ Forgot password error:', err);

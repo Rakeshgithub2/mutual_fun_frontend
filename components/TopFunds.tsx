@@ -80,12 +80,14 @@ export function TopFunds() {
     }
   };
 
-  const handleViewDetails = (fundId: string, fundName: string) => {
+  const handleViewDetails = (fund: Fund) => {
     // Track analytics
-    analytics.trackFundView(fundId, fundName);
+    analytics.trackFundView(fund.fundId, fund.name);
     analytics.trackButtonClick('View Details', `Top ${topFilter} Funds`);
 
-    router.push(`/funds/${fundId}`);
+    // Use schemeCode if available, fallback to fundId
+    const identifier = (fund as any).schemeCode || fund.fundId || fund.id;
+    router.push(`/equity/${identifier}`);
   };
 
   const getRiskBadgeColor = (riskLevel?: string) => {
@@ -256,7 +258,7 @@ export function TopFunds() {
                   variant="outline"
                   size="sm"
                   className="w-full group-hover:bg-primary group-hover:text-primary-foreground"
-                  onClick={() => handleViewDetails(fund.fundId, fund.name)}
+                  onClick={() => handleViewDetails(fund)}
                 >
                   View Details
                   <ArrowRight className="ml-2 h-4 w-4" />

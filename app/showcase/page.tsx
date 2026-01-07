@@ -37,7 +37,7 @@ export default function ComponentShowcase() {
       name: 'HDFC Mutual Fund',
     },
     category: 'equity',
-    subCategory: 'Large Cap',
+    subCategory: 'largecap',
     nav: {
       value: 850.5432,
       date: new Date().toISOString(),

@@ -58,7 +58,8 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const BASE_URL = 'https://mutualfun-backend.vercel.app';
+      const BASE_URL =
+        process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
       const API_URL = (
         process.env.NEXT_PUBLIC_API_URL
           ? `${process.env.NEXT_PUBLIC_API_URL}/api`
@@ -70,39 +71,48 @@ export default function ChatPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          query: userMessage.content,
-          context: {
-            conversationHistory: messages.slice(-4).map((m) => ({
-              role: m.role,
-              content: m.content,
-            })),
-          },
+          message: userMessage.content, // ✅ Fixed: backend expects 'message' not 'query'
+          conversationHistory: messages.slice(-4).map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get response');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || `Server error: ${response.status}`
+        );
       }
 
       const apiResponse = await response.json();
 
-      // Extract data from API response (handle both {data: {...}} and direct response)
-      const data = apiResponse.data || apiResponse;
+      // ✅ Extract reply from backend response
+      const responseText =
+        apiResponse.reply ||
+        apiResponse.data?.reply ||
+        apiResponse.answer ||
+        'No response received';
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: data.answer,
+        content: responseText,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
 
-      if (data.followUpQuestions && data.followUpQuestions.length > 0) {
+      // Optional: Handle follow-up questions if API provides them
+      if (
+        apiResponse.followUpQuestions &&
+        apiResponse.followUpQuestions.length > 0
+      ) {
         const followUpMessage: Message = {
           id: (Date.now() + 2).toString(),
           role: 'assistant',
-          content: `💡 You might also want to ask:\n${data.followUpQuestions
+          content: `💡 You might also want to ask:\n${apiResponse.followUpQuestions
             .map((q: string, i: number) => `${i + 1}. ${q}`)
             .join('\n')}`,
           timestamp: new Date(),
@@ -117,7 +127,11 @@ export default function ChatPage() {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content:
-          "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
+          error instanceof Error && error.message.includes('503')
+            ? '🔧 AI service is temporarily unavailable. The administrator needs to configure the GEMINI_API_KEY.'
+            : error instanceof Error
+            ? `⚠️ ${error.message}`
+            : "I apologize, but I'm having trouble connecting right now. Please try again in a moment.",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -127,7 +141,7 @@ export default function ChatPage() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && inputValue.trim()) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -141,62 +155,60 @@ export default function ChatPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-600 to-red-600">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950">
       <Header />
 
-      <main className="mx-auto max-w-6xl px-2 sm:px-4 py-3 sm:py-6">
+      <main className="mx-auto max-w-6xl px-2 sm:px-4 py-3 sm:py-6 pb-20 sm:pb-24">
         <div className="mb-3 sm:mb-4 px-2">
           <BackButton />
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white drop-shadow-lg mb-1 sm:mb-2 mt-2">
-            AI Investment Assistant
-          </h1>
-          <p className="text-white/80 text-xs sm:text-sm">
-            Get instant answers about mutual funds, investments, and financial
-            planning
-          </p>
-        </div>
-
-        {/* Full-Page Chat Interface */}
-        <div className="rounded-xl sm:rounded-2xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl border-2 border-white/30 h-[calc(100vh-180px)] sm:h-[calc(100vh-220px)] flex flex-col">
-          {/* Chat Header */}
-          <div className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 border-b-2 border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-t-xl sm:rounded-t-2xl">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+          <div className="flex items-center gap-3 mt-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 flex items-center justify-center shadow-lg">
+              <Sparkles className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="font-bold text-white text-base sm:text-lg">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
                 AI Investment Assistant
-              </h2>
-              <p className="text-xs text-white/80">
-                Powered by GPT-4 • Always online
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
+                Get instant answers powered by Gemini AI
               </p>
             </div>
           </div>
+        </div>
 
+        {/* Chat Container */}
+        <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-gray-900 shadow-2xl border border-gray-200 dark:border-gray-800 overflow-hidden h-[calc(100vh-200px)] sm:h-[calc(100vh-240px)] flex flex-col">
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 space-y-3 sm:space-y-4 bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-900 dark:to-gray-800">
-            {messages.map((message) => (
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-5">
+            {messages.map((message, index) => (
               <div
                 key={message.id}
                 className={`flex ${
                   message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                } animate-fadeIn`}
+                style={{ animationDelay: `${index * 50}ms` }}
               >
+                {message.role === 'assistant' && (
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 mr-2 sm:mr-3 shadow-md">
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                  </div>
+                )}
+
                 <div
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-xl sm:rounded-2xl px-3 py-2 sm:px-4 sm:py-3 ${
+                  className={`max-w-[80%] sm:max-w-[75%] rounded-2xl sm:rounded-3xl px-4 py-3 sm:px-5 sm:py-4 shadow-lg transition-all hover:shadow-xl ${
                     message.role === 'user'
-                      ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                      : 'bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 shadow-md'
+                      ? 'bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 text-white'
+                      : 'bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700'
                   }`}
                 >
-                  <p className="text-xs sm:text-sm whitespace-pre-wrap leading-relaxed">
+                  <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
                     {message.content}
                   </p>
                   <p
-                    className={`text-xs mt-2 ${
+                    className={`text-xs mt-2 flex items-center gap-1 ${
                       message.role === 'user'
                         ? 'text-white/70'
-                        : 'text-gray-500'
+                        : 'text-gray-500 dark:text-gray-400'
                     }`}
                     suppressHydrationWarning
                   >
@@ -206,16 +218,38 @@ export default function ChatPage() {
                     })}
                   </p>
                 </div>
+
+                {message.role === 'user' && (
+                  <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 dark:from-gray-600 dark:to-gray-800 flex items-center justify-center flex-shrink-0 ml-2 sm:ml-3 text-white font-bold text-sm shadow-md">
+                    You
+                  </div>
+                )}
               </div>
             ))}
 
             {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 shadow-md">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-purple-600" />
+              <div className="flex justify-start animate-fadeIn">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 mr-2 sm:mr-3 shadow-md">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl px-5 py-4 shadow-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1">
+                      <div
+                        className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"
+                        style={{ animationDelay: '0ms' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-blue-600 rounded-full animate-bounce"
+                        style={{ animationDelay: '150ms' }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-pink-600 rounded-full animate-bounce"
+                        style={{ animationDelay: '300ms' }}
+                      ></div>
+                    </div>
                     <span className="text-sm text-gray-600 dark:text-gray-400">
-                      Thinking...
+                      AI is thinking...
                     </span>
                   </div>
                 </div>
@@ -224,22 +258,33 @@ export default function ChatPage() {
 
             {/* Suggested Questions */}
             {messages.length === 1 && !isLoading && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  💡 Try asking:
-                </p>
-                {suggestedQuestions.map((question, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => {
-                      setInputValue(question);
-                      inputRef.current?.focus();
-                    }}
-                    className="block w-full text-left text-xs sm:text-sm px-3 py-2 sm:px-4 sm:py-3 rounded-lg sm:rounded-xl bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-purple-400 hover:shadow-md transition-all min-h-[44px] flex items-center"
-                  >
-                    {question}
-                  </button>
-                ))}
+              <div className="space-y-3 pt-2 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <div className="h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent flex-1"></div>
+                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider px-3">
+                    💡 Quick Starts
+                  </p>
+                  <div className="h-px bg-gradient-to-r from-transparent via-purple-300 to-transparent flex-1"></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+                  {suggestedQuestions.map((question, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        setInputValue(question);
+                        inputRef.current?.focus();
+                      }}
+                      className="group text-left text-sm px-4 py-3 rounded-xl bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 hover:border-purple-400 dark:hover:border-purple-600 hover:shadow-lg transition-all min-h-[52px] flex items-center gap-3"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-gray-700 dark:text-gray-300 group-hover:text-purple-600 dark:group-hover:text-purple-400">
+                        {question}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -247,35 +292,62 @@ export default function ChatPage() {
           </div>
 
           {/* Input Area */}
-          <div className="p-2 sm:p-3 lg:p-4 border-t-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-b-xl sm:rounded-b-2xl">
-            <div className="flex gap-1.5 sm:gap-2">
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Ask about investments..."
-                className="flex-1 rounded-lg sm:rounded-xl border-2 focus:border-purple-400 h-10 sm:h-11 lg:h-12 text-sm sm:text-base"
-                disabled={isLoading}
-              />
+          <div className="p-3 sm:p-4 lg:p-5 border-t border-gray-200 dark:border-gray-800 bg-gradient-to-br from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
+            <div className="flex gap-2 sm:gap-3">
+              <div className="flex-1 relative">
+                <Input
+                  ref={inputRef}
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Ask anything about investments..."
+                  className="w-full rounded-xl sm:rounded-2xl border-2 border-gray-200 dark:border-gray-700 focus:border-purple-400 dark:focus:border-purple-600 h-11 sm:h-12 lg:h-14 text-sm sm:text-base pl-4 pr-4 bg-white dark:bg-gray-800 shadow-sm"
+                  disabled={isLoading}
+                />
+              </div>
               <Button
                 onClick={handleSendMessage}
                 disabled={!inputValue.trim() || isLoading}
-                className="rounded-lg sm:rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 h-10 sm:h-11 lg:h-12 px-3 sm:px-4 lg:px-6 min-w-[44px]"
+                className="rounded-xl sm:rounded-2xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 h-11 sm:h-12 lg:h-14 px-4 sm:px-5 lg:px-7 min-w-[48px] sm:min-w-[60px] shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-5 h-5 sm:w-6 sm:h-6" />
                 )}
               </Button>
             </div>
-            <p className="text-xs text-gray-500 mt-2 text-center">
-              Press Enter to send • Shift+Enter for new line
-            </p>
+            <div className="flex items-center justify-between mt-2 px-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Press{' '}
+                <kbd className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px]">
+                  Enter
+                </kbd>{' '}
+                to send
+              </p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                Powered by Gemini AI
+              </p>
+            </div>
           </div>
         </div>
       </main>
+
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

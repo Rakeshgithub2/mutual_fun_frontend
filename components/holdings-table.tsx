@@ -125,12 +125,12 @@ export function HoldingsTable({ holdings, holdingsCount }: HoldingsTableProps) {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <span className="text-sm font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 text-transparent bg-clip-text">
-                      {holding.percentage.toFixed(2)}%
+                      {(holding.percentage || 0).toFixed(2)}%
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
                     ₹
-                    {holding.value.toLocaleString('en-IN', {
+                    {(holding.value || 0).toLocaleString('en-IN', {
                       maximumFractionDigits: 0,
                     })}
                   </td>
@@ -176,7 +176,7 @@ export function HoldingsTable({ holdings, holdingsCount }: HoldingsTableProps) {
                     % of Portfolio:
                   </span>
                   <span className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-400 dark:to-pink-400 text-transparent bg-clip-text">
-                    {holding.percentage.toFixed(2)}%
+                    {(holding.percentage || 0).toFixed(2)}%
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -185,7 +185,7 @@ export function HoldingsTable({ holdings, holdingsCount }: HoldingsTableProps) {
                   </span>
                   <span className="font-semibold text-gray-900 dark:text-gray-100">
                     ₹
-                    {holding.value.toLocaleString('en-IN', {
+                    {(holding.value || 0).toLocaleString('en-IN', {
                       maximumFractionDigits: 0,
                     })}{' '}
                     Cr
@@ -205,7 +205,10 @@ export function HoldingsTable({ holdings, holdingsCount }: HoldingsTableProps) {
             These are real companies with actual ticker symbols. Top{' '}
             {holdings.length} holdings represent{' '}
             <span className="font-bold text-purple-600 dark:text-purple-400">
-              {holdings.reduce((sum, h) => sum + h.percentage, 0).toFixed(2)}%
+              {holdings
+                .reduce((sum, h) => sum + (h.percentage || 0), 0)
+                .toFixed(2)}
+              %
             </span>{' '}
             of the total portfolio.
           </p>

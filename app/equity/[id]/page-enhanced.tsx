@@ -53,7 +53,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 
-const BASE_URL = 'https://mutualfun-backend.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002';
 const API_URL = (
   process.env.NEXT_PUBLIC_API_URL
     ? `${process.env.NEXT_PUBLIC_API_URL}/api`
