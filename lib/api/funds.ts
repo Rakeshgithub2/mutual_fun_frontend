@@ -351,46 +351,6 @@ export const getFundHouses = async (): Promise<string[]> => {
 };
 
 /**
- * Get all funds (multi-page fetch)
- *
- * @param filters - Optional filters to apply
- * @param maxFunds - Maximum number of funds to fetch (default: all)
- * @returns Promise with array of all funds
- */
-export const fetchAllFunds = async (
-  filters: Omit<FundFilters, 'page' | 'limit'> = {},
-  maxFunds: number = 5000
-): Promise<Fund[]> => {
-  const allFunds: Fund[] = [];
-  let page = 1;
-  const limit = 200;
-
-  try {
-    while (allFunds.length < maxFunds) {
-      const response = await fetchFunds({ ...filters, page, limit });
-
-      if (!response.data || response.data.length === 0) {
-        break;
-      }
-
-      allFunds.push(...response.data);
-
-      if (!response.pagination.hasNext) {
-        console.log(`✅ Fetched all ${allFunds.length} funds`);
-        break;
-      }
-
-      page++;
-    }
-
-    return allFunds;
-  } catch (error) {
-    console.error('❌ Error fetching all funds:', error);
-    throw error;
-  }
-};
-
-/**
  * Compare multiple funds
  *
  * @param fundIds - Array of fund IDs to compare
