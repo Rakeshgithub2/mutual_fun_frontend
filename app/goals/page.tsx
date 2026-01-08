@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import Header from '@/components/header';
+import { Header } from '@/components/header';
 import Link from 'next/link';
 import {
   Target,
@@ -484,8 +484,8 @@ export default function GoalsPage() {
                                   goal.status === 'ACTIVE'
                                     ? 'text-green-600'
                                     : goal.status === 'COMPLETED'
-                                      ? 'text-blue-600'
-                                      : 'text-gray-600'
+                                    ? 'text-blue-600'
+                                    : 'text-gray-600'
                                 }`}
                               >
                                 {goal.status}
