@@ -3,11 +3,5 @@
   "buildCommand": "pnpm run build",
   "outputDirectory": ".next",
   "framework": "nextjs",
-  "installCommand": "pnpm install --no-frozen-lockfile",
-  "env": {
-    "NEXT_PUBLIC_API_URL": "@next-public-api-url",
-    "NEXT_PUBLIC_BACKEND_URL": "@next-public-backend-url",
-    "NEXT_PUBLIC_FRONTEND_URL": "@next-public-frontend-url",
-    "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "@next-public-google-client-id"
-  }
+  "installCommand": "pnpm install --no-frozen-lockfile"
 }
