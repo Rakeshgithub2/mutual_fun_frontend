@@ -43,6 +43,16 @@ import {
   SectorDonutChart,
   HoldingsDonutChart,
 } from '@/components/enhanced-fund-charts';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 
 export default function FundDetailEnhanced({
   params,

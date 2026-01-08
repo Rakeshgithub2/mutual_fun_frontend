@@ -84,7 +84,7 @@ export function MarketIndices() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const response = await fetch(`${API_BASE_URL}/api/indices`, {
+      const response = await fetch(`${API_BASE_URL}/api/market/indices`, {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +208,7 @@ export function MarketIndices() {
       }
     } catch (error: any) {
       console.error('❌ Failed to fetch market indices:', error);
-      console.error('API URL:', `${API_BASE_URL}/api/indices`);
+      console.error('API URL:', `${API_BASE_URL}/api/market/indices`);
 
       // Show detailed error for debugging
       if (error.name === 'AbortError') {

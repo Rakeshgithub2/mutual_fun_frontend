@@ -495,7 +495,9 @@ export default function MarketIndexDetailPage({
       try {
         setLoading(true);
         const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'}/api/indices/${id}`
+          `${
+            process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
+          }/api/market/indices/${id}`
         );
         const data = await response.json();
 
@@ -664,7 +666,9 @@ export default function MarketIndexDetailPage({
                       <ArrowDownRight className="w-5 h-5 text-red-600" />
                     )}
                     <span
-                      className={`text-lg font-bold ${isPositive ? 'text-green-600' : 'text-red-600'}`}
+                      className={`text-lg font-bold ${
+                        isPositive ? 'text-green-600' : 'text-red-600'
+                      }`}
                     >
                       {isPositive ? '+' : ''}
                       {indexData.change.toFixed(2)} (
@@ -747,7 +751,11 @@ export default function MarketIndexDetailPage({
                     1 Day Return
                   </p>
                   <p
-                    className={`text-lg font-bold ${indexData.percent_change >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                    className={`text-lg font-bold ${
+                      indexData.percent_change >= 0
+                        ? 'text-green-600'
+                        : 'text-red-600'
+                    }`}
                   >
                     {indexData.percent_change >= 0 ? '+' : ''}
                     {indexData.percent_change.toFixed(2)}%

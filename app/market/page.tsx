@@ -282,7 +282,7 @@ export default function MarketPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-      const response = await fetch(`${API_BASE_URL}/api/indices`, {
+      const response = await fetch(`${API_BASE_URL}/api/market/indices`, {
         signal: controller.signal,
       });
 
